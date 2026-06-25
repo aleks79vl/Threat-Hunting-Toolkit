@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+
+.venv/
+venv/
+
+reports/*.html
+reports/*.json
+
+data/processed/
+
+.DS_Store
+
+.pytest_cache/
