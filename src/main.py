@@ -4,15 +4,21 @@ from src.parsers.nmap_parser import parse_nmap_xml
 from src.detection.unknown_ip_detector import detect_unknown_ips
 from src.detection.critical_port_detector import detect_critical_ports
 from src.correlation.threat_correlation import correlate_threats
+from src.correlation.risk_scoring import calculate_risk_score
 from src.models.threat_report import ThreatReport
 from src.reporting.json_report_generator import generate_json_report
+from src.reporting.html_report_generator import generate_html_report
+from src.reporting.timeline_generator import generate_timeline
 
 
 def main():
     nmap_file = "data/raw/network/nmap_scan.xml"
     whitelist_file = "config/whitelist.json"
     critical_ports_file = "config/critical_ports.json"
-    output_file = "reports/threat_report.json"
+    risk_scores_file = "config/risk_scores.json"
+
+    json_output_file = "reports/threat_report.json"
+    html_output_file = "reports/threat_report.html"
 
     events = parse_nmap_xml(nmap_file)
 
@@ -31,19 +37,36 @@ def main():
         critical_events
     )
 
+    scored_findings = [
+        calculate_risk_score(
+            finding,
+            risk_scores_file
+        )
+        for finding in findings
+    ]
+
+    timeline = generate_timeline(scored_findings)
+
     report = ThreatReport(
         title="Threat Hunting Report",
         generated_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        findings=findings
+        findings=scored_findings,
+        timeline=timeline
     )
 
     generate_json_report(
         report,
-        output_file
+        json_output_file
+    )
+
+    generate_html_report(
+        report,
+        html_output_file
     )
 
     print("Threat Hunting Report generated successfully.")
-    print(f"Output file: {output_file}")
+    print(f"JSON output file: {json_output_file}")
+    print(f"HTML output file: {html_output_file}")
     print(f"Total findings: {report.total_findings()}")
     print(f"Critical findings: {report.count_by_severity('critical')}")
 

@@ -16,79 +16,62 @@ This release introduces the first fully functional Threat Hunting pipeline capab
 
 ## Added
 
-### Core Architecture
+### Core
 
-- SecurityEvent data model
-- ThreatFinding data model
-- ThreatReport data model
-- Modular project architecture
-
-### Parsers
-
-- Nmap XML parser
-
-### Detection Engine
-
-- Unknown Host Detection
-- Critical Port Detection
-
-### Correlation
-
-- Threat Correlation Engine
-
-### Risk Analysis
-
-- Risk Scoring Engine
+- Threat Timeline Engine
+- Timeline integration into ThreatReport
+- Improved ThreatReport data model
 
 ### Reporting
 
-- JSON Report Generator
-- HTML Report Generator
-- Executive Summary Generator
-
-### Configuration
-
-- Whitelist support
-- Risk score configuration
+- Timeline support in JSON Report
+- Timeline support in HTML Report
+- Executive Summary improvements
+- HTML Report improvements
+- Enhanced report generation pipeline
 
 ### Documentation
 
-- Complete project README
-- Project architecture
-- Detection pipeline
-- Roadmap
-- Development principles
+- Complete README redesign
+- Updated project architecture
+- Updated detection pipeline
+- Updated project roadmap
+- Updated project statistics
+- Improved project presentation
 
 ### Testing
 
-- 35 Unit Tests
+- Added Timeline Engine tests
+- Added HTML Timeline tests
+- Increased automated test coverage
+- Total Unit Tests: 39
 - 100% Passing
 
 ---
 
 ## Improved
 
-- Project folder organization
-- Reporting workflow
-- Detection pipeline
-- Configuration management
+- Threat investigation workflow
+- Report generation pipeline
+- Timeline visualization
+- Code organization
 - Project documentation
-- Code readability
-- Test coverage
+- HTML report layout
+- Risk reporting
 
 ---
 
 ## Technical Highlights
 
-Current capabilities:
+Current capabilities include:
 
 - Parse Nmap XML scans
 - Normalize security events
 - Detect unknown hosts
 - Detect exposed critical services
 - Correlate multiple findings
-- Calculate risk score
-- Generate investigation reports
+- Calculate configurable risk scores
+- Generate investigation timelines
 - Produce JSON reports
 - Produce HTML reports
 - Generate executive summaries
@@ -97,19 +80,15 @@ Current capabilities:
 
 ## Statistics
 
-Current project metrics:
-
 | Metric | Value |
-|--------|-------|
-| Python Modules | 12 |
+|--------|------:|
 | Detection Engines | 2 |
-| Report Generators | 3 |
-| Threat Models | 3 |
+| Correlation Engines | 1 |
+| Report Generators | 4 |
+| Timeline Engine | 1 |
 | Supported Log Sources | 1 |
-| Unit Tests | 35 |
-| Passing Tests | 100% |
-
----
+| Unit Tests | 39 |
+| Test Status | 100% Passing |
 
 ## Next Release (v0.4)
 

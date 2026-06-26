@@ -33,6 +33,21 @@ def generate_html_report(
         </tr>
         """
 
+    timeline_rows = ""
+
+    for item in report.timeline:
+        timeline_rows += f"""
+        <tr>
+            <td>{item.get("time", "")}</td>
+            <td>{item.get("event", "")}</td>
+            <td>{item.get("severity", "").upper()}</td>
+            <td>{item.get("ip", "")}</td>
+            <td>{item.get("port", "")}</td>
+            <td>{item.get("risk_score", "")}</td>
+            <td>{item.get("source", "")}</td>
+        </tr>
+        """
+
     html_content = f"""
 <!DOCTYPE html>
 <html>
@@ -69,6 +84,20 @@ def generate_html_report(
             <th>Recommendation</th>
         </tr>
         {findings_rows}
+    </table>
+
+    <h2>Threat Timeline</h2>
+    <table border="1" cellpadding="8">
+        <tr>
+            <th>Time</th>
+            <th>Event</th>
+            <th>Severity</th>
+            <th>IP</th>
+            <th>Port</th>
+            <th>Risk Score</th>
+            <th>Source</th>
+        </tr>
+        {timeline_rows}
     </table>
 </body>
 </html>

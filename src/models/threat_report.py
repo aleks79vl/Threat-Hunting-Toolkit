@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 import json
 
 from src.models.threat_finding import ThreatFinding
@@ -9,6 +9,7 @@ class ThreatReport:
     title: str
     generated_at: str
     findings: list[ThreatFinding] = field(default_factory=list)
+    timeline: list[dict] = field(default_factory=list)
 
     def total_findings(self) -> int:
         return len(self.findings)
@@ -37,6 +38,7 @@ class ThreatReport:
                 finding.to_dict()
                 for finding in self.findings
             ],
+            "timeline": self.timeline,
         }
 
     def to_json(self) -> str:
