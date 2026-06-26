@@ -1,12 +1,13 @@
+from src.models.threat_finding import ThreatFinding
 from src.utils.event_utils import SecurityEvent
 
 
 def correlate_threats(
     unknown_events: list[SecurityEvent],
     critical_events: list[SecurityEvent],
-) -> list[dict]:
+) -> list[ThreatFinding]:
 
-    correlated = []
+    findings = []
 
     critical_map = {
         event.src_ip: event
@@ -19,17 +20,23 @@ def correlate_threats(
 
             critical = critical_map[unknown.src_ip]
 
-            correlated.append(
-                {
-                    "ip": unknown.src_ip,
-                    "hostname": unknown.hostname,
-                    "port": critical.dst_port,
-                    "severity": "critical",
-                    "reason": (
-                        "Unknown host with exposed "
-                        "critical service"
-                    ),
-                }
+            finding = ThreatFinding(
+                title="Unknown host with exposed critical service",
+                severity="critical",
+                description=(
+                    f"Host {unknown.src_ip} exposes "
+                    f"critical port {critical.dst_port}."
+                ),
+                source="Threat Correlation Engine",
+                ip=unknown.src_ip,
+                hostname=unknown.hostname,
+                port=critical.dst_port,
+                recommendation=(
+                    "Verify asset inventory, restrict access "
+                    "and investigate host."
+                )
             )
 
-    return correlated
+            findings.append(finding)
+
+    return findings
