@@ -1,0 +1,58 @@
+{
+    "critical_ports": [
+        {
+            "port": 21,
+            "service": "FTP",
+            "severity": "medium",
+            "description": "File Transfer Protocol"
+        },
+        {
+            "port": 22,
+            "service": "SSH",
+            "severity": "high",
+            "description": "Secure Shell"
+        },
+        {
+            "port": 23,
+            "service": "Telnet",
+            "severity": "critical",
+            "description": "Unencrypted remote access"
+        },
+        {
+            "port": 389,
+            "service": "LDAP",
+            "severity": "high",
+            "description": "Active Directory LDAP"
+        },
+        {
+            "port": 445,
+            "service": "SMB",
+            "severity": "critical",
+            "description": "Windows File Sharing"
+        },
+        {
+            "port": 636,
+            "service": "LDAPS",
+            "severity": "medium",
+            "description": "Secure LDAP"
+        },
+        {
+            "port": 3389,
+            "service": "RDP",
+            "severity": "critical",
+            "description": "Remote Desktop Protocol"
+        },
+        {
+            "port": 5985,
+            "service": "WinRM",
+            "severity": "high",
+            "description": "Windows Remote Management"
+        },
+        {
+            "port": 5986,
+            "service": "WinRM SSL",
+            "severity": "medium",
+            "description": "Secure Windows Remote Management"
+        }
+    ]
+}
