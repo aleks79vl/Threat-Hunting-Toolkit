@@ -13,6 +13,7 @@ class ThreatFinding:
     port: int = 0
     technique: str = ""
     recommendation: str = ""
+    risk_score: int = 0
 
     def to_dict(self) -> dict:
         return asdict(self)
