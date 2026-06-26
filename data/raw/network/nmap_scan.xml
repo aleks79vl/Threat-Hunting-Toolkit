@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<nmaprun scanner="nmap" args="nmap -sV -oX nmap_scan.xml 192.168.1.0/24">
+  <host>
+    <status state="up"/>
+    <address addr="192.168.1.10" addrtype="ipv4"/>
+    <hostnames>
+      <hostname name="server01" type="user"/>
+    </hostnames>
+    <ports>
+      <port protocol="tcp" portid="22">
+        <state state="open"/>
+        <service name="ssh" product="OpenSSH" version="8.9"/>
+      </port>
+      <port protocol="tcp" portid="445">
+        <state state="open"/>
+        <service name="microsoft-ds"/>
+      </port>
+    </ports>
+  </host>
+
+  <host>
+    <status state="up"/>
+    <address addr="192.168.1.77" addrtype="ipv4"/>
+    <hostnames>
+      <hostname name="unknown-host" type="user"/>
+    </hostnames>
+    <ports>
+      <port protocol="tcp" portid="3389">
+        <state state="open"/>
+        <service name="ms-wbt-server"/>
+      </port>
+    </ports>
+  </host>
+</nmaprun>

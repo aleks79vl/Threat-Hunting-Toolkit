@@ -1,0 +1,28 @@
+{
+    "known_hosts": [
+        {
+            "hostname": "server01",
+            "ip": "192.168.1.10",
+            "mac": "AA:BB:CC:DD:EE:01",
+            "role": "Domain Controller"
+        },
+        {
+            "hostname": "workstation01",
+            "ip": "192.168.1.20",
+            "mac": "AA:BB:CC:DD:EE:02",
+            "role": "Workstation"
+        },
+        {
+            "hostname": "linux01",
+            "ip": "192.168.1.30",
+            "mac": "AA:BB:CC:DD:EE:03",
+            "role": "Linux Server"
+        },
+        {
+            "hostname": "firewall01",
+            "ip": "192.168.1.1",
+            "mac": "AA:BB:CC:DD:EE:04",
+            "role": "Firewall"
+        }
+    ]
+}
