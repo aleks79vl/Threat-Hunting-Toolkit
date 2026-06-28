@@ -1,0 +1,8 @@
+timestamp,event_id,computer,username,src_ip,logon_type,process_name,message
+2026-06-27 10:00:01,4624,WIN-DC01,administrator,192.168.1.10,10,winlogon.exe,Successful logon
+2026-06-27 10:01:15,4625,WIN-DC01,administrator,203.0.113.15,10,winlogon.exe,Failed logon
+2026-06-27 10:01:40,4625,WIN-DC01,administrator,203.0.113.15,10,winlogon.exe,Failed logon
+2026-06-27 10:02:05,4720,WIN-DC01,temp_admin,192.168.1.20,0,net.exe,User account created
+2026-06-27 10:03:30,4732,WIN-DC01,temp_admin,192.168.1.20,0,net.exe,User added to Administrators group
+2026-06-27 10:04:10,4688,WIN-DC01,administrator,192.168.1.77,0,powershell.exe,Process created
+2026-06-27 10:05:55,1102,WIN-DC01,administrator,192.168.1.77,0,wevtutil.exe,Audit log cleared
