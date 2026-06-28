@@ -1,11 +1,17 @@
 from datetime import datetime
 
 from src.parsers.nmap_parser import parse_nmap_xml
+from src.parsers.windows_event_parser import parse_windows_events
+
 from src.detection.unknown_ip_detector import detect_unknown_ips
 from src.detection.critical_port_detector import detect_critical_ports
+from src.detection.windows_event_detector import detect_windows_events
+
 from src.correlation.threat_correlation import correlate_threats
 from src.correlation.risk_scoring import calculate_risk_score
+
 from src.models.threat_report import ThreatReport
+
 from src.reporting.json_report_generator import generate_json_report
 from src.reporting.html_report_generator import generate_html_report
 from src.reporting.timeline_generator import generate_timeline
@@ -17,33 +23,27 @@ def main():
     critical_ports_file = "config/critical_ports.json"
     risk_scores_file = "config/risk_scores.json"
 
+    windows_events_file = "data/raw/windows/security_events.csv"
+
     json_output_file = "reports/threat_report.json"
     html_output_file = "reports/threat_report.html"
 
-    events = parse_nmap_xml(nmap_file)
+    nmap_events = parse_nmap_xml(nmap_file)
 
-    unknown_events = detect_unknown_ips(
-        events,
-        whitelist_file
-    )
+    unknown_events = detect_unknown_ips(nmap_events,whitelist_file)
 
-    critical_events = detect_critical_ports(
-        events,
-        critical_ports_file
-    )
+    critical_events = detect_critical_ports(nmap_events,critical_ports_file)
 
-    findings = correlate_threats(
-        unknown_events,
-        critical_events
-    )
+    nmap_findings = correlate_threats(unknown_events,critical_events)
 
-    scored_findings = [
-        calculate_risk_score(
-            finding,
-            risk_scores_file
-        )
-        for finding in findings
-    ]
+    windows_events = parse_windows_events(windows_events_file)
+
+    windows_findings = detect_windows_events(windows_events)
+
+    all_findings = nmap_findings + windows_findings
+
+    scored_findings = [calculate_risk_score(finding,risk_scores_file)
+        for finding in all_findings]
 
     timeline = generate_timeline(scored_findings)
 
@@ -54,15 +54,9 @@ def main():
         timeline=timeline
     )
 
-    generate_json_report(
-        report,
-        json_output_file
-    )
+    generate_json_report(report,json_output_file)
 
-    generate_html_report(
-        report,
-        html_output_file
-    )
+    generate_html_report(report,html_output_file)
 
     print("Threat Hunting Report generated successfully.")
     print(f"JSON output file: {json_output_file}")
