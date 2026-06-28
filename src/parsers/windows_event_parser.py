@@ -10,26 +10,23 @@ def parse_windows_events(file_path: str) -> list[SecurityEvent]:
         reader = csv.DictReader(file)
 
         for row in reader:
-            event_id = row["event_id"]
-            username = row["username"]
-            computer = row["computer"]
-            src_ip = row["src_ip"]
-            process_name = row["process_name"]
             message = row["message"]
+            process_name = row["process_name"]
+            raw_event = f"{message}: {process_name}"
 
             event = SecurityEvent(
                 timestamp=row["timestamp"],
                 source="Windows",
-                event_type=event_id,
+                event_type=row["event_id"],
                 severity="low",
-                src_ip=src_ip,
+                src_ip=row["src_ip"],
                 dst_ip="",
                 src_port=0,
                 dst_port=0,
                 protocol="",
-                hostname=computer,
-                username=username,
-                raw_event=message,
+                hostname=row["computer"],
+                username=row["username"],
+                raw_event=raw_event,
             )
 
             events.append(event)

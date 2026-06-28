@@ -19,6 +19,7 @@ def test_successful_logon_event():
     assert event.username == "administrator"
     assert event.hostname == "WIN-DC01"
     assert event.src_ip == "192.168.1.10"
+    assert event.raw_event == "Successful logon: winlogon.exe"
 
 
 def test_failed_logon_event():
@@ -28,7 +29,7 @@ def test_failed_logon_event():
 
     assert event.event_type == "4625"
     assert event.src_ip == "203.0.113.15"
-    assert event.raw_event == "Failed logon"
+    assert event.raw_event == "Failed logon: winlogon.exe"
 
 
 def test_user_created_event():
@@ -38,7 +39,7 @@ def test_user_created_event():
 
     assert event.event_type == "4720"
     assert event.username == "temp_admin"
-    assert event.raw_event == "User account created"
+    assert event.raw_event == "User account created: net.exe"
 
 
 def test_admin_group_change_event():
@@ -58,7 +59,7 @@ def test_powershell_process_event():
 
     assert event.event_type == "4688"
     assert event.username == "administrator"
-    assert event.raw_event == "Process created"
+    assert event.raw_event == "Process created: powershell.exe"
 
 
 def test_audit_log_cleared_event():
@@ -67,4 +68,4 @@ def test_audit_log_cleared_event():
     )[6]
 
     assert event.event_type == "1102"
-    assert event.raw_event == "Audit log cleared"
+    assert event.raw_event == "Audit log cleared: wevtutil.exe"
