@@ -6,6 +6,45 @@ The format is based on Keep a Changelog.
 
 ---
 
+### [v3.1.0] - 2026-06-29
+
+#### Added
+
+- Apache Access Log parser
+- Web Attack Detection engine
+- SQL Injection detection
+- Cross-Site Scripting (XSS) detection
+- Directory Traversal detection
+- Admin Panel Enumeration detection
+- Suspicious User-Agent detection
+
+#### Improved
+
+- Threat Hunting pipeline now processes four log sources:
+    - Nmap XML
+    - Firewall logs
+    - Windows Security Events
+    - Apache Access Logs
+- Enhanced report generation with additional web attack findings
+- Increased total detected findings to 25
+- Improved critical threat identification
+
+#### Testing
+
+- Added comprehensive unit tests for Web Log Parser
+- Added comprehensive unit tests for Web Attack Detector
+- Total automated tests increased to 74
+- Full test suite passing (74/74)
+
+#### Documentation
+
+- Updated README
+- Updated project statistics
+- Updated supported log sources
+- Updated roadmap
+
+---
+
 ## [v3.0.0] - 2026-06-29
 
 ### Added

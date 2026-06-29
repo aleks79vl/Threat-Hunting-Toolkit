@@ -37,14 +37,11 @@ The toolkit is designed to:
 
 - Unknown Host Detection
 - Critical Port Detection
-- Threat Correlation Engine
-- Risk Scoring Engine
 - Firewall Threat Detection
 - Windows Event Detection
-- Failed Logon Detection
-- PowerShell Activity Detection
-- User Account Creation Detection
-- Audit Log Cleared Detection
+- Web Attack Detection
+- Threat Correlation Engine
+- Risk Scoring Engine
 
 ## Reporting
 
@@ -52,13 +49,13 @@ The toolkit is designed to:
 - HTML Report Generator
 - Executive Summary Generator
 - Threat Timeline Generator
-- Multi-Source Threat Report
 
 ## Supported Log Sources
 
 - Nmap XML
 - Firewall Logs
 - Windows Security Events
+- Apache Access Logs
 
 ## Engineering
 
@@ -66,10 +63,6 @@ The toolkit is designed to:
 - Configurable detection rules
 - Whitelist support
 - Unit-tested components
-- Multi-source log processing
-- Nmap XML Parser
-- Firewall Log Parser
-- Windows Event Parser
 
 ------------------------------------------------------------------------
 
@@ -95,7 +88,9 @@ The toolkit is designed to:
                  Risk Scoring Engine
                         │
                Threat Timeline Engine
-                        │
+                        │# Current Features
+
+
                   ThreatReport Model
                         │
           ┌─────────────┼─────────────┐
@@ -135,12 +130,20 @@ JSON / HTML Reports
 
 -   Detect unknown assets
 -   Detect exposed critical services
+-   Detect firewall attacks
+-   Detect Windows security events
+-   Detect SQL Injection
+-   Detect XSS attempts
+-   Detect Directory Traversal
+-   Detect Admin Panel Enumeration
+-   Detect Suspicious User Agents
 -   Correlate findings
 -   Calculate configurable risk scores
 -   Generate executive summaries
 -   Build investigation timelines
 -   Produce JSON reports
 -   Produce HTML reports
+
 
 ------------------------------------------------------------------------
 
@@ -250,7 +253,7 @@ python3 -m src.main
 Example output:
 
 ``` text
-TThreat Hunting Report generated successfully.
+Threat Hunting Report generated successfully.
 
 JSON output file:
 reports/threat_report.json
@@ -258,8 +261,8 @@ reports/threat_report.json
 HTML output file:
 reports/threat_report.html
 
-Total findings: 15
-Critical findings: 3
+Total findings: 25
+Critical findings: 4
 ```
 
 ------------------------------------------------------------------------
@@ -275,7 +278,7 @@ pytest
 Current status:
 
 ``` text
-62 passed
+74 passed
 100% Passing
 ```
 
@@ -295,21 +298,15 @@ Current status:
 
 # Current Statistics
 
- Metric                                            Value
-
-Detection Engines                                     4
-
-Correlation Engines                                   1
-
-Report Generators                                     4
-
-Timeline Engine                                       1
-
-Supported Log Sources                                 3
-
-Unit Tests                                           62
-
-Test Status                                      100% Passing
+|           Metric             |     Value    |
+|------------------------------|--------------|
+| Detection Engines            |       5      |
+| Correlation Engines          |       1      |
+| Report Generators            |       4      |
+| Timeline Engine              |       1      |
+| Supported Log Sources        |       4      |
+| Unit Tests                   |      74      | 
+| Test Status                  | 100% Passing |
 
 ------------------------------------------------------------------------
 
@@ -333,23 +330,11 @@ Test Status                                      100% Passing
 -   Windows Event Parser
 -   Windows Event Detection
 -   PowerShell Detection
+-   Web Log Parser
+-   Web Attack Detection
 
 
 ## Next Milestones
-
-### Network
-
--   Firewall logs
--   Wireshark PCAP
--   DHCP
--   ARP
-
-### Windows
-
--   Security Events
--   Sysmon
--   PowerShell
--   Active Directory
 
 ### Linux
 
@@ -359,7 +344,6 @@ Test Status                                      100% Passing
 
 ### Web
 
--   Apache
 -   Nginx
 
 ### Threat Intelligence
@@ -368,6 +352,11 @@ Test Status                                      100% Passing
 -   IOC Matching
 -   Threat Intelligence feeds
 -   Sigma rules
+
+### Active Directory
+
+-   Domain Controller Events
+-   Group Policy Events
 
 ------------------------------------------------------------------------
 
