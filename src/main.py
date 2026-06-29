@@ -3,11 +3,13 @@ from datetime import datetime
 from src.parsers.nmap_parser import parse_nmap_xml
 from src.parsers.windows_event_parser import parse_windows_events
 from src.parsers.firewall_parser import parse_firewall_log
+from src.parsers.web_log_parser import parse_web_log
 
 from src.detection.unknown_ip_detector import detect_unknown_ips
 from src.detection.critical_port_detector import detect_critical_ports
 from src.detection.windows_event_detector import detect_windows_events
 from src.detection.firewall_detector import detect_firewall_events
+from src.detection.web_attack_detector import detect_web_attacks
 
 from src.correlation.threat_correlation import correlate_threats
 from src.correlation.risk_scoring import calculate_risk_score
@@ -23,6 +25,7 @@ def main():
     nmap_file = "data/raw/network/nmap_scan.xml"
     windows_events_file = "data/raw/windows/security_events.csv"
     firewall_file = "data/raw/firewall/firewall.log"
+    web_log_file = "data/raw/web/apache_access.log"
 
     whitelist_file = "config/whitelist.json"
     critical_ports_file = "config/critical_ports.json"
@@ -38,43 +41,30 @@ def main():
         whitelist_file
     )
 
-    critical_events = detect_critical_ports(
-        nmap_events,
-        critical_ports_file
-    )
+    critical_events = detect_critical_ports(nmap_events,critical_ports_file)
 
-    nmap_findings = correlate_threats(
-        unknown_events,
-        critical_events
-    )
+    nmap_findings = correlate_threats(unknown_events,critical_events)
 
-    windows_events = parse_windows_events(
-        windows_events_file
-    )
+    windows_events = parse_windows_events(windows_events_file)
 
-    windows_findings = detect_windows_events(
-        windows_events
-    )
+    windows_findings = detect_windows_events(windows_events)
 
-    firewall_events = parse_firewall_log(
-        firewall_file
-    )
+    firewall_events = parse_firewall_log(firewall_file)
 
-    firewall_findings = detect_firewall_events(
-        firewall_events
-    )
+    firewall_findings = detect_firewall_events(firewall_events)
+
+    web_events = parse_web_log(web_log_file)
+
+    web_findings = detect_web_attacks(web_events)
 
     all_findings = (
         nmap_findings
         + windows_findings
         + firewall_findings
+        + web_findings
     )
 
-    scored_findings = [
-        calculate_risk_score(
-            finding,
-            risk_scores_file
-        )
+    scored_findings = [calculate_risk_score(finding,risk_scores_file)
         for finding in all_findings
     ]
 
@@ -87,15 +77,9 @@ def main():
         timeline=timeline
     )
 
-    generate_json_report(
-        report,
-        json_output_file
-    )
+    generate_json_report(report,json_output_file)
 
-    generate_html_report(
-        report,
-        html_output_file
-    )
+    generate_html_report(report,html_output_file)
 
     print("Threat Hunting Report generated successfully.")
     print(f"JSON output file: {json_output_file}")
