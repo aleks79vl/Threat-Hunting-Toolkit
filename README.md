@@ -35,24 +35,41 @@ The toolkit is designed to:
 
 ## Detection
 
--   Unknown Host Detection
--   Critical Port Detection
--   Threat Correlation Engine
--   Risk Scoring Engine
+- Unknown Host Detection
+- Critical Port Detection
+- Threat Correlation Engine
+- Risk Scoring Engine
+- Firewall Threat Detection
+- Windows Event Detection
+- Failed Logon Detection
+- PowerShell Activity Detection
+- User Account Creation Detection
+- Audit Log Cleared Detection
 
 ## Reporting
 
--   JSON Report Generator
--   HTML Report Generator
--   Executive Summary Generator
--   Threat Timeline Generator
+- JSON Report Generator
+- HTML Report Generator
+- Executive Summary Generator
+- Threat Timeline Generator
+- Multi-Source Threat Report
+
+## Supported Log Sources
+
+- Nmap XML
+- Firewall Logs
+- Windows Security Events
 
 ## Engineering
 
--   Modular architecture
--   Configurable detection rules
--   Whitelist support
--   Unit-tested components
+- Modular architecture
+- Configurable detection rules
+- Whitelist support
+- Unit-tested components
+- Multi-source log processing
+- Nmap XML Parser
+- Firewall Log Parser
+- Windows Event Parser
 
 ------------------------------------------------------------------------
 
@@ -233,16 +250,16 @@ python3 -m src.main
 Example output:
 
 ``` text
-Threat Hunting Report generated successfully.
+TThreat Hunting Report generated successfully.
 
-JSON output:
+JSON output file:
 reports/threat_report.json
 
-HTML output:
+HTML output file:
 reports/threat_report.html
 
-Total findings: 1
-Critical findings: 1
+Total findings: 15
+Critical findings: 3
 ```
 
 ------------------------------------------------------------------------
@@ -258,7 +275,7 @@ pytest
 Current status:
 
 ``` text
-39 passed
+62 passed
 100% Passing
 ```
 
@@ -278,15 +295,21 @@ Current status:
 
 # Current Statistics
 
-  Metric                           Value
-  ----------------------- --------------
-  Detection Engines                    2
-  Correlation Engines                  1
-  Report Generators                    4
-  Timeline Engine                      1
-  Supported Log Sources                1
-  Unit Tests                          39
-  Test Status               100% Passing
+ Metric                                            Value
+
+Detection Engines                                     4
+
+Correlation Engines                                   1
+
+Report Generators                                     4
+
+Timeline Engine                                       1
+
+Supported Log Sources                                 3
+
+Unit Tests                                           62
+
+Test Status                                      100% Passing
 
 ------------------------------------------------------------------------
 
@@ -305,6 +328,12 @@ Current status:
 -   HTML Reporting
 -   Threat Timeline
 -   Automated testing
+-   Firewall Log Parser
+-   Firewall Threat Detection
+-   Windows Event Parser
+-   Windows Event Detection
+-   PowerShell Detection
+
 
 ## Next Milestones
 
