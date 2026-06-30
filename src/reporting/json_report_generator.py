@@ -19,5 +19,14 @@ def generate_json_report(
         exist_ok=True
     )
 
+    report_data = report.to_dict()
+
+    for finding in report_data.get("findings", []):
+        finding["mitre"] = {
+            "technique": finding.get("technique", "Unknown"),
+            "name": finding.get("technique_name", "Unknown"),
+            "tactic": finding.get("tactic", "Unknown"),
+        }
+
     with open(output_file, "w", encoding="utf-8") as file:
-        json.dump(report.to_dict(),file,indent=4)
+        json.dump(report_data, file, indent=4)

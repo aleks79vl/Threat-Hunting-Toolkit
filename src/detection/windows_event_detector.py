@@ -1,5 +1,7 @@
 from src.models.threat_finding import ThreatFinding
 from src.utils.event_utils import SecurityEvent
+from src.correlation.mitre_mapper import get_mitre_mapping
+from src.correlation.mitre_enrichment import enrich_finding_with_mitre
 
 
 def detect_windows_events(events: list[SecurityEvent]) -> list[ThreatFinding]:
@@ -7,17 +9,18 @@ def detect_windows_events(events: list[SecurityEvent]) -> list[ThreatFinding]:
 
     for event in events:
         if event.event_type == "4625":
-            findings.append(
-                ThreatFinding(
-                    title="Windows Failed Logon Detected",
-                    severity="medium",
-                    description=f"Failed logon detected for user {event.username} from IP {event.src_ip}.",
-                    source="Windows Event Detector",
-                    ip=event.src_ip,
-                    hostname=event.hostname,
-                    recommendation="Review failed logon activity."
-                )
+            finding = ThreatFinding(
+                title="Windows Failed Logon Detected",
+                severity="medium",
+                description=f"Failed logon detected for user {event.username} from IP {event.src_ip}.",
+                source="Windows Event Detector",
+                ip=event.src_ip,
+                hostname=event.hostname,
+                recommendation="Review failed logon activity.",
             )
+
+            finding = enrich_finding_with_mitre(finding)
+            findings.append(finding) 
 
         elif event.event_type == "4720":
             findings.append(
@@ -31,6 +34,7 @@ def detect_windows_events(events: list[SecurityEvent]) -> list[ThreatFinding]:
                     recommendation="Verify whether the account creation was authorized."
                 )
             )
+
 
         elif event.event_type == "4732":
             findings.append(
