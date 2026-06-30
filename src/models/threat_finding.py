@@ -15,6 +15,10 @@ class ThreatFinding:
     recommendation: str = ""
     risk_score: int = 0
 
+    technique: str = ""
+    technique_name: str = ""
+    tactic: str = ""
+
     def to_dict(self) -> dict:
         return asdict(self)
 
