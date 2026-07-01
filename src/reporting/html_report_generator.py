@@ -29,9 +29,17 @@ def generate_html_report(
                 <b>{finding.title}</b><br>
 
                 <small>
+                    <b>MITRE ATT&CK</b><br>
                     <b>Technique:</b> {getattr(finding, "technique", "Unknown")}<br>
                     <b>Name:</b> {getattr(finding, "technique_name", "Unknown")}<br>
-                    <b>Tactic:</b> {getattr(finding, "tactic", "Unknown")}
+                    <b>Tactic:</b> {getattr(finding, "tactic", "Unknown")}<br><br>
+
+                    <b>IOC Intelligence</b><br>
+                    <b>IOC Match:</b> {getattr(finding, "ioc_match", False)}<br>
+                    <b>IOC Type:</b> {getattr(finding, "ioc_type", "")}<br>
+                    <b>IOC Value:</b> {getattr(finding, "ioc_value", "")}<br>
+                    <b>IOC Confidence:</b> {getattr(finding, "ioc_confidence", "")}<br>
+                    <b>IOC Source:</b> {getattr(finding, "ioc_source", "")}
                 </small>
             </td>
             <td>{finding.severity.upper()}</td>

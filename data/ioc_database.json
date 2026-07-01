@@ -1,0 +1,53 @@
+{
+    "ips": [
+        {
+            "value": "185.220.101.1",
+            "confidence": "high",
+            "description": "Known Tor exit node"
+        },
+        {
+            "value": "203.0.113.99",
+            "confidence": "medium",
+            "description": "Known malicious IP"
+        }
+    ],
+
+    "domains": [
+        {
+            "value": "evil-example.com",
+            "confidence": "high",
+            "description": "Known phishing domain"
+        },
+        {
+            "value": "malware-test.net",
+            "confidence": "medium",
+            "description": "Malware distribution"
+        }
+    ],
+
+    "urls": [
+        {
+            "value": "/admin.php",
+            "confidence": "medium",
+            "description": "Frequently targeted admin endpoint"
+        },
+        {
+            "value": "/shell.php",
+            "confidence": "high",
+            "description": "Common web shell filename"
+        }
+    ],
+
+    "hashes": [
+        {
+            "value": "44d88612fea8a8f36de82e1278abb02f",
+            "confidence": "high",
+            "description": "EICAR test file MD5"
+        },
+        {
+            "value": "275a021bbfb6488f0f4f0b8f6c6f5d1d",
+            "confidence": "medium",
+            "description": "Example malicious hash"
+        }
+    ]
+}

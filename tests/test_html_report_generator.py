@@ -166,3 +166,41 @@ def test_generate_html_report_contains_mitre_statistics(tmp_path):
     assert "Unique tactics" in content
     assert "Unique techniques" in content
     assert "Initial Access" in content or "1" in content
+
+
+def test_generate_html_report_contains_ioc_intelligence(tmp_path):
+    finding = ThreatFinding(
+        title="Known malicious IP detected",
+        severity="high",
+        description="test",
+        source="Unit Test",
+        ip="185.220.101.1",
+        hostname="host",
+        port=80,
+        risk_score=90,
+        recommendation="Investigate",
+        ioc_match=True,
+        ioc_type="ip",
+        ioc_value="185.220.101.1",
+        ioc_confidence="high",
+        ioc_source="Local IOC Database",
+        ioc_description="Known Tor exit node"
+    )
+
+    report = ThreatReport(
+        title="Threat Hunting Report",
+        generated_at="2026-07-01 22:30:00",
+        findings=[finding],
+        timeline=[]
+    )
+
+    output_file = tmp_path / "threat_report.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text()
+
+    assert "IOC Intelligence" in content
+    assert "IOC Match" in content
+    assert "185.220.101.1" in content
+    assert "Local IOC Database" in content

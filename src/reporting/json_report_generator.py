@@ -33,5 +33,14 @@ def generate_json_report(
             "tactic": finding.get("tactic", "Unknown"),
         }
 
+        finding["ioc"] = {
+            "matched": finding.get("ioc_match", False),
+            "type": finding.get("ioc_type", ""),
+            "value": finding.get("ioc_value", ""),
+            "confidence": finding.get("ioc_confidence", ""),
+            "source": finding.get("ioc_source", ""),
+            "description": finding.get("ioc_description", ""),
+        }
+
     with open(output_file, "w", encoding="utf-8") as file:
         json.dump(report_data, file, indent=4)

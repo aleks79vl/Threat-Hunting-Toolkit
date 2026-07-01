@@ -19,6 +19,13 @@ class ThreatFinding:
     technique_name: str = ""
     tactic: str = ""
 
+    ioc_match: bool = False
+    ioc_type: str = ""
+    ioc_value: str = ""
+    ioc_confidence: str = ""
+    ioc_source: str = ""
+    ioc_description: str = ""
+
     def to_dict(self) -> dict:
         return asdict(self)
 
