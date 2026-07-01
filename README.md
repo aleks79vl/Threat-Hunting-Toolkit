@@ -57,6 +57,15 @@ The toolkit is designed to:
 - Windows Security Events
 - Apache Access Logs
 
+## MITRE ATT&CK Integration
+
+- Automatic ATT&CK technique mapping
+- ATT&CK tactic mapping
+- Threat enrichment with MITRE metadata
+- MITRE statistics generation
+- MITRE statistics in JSON reports
+- MITRE statistics in HTML reports
+
 ## Engineering
 
 - Modular architecture
@@ -155,12 +164,15 @@ JSON / HTML Reports
 
 Contains:
 
--   Summary
--   Statistics
--   Findings
--   Timeline
--   Risk Score
--   Recommendations
+- Summary
+- Threat Statistics
+- Findings
+- Timeline
+- Risk Scores
+- Recommendations
+- MITRE ATT&CK Statistics
+- MITRE Technique Mapping
+- MITRE Tactic Mapping
 
 ## HTML
 
@@ -168,11 +180,32 @@ Contains:
 
 Contains:
 
--   Executive Summary
--   Threat Statistics
--   Findings Table
--   Threat Timeline
--   Recommendations
+- Executive Summary
+- Threat Statistics
+- MITRE ATT&CK Statistics
+- Findings Table
+- Threat Timeline
+- Risk Scores
+- Recommendations
+- MITRE Technique Mapping
+
+------------------------------------------------------------------------
+
+# MITRE ATT&CK Integration
+
+Threat Hunting Toolkit enriches detected threats using the MITRE ATT&CK framework.
+
+Each supported detection may include:
+
+- Technique ID
+- Technique Name
+- ATT&CK Tactic
+
+Reports automatically include:
+
+- Technique statistics
+- Tactic statistics
+- MITRE mapping
 
 ------------------------------------------------------------------------
 
@@ -278,7 +311,7 @@ pytest
 Current status:
 
 ``` text
-74 passed
+85 passed
 100% Passing
 ```
 

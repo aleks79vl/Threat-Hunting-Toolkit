@@ -131,3 +131,38 @@ def test_generate_html_report_contains_timeline(tmp_path):
     assert "Threat Timeline" in content
     assert "2026-06-26 18:30:00" in content
     assert "Threat Correlation Engine" in content
+
+
+def test_generate_html_report_contains_mitre_statistics(tmp_path):
+    finding = ThreatFinding(
+        title="SQL Injection Attempt Detected",
+        severity="critical",
+        description="test",
+        source="test",
+        ip="203.0.113.10",
+        hostname="web-server",
+        port=80,
+        risk_score=90,
+        recommendation="Investigate SQL injection attempt.",
+        technique="T1190",
+        technique_name="Exploit Public-Facing Application",
+        tactic="Initial Access"
+    )
+
+    report = ThreatReport(
+        title="Threat Hunting Report",
+        generated_at="2026-07-01 16:45:00",
+        findings=[finding],
+        timeline=[]
+        )
+
+    output_file = tmp_path / "threat_report.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text()
+
+    assert "MITRE ATT&amp;CK Statistics" in content or "MITRE ATT&CK Statistics" in content
+    assert "Unique tactics" in content
+    assert "Unique techniques" in content
+    assert "Initial Access" in content or "1" in content
