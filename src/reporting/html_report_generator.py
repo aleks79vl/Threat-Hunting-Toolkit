@@ -2,6 +2,7 @@ from pathlib import Path
 
 from src.models.threat_report import ThreatReport
 from src.reporting.executive_summary import generate_executive_summary
+from src.reporting.mitre_statistics import generate_mitre_statistics
 
 
 def generate_html_report(
@@ -17,13 +18,22 @@ def generate_html_report(
 
     executive_summary = generate_executive_summary(report)
     summary = report.summary()
+    mitre_stats = generate_mitre_statistics(report.findings)
 
     findings_rows = ""
 
     for finding in report.findings:
         findings_rows += f"""
         <tr>
-            <td>{finding.title}</td>
+            <td>
+                <b>{finding.title}</b><br>
+
+                <small>
+                    <b>Technique:</b> {getattr(finding, "technique", "Unknown")}<br>
+                    <b>Name:</b> {getattr(finding, "technique_name", "Unknown")}<br>
+                    <b>Tactic:</b> {getattr(finding, "tactic", "Unknown")}
+                </small>
+            </td>
             <td>{finding.severity.upper()}</td>
             <td>{finding.ip}</td>
             <td>{finding.hostname}</td>
@@ -62,6 +72,12 @@ def generate_html_report(
 
     <h2>Executive Summary</h2>
     <pre>{executive_summary}</pre>
+
+    <h2>MITRE ATT&CK Statistics</h2>
+    <ul>
+        <li><strong>Unique tactics:</strong> {len(mitre_stats["tactics"])}</li>
+        <li><strong>Unique techniques:</strong> {len(mitre_stats["techniques"])}</li>
+    </ul>
 
     <h2>Threat Statistics</h2>
     <ul>

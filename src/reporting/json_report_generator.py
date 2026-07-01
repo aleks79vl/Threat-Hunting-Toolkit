@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from src.models.threat_report import ThreatReport
+from src.reporting.mitre_statistics import generate_mitre_statistics
 
 
 def generate_json_report(
@@ -20,6 +21,10 @@ def generate_json_report(
     )
 
     report_data = report.to_dict()
+
+    report_data["mitre_statistics"] = generate_mitre_statistics(
+        report.findings
+    )
 
     for finding in report_data.get("findings", []):
         finding["mitre"] = {

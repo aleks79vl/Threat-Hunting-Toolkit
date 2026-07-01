@@ -1,4 +1,5 @@
 from src.models.threat_report import ThreatReport
+from src.reporting.mitre_statistics import generate_mitre_statistics
 
 
 def generate_executive_summary(report: ThreatReport) -> str:
@@ -11,6 +12,23 @@ def generate_executive_summary(report: ThreatReport) -> str:
             finding.risk_score
             for finding in report.findings
         )
+    mitre_stats = generate_mitre_statistics(report.findings)
+
+    tactics = mitre_stats["tactics"]
+    techniques = mitre_stats["techniques"]
+
+    most_common_tactic = (
+        max(tactics, key=tactics.get)
+        if tactics
+        else "Unknown"
+    )
+
+    most_common_technique = (
+        max(techniques, key=techniques.get)
+        if techniques
+        else "Unknown"
+    )
+    
 
     lines = [
         "Threat Hunting Summary",
@@ -29,9 +47,25 @@ def generate_executive_summary(report: ThreatReport) -> str:
 
     if summary["critical"] > 0:
         lines.append("Immediate investigation is recommended due to critical findings.")
+
     elif summary["high"] > 0:
         lines.append("Priority review is recommended due to high severity findings.")
+
     else:
         lines.append("No critical or high severity findings were detected.")
 
+        lines.extend(
+            [
+                "",
+                "MITRE ATT&CK Summary",
+                "",
+                f"Most observed tactic: {most_common_tactic}",
+                f"Most observed technique: {most_common_technique}",
+                f"Unique tactics: {len(tactics)}",
+                f"Unique techniques: {len(techniques)}",
+            ]
+        )
+
     return "\n".join(lines)
+
+ 

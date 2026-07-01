@@ -84,3 +84,31 @@ def test_generate_json_report_contains_findings(tmp_path):
     assert "findings" in data
     assert data["findings"][0]["ip"] == "192.168.1.77"
     assert data["findings"][0]["severity"] == "high"
+
+
+    def test_generate_json_report_contains_mitre_statistics(tmp_path):
+        finding = ThreatFinding(
+            title="SQL Injection Attempt Detected",
+            severity="critical",
+            description="test",
+            source="test",
+            technique="T1190",
+            technique_name="Exploit Public-Facing Application",
+            tactic="Initial Access"
+        )
+
+        report = ThreatReport(
+            title="Threat Hunting Report",
+            generated_at="2026-06-30 22:00:00",
+            findings=[finding]
+            )       
+
+        output_file = tmp_path / "threat_report.json"
+
+        generate_json_report(report, str(output_file))
+
+        content = output_file.read_text()
+
+        assert "mitre_statistics" in content
+        assert "Initial Access" in content
+        assert "T1190" in content
