@@ -14,6 +14,9 @@ from src.detection.web_attack_detector import detect_web_attacks
 from src.correlation.threat_correlation import correlate_threats
 from src.correlation.risk_scoring import calculate_risk_score
 
+from src.intelligence.ioc_matcher import enrich_finding_with_ioc
+from src.intelligence.ioc_risk_scoring import apply_ioc_risk_score
+
 from src.models.threat_report import ThreatReport
 
 from src.reporting.json_report_generator import generate_json_report
@@ -41,9 +44,15 @@ def main():
         whitelist_file
     )
 
-    critical_events = detect_critical_ports(nmap_events,critical_ports_file)
+    critical_events = detect_critical_ports(
+        nmap_events,
+        critical_ports_file
+    )
 
-    nmap_findings = correlate_threats(unknown_events,critical_events)
+    nmap_findings = correlate_threats(
+        unknown_events,
+        critical_events
+    )
 
     windows_events = parse_windows_events(windows_events_file)
 
@@ -64,22 +73,33 @@ def main():
         + web_findings
     )
 
-    scored_findings = [calculate_risk_score(finding,risk_scores_file)
+    scored_findings = [
+        calculate_risk_score(
+            finding,
+            risk_scores_file
+        )
         for finding in all_findings
     ]
 
-    timeline = generate_timeline(scored_findings)
+    enriched_findings = []
+
+    for finding in scored_findings:
+        finding = enrich_finding_with_ioc(finding)
+        finding = apply_ioc_risk_score(finding)
+        enriched_findings.append(finding)
+
+    timeline = generate_timeline(enriched_findings)
 
     report = ThreatReport(
         title="Threat Hunting Report",
         generated_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        findings=scored_findings,
+        findings=enriched_findings,
         timeline=timeline
     )
 
-    generate_json_report(report,json_output_file)
+    generate_json_report(report, json_output_file)
 
-    generate_html_report(report,html_output_file)
+    generate_html_report(report, html_output_file)
 
     print("Threat Hunting Report generated successfully.")
     print(f"JSON output file: {json_output_file}")

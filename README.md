@@ -1,4 +1,6 @@
-# Threat-Hunting-Toolkit
+# Threat Hunting Toolkit
+
+A modular Python framework for Threat Hunting, Threat Intelligence and Security Event Correlation.
 
 A modular Python-based Threat Hunting framework designed to collect,
 normalize, correlate and analyze security events from multiple log
@@ -17,7 +19,9 @@ telemetry.
 
 The purpose of this project is **not to replace the analyst**, but to
 automate repetitive investigation tasks while reducing the risk of human
-error.
+error.The framework follows a modular architecture inspired by modern Threat Hunting
+and SIEM platforms, allowing new log sources, detection engines and intelligence modules 
+to be integrated with minimal changes.
 
 The toolkit is designed to:
 
@@ -31,106 +35,114 @@ The toolkit is designed to:
 
 ------------------------------------------------------------------------
 
-# Current Features
+# Features
 
-## Detection
+## Log Parsing
 
-- Unknown Host Detection
-- Critical Port Detection
-- Firewall Threat Detection
-- Windows Event Detection
-- Web Attack Detection
-- Threat Correlation Engine
-- Risk Scoring Engine
+-   Nmap XML
+-   Windows Security Events
+-   Firewall Logs
+-   Apache Access Logs
+
+## Threat Detection
+
+-   Unknown IP Detection
+-   Critical Port Detection
+-   Windows Security Event Detection
+-   Firewall Threat Detection
+-   Web Attack Detection
+
+## Threat Intelligence
+
+-   IOC Database
+-   IOC Loader
+-   IOC Matcher
+    -  IP
+    -  Domain
+    -  URL
+    -  Hash
+-   IOC Enrichment
+-   IOC Statistics
+-   IOC Risk Scoring
+
+## Threat Analysis
+
+-   Threat Correlation
+-   Risk Scoring
+-   MITRE ATT&CK Mapping
+-   Timeline Generation
 
 ## Reporting
 
-- JSON Report Generator
-- HTML Report Generator
-- Executive Summary Generator
-- Threat Timeline Generator
+-   JSON Report
+-   HTML Report
+-   IOC Intelligence
+-   MITRE Statistics
 
-## Supported Log Sources
+## Testing
 
-- Nmap XML
-- Firewall Logs
-- Windows Security Events
-- Apache Access Logs
-
-## MITRE ATT&CK Integration
-
-- Automatic ATT&CK technique mapping
-- ATT&CK tactic mapping
-- Threat enrichment with MITRE metadata
-- MITRE statistics generation
-- MITRE statistics in JSON reports
-- MITRE statistics in HTML reports
-
-## Engineering
-
-- Modular architecture
-- Configurable detection rules
-- Whitelist support
-- Unit-tested components
+-   108 Automated Unit Tests
+-   Full Test Suite Passing
 
 ------------------------------------------------------------------------
 
 # Architecture
 
-``` text
-                 Raw Security Logs
-                        │
-     ┌──────────────────┼──────────────────┐
-     │                  │                  │
-  Nmap XML       Firewall Logs      Windows Events
-     │                  │                  │
-     └──────────────────┼──────────────────┘
-                        │
-                   Log Parsers
-                        │
-                 SecurityEvent Model
-                        │
-                 Detection Engines
-                        │
-              Threat Correlation Engine
-                        │
-                 Risk Scoring Engine
-                        │
-               Threat Timeline Engine
-                        │# Current Features
-
-
-                  ThreatReport Model
-                        │
-          ┌─────────────┼─────────────┐
-          ▼             ▼             ▼
-      JSON Report   HTML Report   Executive Summary
-```
+Logs
+    │
+    ▼
+Parsers
+    │
+    ▼
+Threat Detection
+    │
+    ▼
+Threat Correlation
+    │
+    ▼
+Risk Scoring
+    │
+    ▼
+MITRE ATT&CK
+    │
+    ▼
+IOC Intelligence
+    │
+    ▼
+Timeline
+    │
+    ▼
+JSON Report
+HTML Report
 
 ------------------------------------------------------------------------
 
 # Detection Pipeline
 
 ``` text
-Nmap XML
-   ↓
-Parser
-   ↓
-SecurityEvent
-   ↓
-Unknown Host Detection
-   ↓
-Critical Port Detection
-   ↓
+Raw Raw Logs
+↓
+Parsers
+↓
+Security Events
+↓
+Detection Engines
+↓
 Threat Correlation
-   ↓
+↓
 Risk Scoring
-   ↓
-Threat Timeline
-   ↓
-Threat Report
-   ↓
-JSON / HTML Reports
+↓
+MITRE Mapping
+↓
+IOC Matching
+↓
+IOC Risk Scoring
+↓
+Timeline
+↓
+JSON / HTML ReportsLogs
+
+
 ```
 
 ------------------------------------------------------------------------
@@ -152,7 +164,11 @@ JSON / HTML Reports
 -   Build investigation timelines
 -   Produce JSON reports
 -   Produce HTML reports
-
+-   IOC Matching
+-   IOC Enrichment
+-   MITRE Mapping
+-   Threat Intelligence
+-   IOC Risk Scoring
 
 ------------------------------------------------------------------------
 
@@ -188,7 +204,11 @@ Contains:
 - Risk Scores
 - Recommendations
 - MITRE Technique Mapping
-
+- IOC Statistics
+- IOC Matches
+- IOC Confidence
+- IOC Intelligence
+- MITRE Statistics
 ------------------------------------------------------------------------
 
 # MITRE ATT&CK Integration
@@ -208,6 +228,28 @@ Reports automatically include:
 - MITRE mapping
 
 ------------------------------------------------------------------------
+
+# Threat Intelligence
+
+The toolkit includes a built-in IOC Intelligence Engine.
+
+Supported indicators:
+
+- IP addresses
+- Domains
+- URLs
+- File hashes (MD5, SHA1, SHA256)
+
+Capabilities:
+
+- IOC matching
+- IOC enrichment
+- IOC statistics
+- IOC risk scoring
+- JSON integration
+- HTML integration
+
+-------------------------------------------------------------------------
 
 # Threat Timeline
 
@@ -311,7 +353,7 @@ pytest
 Current status:
 
 ``` text
-85 passed
+108 passed
 100% Passing
 ```
 
@@ -338,7 +380,7 @@ Current status:
 | Report Generators            |       4      |
 | Timeline Engine              |       1      |
 | Supported Log Sources        |       4      |
-| Unit Tests                   |      74      | 
+| Unit Tests                   |      108     | 
 | Test Status                  | 100% Passing |
 
 ------------------------------------------------------------------------
@@ -365,31 +407,25 @@ Current status:
 -   PowerShell Detection
 -   Web Log Parser
 -   Web Attack Detection
+-   IOC Matching
 
 
 ## Next Milestones
 
-### Linux
-
--   auth.log
--   syslog
--   sudo logs
-
-### Web
-
+-   Linux
+-   PCAP
+-   Wireshark
 -   Nginx
-
-### Threat Intelligence
-
--   MITRE ATT&CK Mapping
--   IOC Matching
--   Threat Intelligence feeds
--   Sigma rules
-
-### Active Directory
-
--   Domain Controller Events
--   Group Policy Events
+-   Sysmon
+-   Sigma
+-   YARA
+-   Threat Intelligence Feeds
+-   MISP
+-   OpenCTI
+-   Machine Learning
+-   Zero-Day Detection
+-   MITM Detection
+-   Active Directory
 
 ------------------------------------------------------------------------
 

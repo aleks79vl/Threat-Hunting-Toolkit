@@ -7,10 +7,27 @@ def match_ioc(finding: ThreatFinding):
     Return matching IOC if found.
     """
 
+    searchable_text = " ".join(
+        [
+            finding.title,
+            finding.description,
+            finding.recommendation,
+            finding.ip,
+            finding.hostname,
+        ]
+    ).lower()
+
     for ioc in get_iocs():
+
         if ioc.ioc_type == "ip" and ioc.value == finding.ip:
             return ioc
-
+        if ioc.ioc_type == "domain" and ioc.value.lower() in searchable_text:
+            return ioc
+        if ioc.ioc_type == "url" and ioc.value.lower() in searchable_text:
+            return ioc
+        if ioc.ioc_type == "hash" and ioc.value.lower() in searchable_text:
+            return ioc
+        
     return None
 
 
