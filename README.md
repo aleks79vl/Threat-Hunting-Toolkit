@@ -25,13 +25,13 @@ to be integrated with minimal changes.
 
 The toolkit is designed to:
 
--   Normalize security events
--   Detect suspicious activity
--   Correlate related findings
--   Calculate risk scores
--   Build investigation timelines
--   Generate investigation-ready reports
--   Support analyst decision making
+- Normalize security events
+- Detect suspicious activity
+- Correlate related findings
+- Calculate risk scores
+- Build investigation timelines
+- Generate investigation-ready reports
+- Support analyst decision making
 
 ------------------------------------------------------------------------
 
@@ -39,81 +39,86 @@ The toolkit is designed to:
 
 ## Log Parsing
 
--   Nmap XML
--   Windows Security Events
--   Firewall Logs
--   Apache Access Logs
+- Nmap XML
+- Windows Security Events
+- Firewall Logs
+- Apache Access Logs
+- PCAP / PCAPNG Network Captures
+- TShark CSV Export
+- Wireshark CSV Parsing
 
 ## Threat Detection
 
--   Unknown IP Detection
--   Critical Port Detection
--   Windows Security Event Detection
--   Firewall Threat Detection
--   Web Attack Detection
+- Unknown IP Detection
+- Critical Port Detection
+- Windows Security Event Detection
+- Firewall Threat Detection
+- Web Attack Detection
 
 ## Threat Intelligence
 
--   IOC Database
--   IOC Loader
--   IOC Matcher
-    -  IP
-    -  Domain
-    -  URL
-    -  Hash
--   IOC Enrichment
--   IOC Statistics
--   IOC Risk Scoring
+- IOC Database
+- IOC Loader
+- IOC Matcher
+  -  IP
+  -  Domain
+  -  URL
+  -  Hash
+- IOC Enrichment
+- IOC Statistics
+- IOC Risk Scoring
 
 ## Threat Analysis
 
--   Threat Correlation
--   Risk Scoring
--   MITRE ATT&CK Mapping
--   Timeline Generation
+- Threat Correlation
+- Risk Scoring
+- MITRE ATT&CK Mapping
+- IOC Intelligence
+- Network Traffic Analysis
+- Timeline Generation
 
 ## Reporting
 
--   JSON Report
--   HTML Report
--   IOC Intelligence
--   MITRE Statistics
+- JSON Report
+- HTML Report
+- Executive Summary
+- Threat Statistics
+- IOC Intelligence
+- MITRE ATT&CK Statistics
+- Network Traffic Statistics
 
 ## Testing
 
--   108 Automated Unit Tests
--   Full Test Suite Passing
+- 122 Automated Tests
+- Unit Tests
+- PCAP Integration Testing
+- Full Test Suite Passing
 
 ------------------------------------------------------------------------
 
 # Architecture
 
-Logs
-    │
-    ▼
-Parsers
-    │
-    ▼
+Logs / Network Captures
+   ▼
+Parsers / TShark Export
+   ▼
+Normalized Security Events
+   ▼
 Threat Detection
-    │
-    ▼
+   ▼
 Threat Correlation
-    │
-    ▼
+   ▼
 Risk Scoring
-    │
-    ▼
+   ▼
 MITRE ATT&CK
-    │
-    ▼
+   ▼
 IOC Intelligence
-    │
-    ▼
+   ▼
+Network Traffic Statistics
+   ▼
 Timeline
-    │
-    ▼
-JSON Report
-HTML Report
+   ▼
+JSON Report / HTML Report
 
 ------------------------------------------------------------------------
 
@@ -169,6 +174,12 @@ JSON / HTML ReportsLogs
 -   MITRE Mapping
 -   Threat Intelligence
 -   IOC Risk Scoring
+-   Process PCAP / PCAPNG network captures
+-   Export network packet fields through TShark
+-   Normalize network traffic into NetworkEvent objects
+-   Analyze observed network protocols
+-   Extract DNS query statistics
+-   Extract HTTP request statistics
 
 ------------------------------------------------------------------------
 
@@ -189,6 +200,10 @@ Contains:
 - MITRE ATT&CK Statistics
 - MITRE Technique Mapping
 - MITRE Tactic Mapping
+- Network Traffic Statistics
+- Protocol Statistics
+- DNS Query Statistics
+- HTTP Request Statistics
 
 ## HTML
 
@@ -209,6 +224,10 @@ Contains:
 - IOC Confidence
 - IOC Intelligence
 - MITRE Statistics
+- Network Traffic Summary
+- Protocol Statistics
+- DNS Query Statistics
+- HTTP Request Statistics
 ------------------------------------------------------------------------
 
 # MITRE ATT&CK Integration
@@ -265,7 +284,33 @@ Example:
 18:15:04  Report generated
 ```
 
-------------------------------------------------------------------------
+--------------------------------------------------------------------------
+
+# PCAP / Wireshark Integration
+
+Threat Hunting Toolkit supports network traffic analysis from PCAP and PCAPNG capture files.
+
+The toolkit uses TShark, the command-line component of Wireshark, to extract selected packet fields from binary network captures.
+
+Processing flow:
+
+```text
+PCAP / PCAPNG
+    ↓
+TShark
+    ↓
+CSV Export
+    ↓
+Wireshark CSV Parser
+    ↓
+NetworkEvent
+    ↓
+Network Traffic Statistics
+    ↓
+JSON / HTML Reports
+```
+
+--------------------------------------------------------------------------
 
 # Risk Scoring
 
@@ -286,19 +331,30 @@ Current severity levels:
 
 # Project Structure
 
-``` text
+```text
 Threat-Hunting-Toolkit/
 ├── config/
 ├── data/
+│   ├── raw/
+│   │   └── pcap/
+│   └── processed/
+│       └── pcap/
 ├── docs/
 ├── reports/
 ├── src/
 │   ├── correlation/
 │   ├── detection/
+│   ├── intelligence/
+│   ├── mitre/
 │   ├── models/
+│   │   └── network_event.py
 │   ├── parsers/
+│   │   ├── pcap_exporter.py
+│   │   └── wireshark_csv_parser.py
 │   ├── reporting/
+│   │   └── network_statistics.py
 │   └── utils/
+│       └── tshark_dependency.py
 ├── tests/
 ├── README.md
 ├── CHANGELOG.md
@@ -353,7 +409,7 @@ pytest
 Current status:
 
 ``` text
-108 passed
+122 passed
 100% Passing
 ```
 
@@ -368,20 +424,26 @@ Current status:
 -   Dataclasses
 -   Git
 -   GitHub
+-   Wireshark
+-   TShark
+-   PCAP / PCAPNG
+-   CSV
 
 ------------------------------------------------------------------------
 
 # Current Statistics
 
-|           Metric             |     Value    |
-|------------------------------|--------------|
-| Detection Engines            |       5      |
-| Correlation Engines          |       1      |
-| Report Generators            |       4      |
-| Timeline Engine              |       1      |
-| Supported Log Sources        |       4      |
-| Unit Tests                   |      108     | 
-| Test Status                  | 100% Passing |
+| Metric                                       |     Value     |
+|----------------------------------------------|--------------:|
+| Detection Engines                            |        5      |
+| Correlation Engines                          |        1      |
+| Report Generators                            |        4      |
+| Timeline Engines                             |        1      |
+| Supported Log Sources                        |        4      |
+| Supported Network Capture Sources            | PCAP / PCAPNG |
+| Parsed Network Events in Integration Dataset |       773     |
+| Automated Tests                              |       122     |
+| Test Status                                  |  100% Passing |
 
 ------------------------------------------------------------------------
 
@@ -389,43 +451,51 @@ Current status:
 
 ## Completed
 
--   Modular architecture
--   Nmap XML parser
--   Unknown Host Detection
--   Critical Port Detection
--   Threat Correlation
--   Risk Scoring
--   Executive Summary
--   JSON Reporting
--   HTML Reporting
--   Threat Timeline
--   Automated testing
--   Firewall Log Parser
--   Firewall Threat Detection
--   Windows Event Parser
--   Windows Event Detection
--   PowerShell Detection
--   Web Log Parser
--   Web Attack Detection
--   IOC Matching
+- Modular architecture
+- Nmap XML parser
+- Unknown Host Detection
+- Critical Port Detection
+- Threat Correlation
+- Risk Scoring
+- Executive Summary
+- JSON Reporting
+- HTML Reporting
+- Threat Timeline
+- Automated testing
+- Firewall Log Parser
+- Firewall Threat Detection
+- Windows Event Parser
+- Windows Event Detection
+- PowerShell Detection
+- Web Log Parser
+- Web Attack Detection
+- IOC Matching
+- PCAP / PCAPNG Input Architecture
+- TShark Dependency Detection
+- PCAP to CSV Export
+- PCAP to JSON Export
+- NetworkEvent Model
+- Wireshark CSV Parser
+- Real PCAP Integration Testing
+- Network Traffic Statistics
+- Network Traffic JSON Reporting
+- Network Traffic HTML Reporting
 
 
 ## Next Milestones
 
--   Linux
--   PCAP
--   Wireshark
--   Nginx
--   Sysmon
--   Sigma
--   YARA
--   Threat Intelligence Feeds
--   MISP
--   OpenCTI
--   Machine Learning
--   Zero-Day Detection
--   MITM Detection
--   Active Directory
+- MITM Detection
+- Linux Logs
+- Nginx
+- Sysmon
+- Sigma
+- YARA
+- Threat Intelligence Feeds
+- MISP
+- OpenCTI
+- Machine Learning
+- Zero-Day Detection
+- Active Directory
 
 ------------------------------------------------------------------------
 

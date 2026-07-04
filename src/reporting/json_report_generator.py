@@ -22,6 +22,12 @@ def generate_json_report(
 
     report_data = report.to_dict()
 
+    report_data["network_statistics"] = getattr(report,
+        "network_statistics",
+        {"total_network_events": 0,"protocols": {},
+        "dns_queries": [],"http_requests": 0,}
+    )
+
     report_data["mitre_statistics"] = generate_mitre_statistics(
         report.findings
     )

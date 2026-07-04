@@ -20,6 +20,22 @@ def generate_html_report(
     summary = report.summary()
     mitre_stats = generate_mitre_statistics(report.findings)
 
+    network_statistics = getattr(
+        report,
+        "network_statistics",
+        {
+            "total_network_events": 0,
+            "protocols": {},
+            "dns_queries": [],
+            "http_requests": 0,
+        }
+    )
+
+    protocol_rows = ""
+
+    for protocol, count in network_statistics["protocols"].items():
+        protocol_rows += f"<li>{protocol}: {count}</li>"
+
     findings_rows = ""
 
     for finding in report.findings:
@@ -85,6 +101,18 @@ def generate_html_report(
     <ul>
         <li><strong>Unique tactics:</strong> {len(mitre_stats["tactics"])}</li>
         <li><strong>Unique techniques:</strong> {len(mitre_stats["techniques"])}</li>
+    </ul>
+
+    <h2>Network Traffic Summary</h2>
+    <ul>
+        <li><strong>Total network events:</strong> {network_statistics["total_network_events"]}</li>
+        <li><strong>HTTP requests:</strong> {network_statistics["http_requests"]}</li>
+        <li><strong>DNS queries:</strong> {len(network_statistics["dns_queries"])}</li>
+    </ul>
+
+    <h3>Protocols Observed</h3>
+    <ul>
+        {protocol_rows}
     </ul>
 
     <h2>Threat Statistics</h2>

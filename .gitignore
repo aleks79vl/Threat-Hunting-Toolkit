@@ -12,3 +12,11 @@ data/processed/
 .DS_Store
 
 .pytest_cache/
+
+# Network capture datasets
+data/raw/pcap/*.pcap
+data/raw/pcap/*.pcapng
+
+# Generated PCAP exports
+data/processed/pcap/*.csv
+data/processed/pcap/*.json

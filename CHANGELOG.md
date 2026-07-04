@@ -6,6 +6,65 @@ The format is based on Keep a Changelog.
 
 ---
 
+## [v3.2.0] - 2026-07-04
+
+### Added
+
+#### PCAP / Wireshark Support
+
+- PCAP and PCAPNG input architecture
+- TShark dependency detection
+- macOS Wireshark embedded TShark discovery
+- PCAP to CSV export
+- PCAP to JSON export
+- Wireshark CSV parser
+- NetworkEvent normalized network model
+
+#### Network Traffic Analysis
+
+- Network event normalization
+- Protocol statistics
+- DNS query extraction
+- HTTP request statistics
+- Network traffic summary generation
+
+#### Reporting
+
+- Network traffic statistics in JSON reports
+- Network Traffic Summary in HTML reports
+- Protocol statistics reporting
+- DNS query statistics reporting
+- HTTP request statistics reporting
+
+#### Testing
+
+- Added NetworkEvent unit tests
+- Added PCAP exporter unit tests
+- Added Wireshark CSV parser unit tests
+- Added network statistics unit tests
+- Added real PCAP integration test
+- Registered pytest integration test marker
+- Total automated tests increased to 122
+- Full test suite passing (122/122)
+
+### Changed
+
+- Main application pipeline now processes PCAP network captures
+- TShark is used as the packet dissection engine
+- Network traffic is normalized into NetworkEvent objects
+- Main pipeline now reports the number of parsed network events
+- JSON and HTML reports now include network traffic statistics
+
+### Validated
+
+- Real PCAP dataset successfully processed
+- 773 network events parsed from integration capture
+- TCP traffic successfully normalized
+- DNS traffic successfully normalized
+- Real DNS query data successfully extracted
+
+---
+
 ## [v3.1.0] - 2026-07-02
 
 ### Added
