@@ -18,3 +18,7 @@ class NetworkEvent:
     dns_query: str = ""
     http_host: str = ""
     http_uri: str = ""
+    arp_src_ip: str = ""
+    arp_dst_ip: str = ""
+    arp_src_mac: str = ""
+    arp_dst_mac: str = ""

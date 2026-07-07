@@ -6,6 +6,84 @@ The format is based on Keep a Changelog.
 
 ---
 
+## [v3.3.0] - 2026-07-07
+
+### Added
+
+#### Network Detection Engine
+
+- Network Detection Architecture documentation
+- PCAP Unknown IP detector
+- PCAP Critical Port detector
+- PCAP IOC detector
+- PCAP Web Attack detector
+- DNS Suspicious Activity detector
+- Packet Anomaly detector
+- MITM / ARP Spoofing detector
+- Network Findings Correlation engine
+
+#### Network Detection Coverage
+
+- Unknown IP detection from PCAP traffic
+- Critical port detection from PCAP traffic
+- IOC matching against network indicators
+- HTTP web attack detection from PCAP traffic
+- Suspicious DNS activity detection
+- Repeated network connection detection
+- One-to-many communication detection
+- Unusual destination port detection
+- ARP spoofing / MITM indicator detection
+
+#### Risk Scoring
+
+- Added title-based risk scoring rules
+- Added network detection risk scoring
+- Added MITM and ARP spoofing risk scores
+- Added correlated network threat risk scores
+- Preserved existing severity-based and bonus-based scoring logic
+
+#### Reporting
+
+- Network findings included in JSON reports
+- Network findings included in HTML reports
+- Network detections included in unified ThreatReport pipeline
+- Network correlation findings included in reports
+
+#### Testing
+
+- Added unit tests for network unknown IP detection
+- Added unit tests for network critical port detection
+- Added unit tests for network IOC detection
+- Added unit tests for network web attack detection
+- Added unit tests for DNS suspicious activity detection
+- Added unit tests for packet anomaly detection
+- Added unit tests for MITM / ARP spoofing detection
+- Added unit tests for network findings correlation
+- Added unit tests for network risk scoring
+- Total automated tests increased to 165
+- Full test suite passing (165/165)
+
+### Changed
+
+- Main pipeline now includes Network Detection Engine
+- PCAP telemetry now generates ThreatFinding objects
+- Network findings are merged into the unified findings pipeline
+- Network findings now pass through risk scoring
+- Network findings now pass through IOC enrichment
+- JSON and HTML reports now include network detections
+- Total findings increased from 25 to 200 on the integration dataset
+- Critical findings increased from 4 to 6 on the integration dataset
+
+### Validated
+
+- 773 NetworkEvent objects parsed from PCAP integration dataset
+- 175 network findings generated
+- 200 total findings generated
+- 6 critical findings generated
+- Full pipeline validated from PCAP to JSON and HTML reports
+
+---
+
 ## [v3.2.0] - 2026-07-04
 
 ### Added

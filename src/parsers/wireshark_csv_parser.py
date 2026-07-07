@@ -32,6 +32,10 @@ def parse_wireshark_csv(file_path: str) -> list[NetworkEvent]:
                 dns_query=row.get("dns.qry.name", ""),
                 http_host=row.get("http.host", ""),
                 http_uri=row.get("http.request.uri", ""),
+                arp_src_ip=row.get("arp.src.proto_ipv4", ""),
+                arp_dst_ip=row.get("arp.dst.proto_ipv4", ""),
+                arp_src_mac=row.get("arp.src.hw_mac", ""),
+                arp_dst_mac=row.get("arp.dst.hw_mac", ""),
             )
 
             events.append(event)

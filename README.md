@@ -54,6 +54,14 @@ The toolkit is designed to:
 - Windows Security Event Detection
 - Firewall Threat Detection
 - Web Attack Detection
+- Network Unknown IP Detection
+- Network Critical Port Detection
+- Network IOC Detection
+- Network Web Attack Detection
+- DNS Suspicious Activity Detection
+- Packet Anomaly Detection
+- MITM / ARP Spoofing Detection
+- Network Findings Correlation
 
 ## Threat Intelligence
 
@@ -89,8 +97,9 @@ The toolkit is designed to:
 
 ## Testing
 
-- 122 Automated Tests
+- 165 Automated Tests
 - Unit Tests
+- Integration Tests
 - PCAP Integration Testing
 - Full Test Suite Passing
 
@@ -180,6 +189,16 @@ JSON / HTML ReportsLogs
 -   Analyze observed network protocols
 -   Extract DNS query statistics
 -   Extract HTTP request statistics
+-   Detect unknown IPs from PCAP traffic
+-   Detect critical ports from PCAP traffic
+-   Detect IOC matches in network traffic
+-   Detect web attack patterns in HTTP traffic from PCAP
+-   Detect suspicious DNS activity
+-   Detect repeated network connections
+-   Detect one-to-many network communication
+-   Detect unusual destination ports
+-   Detect possible ARP spoofing
+-   Correlate network findings
 
 ------------------------------------------------------------------------
 
@@ -312,6 +331,53 @@ JSON / HTML Reports
 
 --------------------------------------------------------------------------
 
+# Network Detection Engine
+
+The Network Detection Engine transforms normalized PCAP/Wireshark telemetry into security findings.
+
+Processing flow:
+
+```text
+PCAP / PCAPNG
+    ↓
+TShark
+    ↓
+CSV Export
+    ↓
+NetworkEvent
+    ↓
+Network Detection Engines
+    ↓
+Network Correlation
+    ↓
+Risk Scoring
+    ↓
+IOC Intelligence
+    ↓
+JSON / HTML Reports
+```
+
+Current network detection modules:
+
+- Unknown Network IP Detection
+- Critical Network Port Detection
+- Network IOC Detection
+- Network Web Attack Detection
+- DNS Suspicious Activity Detection
+- Packet Anomaly Detection
+- MITM / ARP Spoofing Detection
+- Network Findings Correlation
+
+Validated results on the current integration dataset:
+
+- 773 parsed network events
+- 175 network findings
+- 200 total findings
+- 6 critical findings
+- 165 automated tests passing
+
+-------------------------------------------------------------------------
+
 # Risk Scoring
 
 Risk values are configurable in:
@@ -392,8 +458,8 @@ reports/threat_report.json
 HTML output file:
 reports/threat_report.html
 
-Total findings: 25
-Critical findings: 4
+Total findings: 200
+Critical findings: 6
 ```
 
 ------------------------------------------------------------------------
@@ -409,7 +475,7 @@ pytest
 Current status:
 
 ``` text
-122 passed
+165 passed
 100% Passing
 ```
 
@@ -433,17 +499,20 @@ Current status:
 
 # Current Statistics
 
-| Metric                                       |     Value     |
-|----------------------------------------------|--------------:|
-| Detection Engines                            |        5      |
-| Correlation Engines                          |        1      |
-| Report Generators                            |        4      |
-| Timeline Engines                             |        1      |
-| Supported Log Sources                        |        4      |
-| Supported Network Capture Sources            | PCAP / PCAPNG |
-| Parsed Network Events in Integration Dataset |       773     |
-| Automated Tests                              |       122     |
-| Test Status                                  |  100% Passing |
+|          Metric                               |     Value     |  
+|-----------------------------------------------|--------------:|
+| Detection Engines                             |       12      |
+| Correlation Engines                           |        2      |
+| Report Generators                             |        4      |
+| Timeline Engines                              |        1      |
+| Supported Log Sources                         |        4      |
+| Supported Network Capture Sources             | PCAP / PCAPNG |
+| Parsed Network Events in Integration Dataset  |       773     |
+| Network Findings in Integration Dataset       |       175     |
+| Total Findings in Integration Dataset         |       200     |
+| Critical Findings in Integration Dataset      |        6      |
+| Automated Tests                               |       165     |
+| Test Status                                   |  100% Passing |
 
 ------------------------------------------------------------------------
 
@@ -477,6 +546,18 @@ Current status:
 - NetworkEvent Model
 - Wireshark CSV Parser
 - Real PCAP Integration Testing
+- Network Detection Architecture
+- Network Unknown IP Detection
+- Network Critical Port Detection
+- Network IOC Detection
+- Network Web Attack Detection
+- DNS Suspicious Activity Detection
+- Packet Anomaly Detection
+- MITM / ARP Spoofing Detection
+- Network Findings Correlation
+- Network Risk Scoring
+- Network Detection JSON Reporting
+- Network Detection HTML Reporting
 - Network Traffic Statistics
 - Network Traffic JSON Reporting
 - Network Traffic HTML Reporting
@@ -484,7 +565,6 @@ Current status:
 
 ## Next Milestones
 
-- MITM Detection
 - Linux Logs
 - Nginx
 - Sysmon

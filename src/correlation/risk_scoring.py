@@ -4,7 +4,7 @@ from src.models.threat_finding import ThreatFinding
 
 
 def load_risk_scores(config_path: str) -> dict:
-    with open(config_path, "r") as file:
+    with open(config_path, "r", encoding="utf-8") as file:
         return json.load(file)
 
 
@@ -14,6 +14,12 @@ def calculate_risk_score(
 ) -> ThreatFinding:
 
     risk_config = load_risk_scores(config_path)
+
+    title_score = risk_config.get(finding.title)
+
+    if title_score is not None:
+        finding.risk_score = title_score
+        return finding
 
     severity_scores = risk_config["severity_scores"]
     bonus_scores = risk_config["bonus_scores"]

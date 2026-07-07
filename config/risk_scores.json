@@ -11,5 +11,23 @@
         "rdp_exposed": 20,
         "smb_exposed": 20,
         "ssh_exposed": 10
-    }
+    },
+    "Unknown Network IP Detected": 50,
+    "Critical Network Port Detected": 70,
+    "Network IOC Match Detected": 85,
+    "SQL Injection Attempt Detected in PCAP": 80,
+    "XSS Attempt Detected in PCAP": 75,
+    "Directory Traversal Attempt Detected in PCAP": 75,
+    "Admin Panel Enumeration Detected in PCAP": 60,
+    "Suspicious Web Shell URI Detected in PCAP": 95,
+    "Repeated DNS Query Activity Detected": 55,
+    "Long DNS Query Detected": 70,
+    "Suspicious DNS TLD Detected": 60,
+    "High DNS Query Volume Detected": 75,
+    "Repeated Network Connection Detected": 55,
+    "One-to-Many Network Communication Detected": 80,
+    "Unusual Destination Port Detected": 55,
+    "Possible ARP Spoofing Detected": 85,
+    "Correlated Network Threat Detected": 95,
+    "Possible MITM Activity Correlated": 100
 }

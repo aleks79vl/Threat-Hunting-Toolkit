@@ -21,6 +21,10 @@ PCAP_FIELDS = [
     "dns.qry.name",
     "http.host",
     "http.request.uri",
+    "arp.src.proto_ipv4",
+    "arp.dst.proto_ipv4",
+    "arp.src.hw_mac",
+    "arp.dst.hw_mac",
 ]
 
 
