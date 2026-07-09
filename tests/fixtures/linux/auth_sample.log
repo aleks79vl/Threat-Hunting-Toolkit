@@ -1,0 +1,4 @@
+Jul  7 08:15:01 ubuntu-server sshd[1425]: Failed password for invalid user admin from 203.0.113.50 port 49822 ssh2
+Jul  7 08:16:10 ubuntu-server sshd[1428]: Accepted password for alex from 192.168.1.10 port 51244 ssh2
+Jul  7 08:18:33 ubuntu-server sudo: alex : TTY=pts/0 ; PWD=/home/alex ; USER=root ; COMMAND=/usr/bin/apt update
+Jul  7 08:20:10 legacy-server in.telnetd[2201]: connect from 198.51.100.25

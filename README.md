@@ -378,6 +378,60 @@ Validated results on the current integration dataset:
 
 -------------------------------------------------------------------------
 
+# Linux Log Analysis
+
+Threat Hunting Toolkit supports Linux security log analysis through dedicated authentication and system log pipelines.
+
+## Supported Linux Log Sources
+
+The toolkit currently processes:
+
+- `/var/log/auth.log`
+- `/var/log/syslog`
+
+Linux log events are normalized into a unified event model before being processed by the detection layer.
+
+## Linux Detection Capabilities
+
+The Linux detection pipeline currently identifies:
+
+- SSH failed login attempts
+- SSH brute-force activity
+- Successful login after repeated failures
+- Telnet activity
+- Sudo abuse
+- User privilege activity
+- Suspicious cron activity
+- Linux service manipulation
+
+Detected Linux events are converted into threat findings and included in the unified threat hunting pipeline.
+
+## Linux Security Statistics
+
+The reporting layer generates Linux security statistics including:
+
+- Total Linux events
+- Action distribution
+- Status distribution
+- User activity
+- Source IP activity
+
+Linux statistics are included in both JSON and HTML reports.
+
+## Unified Threat Hunting Pipeline
+
+Linux findings are merged with findings from:
+
+- Nmap scans
+- Windows security events
+- Firewall logs
+- Web server logs
+- PCAP / Wireshark network traffic
+
+All findings pass through the same risk scoring and IOC intelligence enrichment pipeline before report generation.
+
+------------------------------------------------------------------------
+
 # Risk Scoring
 
 Risk values are configurable in:
@@ -458,8 +512,8 @@ reports/threat_report.json
 HTML output file:
 reports/threat_report.html
 
-Total findings: 200
-Critical findings: 6
+Total findings: 221
+Critical findings: 7
 ```
 
 ------------------------------------------------------------------------
@@ -475,7 +529,7 @@ pytest
 Current status:
 
 ``` text
-165 passed
+239 passed
 100% Passing
 ```
 
@@ -494,6 +548,7 @@ Current status:
 -   TShark
 -   PCAP / PCAPNG
 -   CSV
+-   Linux log
 
 ------------------------------------------------------------------------
 
@@ -509,9 +564,11 @@ Current status:
 | Supported Network Capture Sources             | PCAP / PCAPNG |
 | Parsed Network Events in Integration Dataset  |       773     |
 | Network Findings in Integration Dataset       |       175     |
-| Total Findings in Integration Dataset         |       200     |
-| Critical Findings in Integration Dataset      |        6      |
-| Automated Tests                               |       165     |
+| Linux event parsed                            |        13     |
+| Linux findings                                |        11     |
+| Total Findings in Integration Dataset         |       211     |
+| Critical Findings in Integration Dataset      |        7      |
+| Automated Tests                               |       239     |
 | Test Status                                   |  100% Passing |
 
 ------------------------------------------------------------------------
@@ -561,11 +618,11 @@ Current status:
 - Network Traffic Statistics
 - Network Traffic JSON Reporting
 - Network Traffic HTML Reporting
+- Linux Logs
 
 
 ## Next Milestones
 
-- Linux Logs
 - Nginx
 - Sysmon
 - Sigma

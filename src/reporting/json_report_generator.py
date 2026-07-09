@@ -25,7 +25,14 @@ def generate_json_report(
     report_data["network_statistics"] = getattr(report,
         "network_statistics",
         {"total_network_events": 0,"protocols": {},
-        "dns_queries": [],"http_requests": 0,}
+        "dns_queries": [],"http_requests": 0,},
+    )
+
+    report_data["linux_statistics"] = getattr(
+        report,
+        "linux_statistics",
+        {"total_events": 0,"actions": {},"statuses": {},
+        "users": {},"source_ips": {},},
     )
 
     report_data["mitre_statistics"] = generate_mitre_statistics(

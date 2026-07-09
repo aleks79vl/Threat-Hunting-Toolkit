@@ -1,0 +1,4 @@
+Jul  7 10:03:00 ubuntu CRON[1501]: (root) CMD (/tmp/update.sh)
+Jul  7 10:03:30 ubuntu systemd[1]: Started suspicious-update.service
+Jul  7 10:04:00 ubuntu systemd[1]: Stopped ssh.service
+Jul  7 10:04:10 ubuntu systemd[1]: Started ssh.service

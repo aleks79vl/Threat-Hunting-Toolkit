@@ -29,5 +29,16 @@
     "Unusual Destination Port Detected": 55,
     "Possible ARP Spoofing Detected": 85,
     "Correlated Network Threat Detected": 95,
-    "Possible MITM Activity Correlated": 100
+    "Possible MITM Activity Correlated": 100,
+    "Failed SSH Login Detected": 40,
+    "SSH Brute Force Detected": 85,
+    "Successful Login After Failures Detected": 90,
+    "Telnet Activity Detected": 50,
+    "Repeated Telnet Login Attempts Detected": 75,
+    "Sudo Abuse Detected": 80,
+    "New Linux User Detected": 60,
+    "Privileged User Modification Detected": 90,
+    "Suspicious Cron Activity Detected": 85,
+    "Linux Service Manipulation Detected": 70,
+    "Repeated Linux Service Manipulation Detected": 85
 }

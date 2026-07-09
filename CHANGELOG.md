@@ -6,6 +6,43 @@ The format is based on Keep a Changelog.
 
 ---
 
+## [3.4.0] - 2026-07-09
+
+### Added
+
+- Linux authentication log parser for `/var/log/auth.log`
+- Linux system log parser for `/var/log/syslog`
+- Unified Linux event model
+- SSH failed login detection
+- SSH brute-force detection
+- Successful login after repeated failures detection
+- Telnet activity detection
+- Sudo abuse detection
+- Linux user privilege activity detection
+- Suspicious cron activity detection
+- Linux service manipulation detection
+- Linux security statistics generator
+- Linux statistics integration into JSON reports
+- Linux statistics integration into HTML reports
+
+### Changed
+
+- Extended the unified findings pipeline with Linux threat findings
+- Extended console reporting with Linux event and finding counters
+- Extended HTML reporting with Linux security statistics
+- Extended JSON reporting with Linux security statistics
+
+### Testing
+
+- Added Linux parser tests
+- Added Linux event model tests
+- Added Linux detection tests
+- Added Linux risk score tests
+- Added Linux statistics tests
+- Full regression suite: 239 tests passed
+
+---
+
 ## [v3.3.0] - 2026-07-07
 
 ### Added

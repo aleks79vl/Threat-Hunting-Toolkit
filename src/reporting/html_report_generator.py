@@ -11,24 +11,29 @@ def generate_html_report(
 ) -> None:
     output_file = Path(output_path)
 
-    output_file.parent.mkdir(
-        parents=True,
-        exist_ok=True
-    )
+    output_file.parent.mkdir(parents=True,exist_ok=True)
 
     executive_summary = generate_executive_summary(report)
     summary = report.summary()
     mitre_stats = generate_mitre_statistics(report.findings)
 
-    network_statistics = getattr(
-        report,
-        "network_statistics",
+    network_statistics = getattr(report,"network_statistics",
         {
             "total_network_events": 0,
             "protocols": {},
             "dns_queries": [],
             "http_requests": 0,
-        }
+        },
+    )
+
+    linux_statistics = getattr(report,"linux_statistics",
+        {
+            "total_events": 0,
+            "actions": {},
+            "statuses": {},
+            "users": {},
+            "source_ips": {},
+        },
     )
 
     protocol_rows = ""
@@ -36,21 +41,30 @@ def generate_html_report(
     for protocol, count in network_statistics["protocols"].items():
         protocol_rows += f"<li>{protocol}: {count}</li>"
 
+    linux_action_rows = "".join(f"<tr><td>{action}</td><td>{count}</td></tr>"
+        for action, count in linux_statistics.get("actions", {}).items())
+    linux_status_rows = "".join(f"<tr><td>{status}</td><td>{count}</td></tr>"
+        for status, count in linux_statistics.get("statuses", {}).items())
+    linux_user_rows = "".join(f"<tr><td>{user}</td><td>{count}</td></tr>"
+        for user, count in linux_statistics.get("users", {}).items())
+    linux_source_ip_rows = "".join(f"<tr><td>{ip}</td><td>{count}</td></tr>"
+        for ip, count in linux_statistics.get("source_ips", {}).items())
+
     findings_rows = ""
 
     for finding in report.findings:
         findings_rows += f"""
         <tr>
             <td>
-                <b>{finding.title}</b><br>
+                <b>{finding.title}</b><br><br>
 
                 <small>
-                    <b>MITRE ATT&CK</b><br>
+                    <b>MITRE ATT&CK:</b><br>
                     <b>Technique:</b> {getattr(finding, "technique", "Unknown")}<br>
                     <b>Name:</b> {getattr(finding, "technique_name", "Unknown")}<br>
                     <b>Tactic:</b> {getattr(finding, "tactic", "Unknown")}<br><br>
 
-                    <b>IOC Intelligence</b><br>
+                    <b>IOC Intelligence:</b><br>
                     <b>IOC Match:</b> {getattr(finding, "ioc_match", False)}<br>
                     <b>IOC Type:</b> {getattr(finding, "ioc_type", "")}<br>
                     <b>IOC Value:</b> {getattr(finding, "ioc_value", "")}<br>
@@ -114,6 +128,47 @@ def generate_html_report(
     <ul>
         {protocol_rows}
     </ul>
+
+    <h2>Linux Security Statistics</h2>
+    <ul>
+        <li><strong>Total Linux events:</strong> {linux_statistics.get("total_events", 0)}</li>
+    </ul>
+
+    <h3>Linux Actions</h3>
+    <table border="1" cellpadding="8">
+        <tr>
+            <th>Action</th>
+            <th>Count</th>
+        </tr>
+        {linux_action_rows}
+    </table>
+
+    <h3>Linux Statuses</h3>
+    <table border="1" cellpadding="8">
+        <tr>
+            <th>Status</th>
+            <th>Count</th>
+        </tr>
+        {linux_status_rows}
+    </table>
+
+    <h3>Linux Users</h3>
+    <table border="1" cellpadding="8">
+        <tr>
+            <th>User</th>
+            <th>Count</th>
+        </tr>
+        {linux_user_rows}
+    </table>
+
+    <h3>Linux Source IPs</h3>
+    <table border="1" cellpadding="8">
+        <tr>
+            <th>Source IP</th>
+            <th>Count</th>
+        </tr>
+        {linux_source_ip_rows}
+    </table>
 
     <h2>Threat Statistics</h2>
     <ul>

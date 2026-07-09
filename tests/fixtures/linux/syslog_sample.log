@@ -1,0 +1,5 @@
+Jul  7 09:01:01 ubuntu-server CRON[2301]: (root) CMD (/usr/bin/python3 /tmp/update.py)
+Jul  7 09:05:15 ubuntu-server systemd[1]: Started OpenSSH server daemon.
+Jul  7 09:06:22 ubuntu-server systemd[1]: Stopped Apache Web Server.
+Jul  7 09:07:33 ubuntu-server systemd[1]: Restarted networking.service.
+Jul  7 09:10:44 ubuntu-server useradd[2401]: new user: name=backup, UID=1002, GID=1002, home=/home/backup, shell=/bin/bash
