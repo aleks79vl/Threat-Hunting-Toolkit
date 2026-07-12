@@ -17,24 +17,32 @@ def generate_html_report(
     summary = report.summary()
     mitre_stats = generate_mitre_statistics(report.findings)
 
-    network_statistics = getattr(report,"network_statistics",
-        {
-            "total_network_events": 0,
-            "protocols": {},
-            "dns_queries": [],
-            "http_requests": 0,
-        },
-    )
+    network_statistics = {
+        "total_network_events": 0,
+        "protocols": {},
+        "dns_queries": [],
+        "http_requests": 0,
+        **getattr(report, "network_statistics", {}),
+    }
 
-    linux_statistics = getattr(report,"linux_statistics",
-        {
-            "total_events": 0,
-            "actions": {},
-            "statuses": {},
-            "users": {},
-            "source_ips": {},
-        },
-    )
+    linux_statistics = {
+        "total_events": 0,
+        "actions": {},
+        "statuses": {},
+        "users": {},
+        "source_ips": {},
+        **getattr(report, "linux_statistics", {}),
+    }
+
+    linux_execution_statistics = {
+        "total_executions": 0,
+        "suspicious_executions": 0,
+        "unique_executables": 0,
+        "top_executables": [],
+        "top_users": [],
+        "mitre_statistics": [],
+        **getattr(report, "linux_execution_statistics", {}),
+    }
 
     protocol_rows = ""
 
@@ -93,6 +101,66 @@ def generate_html_report(
             <td>{item.get("port", "")}</td>
             <td>{item.get("risk_score", "")}</td>
             <td>{item.get("source", "")}</td>
+        </tr>
+        """
+
+    linux_execution_rows = "".join(
+        f"""
+        <tr>
+            <td>{executable}</td>
+            <td>{count}</td>
+        </tr>
+        """
+        for executable, count in linux_execution_statistics.get(
+            "top_executables",
+            [],
+        )
+    )
+
+    linux_execution_user_rows = "".join(
+        f"""
+        <tr>
+            <td>{user}</td>
+            <td>{count}</td>
+        </tr>
+        """
+        for user, count in linux_execution_statistics.get(
+            "top_users",
+            [],
+        )
+    )
+
+    linux_execution_mitre_rows = "".join(
+        f"""
+        <tr>
+            <td>{technique}</td>
+            <td>{count}</td>
+        </tr>
+        """
+        for technique, count in linux_execution_statistics.get(
+            "mitre_statistics",
+            [],
+        )
+    )
+
+    if not linux_execution_rows:
+        linux_execution_rows = """
+        <tr>
+            <td colspan="2">No executable data available</td>
+        </tr>
+        """
+
+    if not linux_execution_user_rows:
+        linux_execution_user_rows = """
+        <tr>
+            <td colspan="2">No user data available</td>
+        </tr>
+        """
+
+    if not linux_execution_mitre_rows:
+        linux_execution_mitre_rows = """
+        <tr>
+            <td colspan="2">No MITRE data available</td>
         </tr>
         """
 
@@ -168,6 +236,49 @@ def generate_html_report(
             <th>Count</th>
         </tr>
         {linux_source_ip_rows}
+    </table>
+
+    <h2>Advanced Linux Execution Statistics</h2>
+    <ul>
+        <li>
+            <strong>Total executions analyzed:</strong>
+            {linux_execution_statistics.get("total_executions", 0)}
+        </li>
+        <li>
+            <strong>Suspicious executions:</strong>
+            {linux_execution_statistics.get("suspicious_executions", 0)}
+        </li>
+        <li>
+            <strong>Unique executables:</strong>
+            {linux_execution_statistics.get("unique_executables", 0)}
+        </li>
+    </ul>
+
+    <h3>Top Executables</h3>
+    <table border="1" cellpadding="8">
+        <tr>
+            <th>Executable</th>
+            <th>Count</th>
+        </tr>
+        {linux_execution_rows}
+    </table>
+
+    <h3>Top Linux Users</h3>
+    <table border="1" cellpadding="8">
+        <tr>
+            <th>User</th>
+            <th>Count</th>
+        </tr>
+        {linux_execution_user_rows}
+    </table>
+
+    <h3>Advanced Linux MITRE Coverage</h3>
+    <table border="1" cellpadding="8">
+        <tr>
+            <th>MITRE Technique</th>
+            <th>Detections</th>
+        </tr>
+        {linux_execution_mitre_rows}
     </table>
 
     <h2>Threat Statistics</h2>

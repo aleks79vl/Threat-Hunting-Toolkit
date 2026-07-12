@@ -36,6 +36,23 @@ from src.detection.linux_cron_activity_detector import (detect_suspicious_cron_a
 from src.detection.linux_service_manipulation_detector import (
     detect_linux_service_manipulation,)
 
+from src.detection.linux_detection_context import LinuxDetectionContext
+from src.models.linux_process_execution import LinuxProcessExecution
+
+from src.detection.linux_suspicious_process_detector import (
+    detect_suspicious_linux_processes,)
+from src.detection.linux_reverse_shell_detector import (detect_linux_reverse_shells,)
+from src.detection.linux_advanced_telnet_detector import (detect_advanced_telnet_activity,)
+from src.detection.linux_ssh_persistence_detector import (detect_linux_ssh_persistence,)
+from src.detection.linux_audit_tampering_detector import (detect_linux_audit_tampering,)
+from src.detection.linux_log_clearing_detector import (detect_linux_log_clearing,)
+from src.detection.linux_file_permission_detector import (detect_suspicious_file_permissions,)
+from src.detection.linux_systemd_persistence_detector import (detect_linux_systemd_persistence,)
+from src.detection.linux_cron_persistence_detector import (detect_linux_cron_persistence,)
+
+from src.detection.linux_advanced_risk_scoring import (calculate_advanced_linux_risk_score,)
+from src.detection.linux_mitre_mapping import (get_linux_mitre_techniques,)
+
 from src.correlation.threat_correlation import correlate_threats
 from src.correlation.network_correlation import correlate_network_findings
 from src.correlation.risk_scoring import calculate_risk_score
@@ -50,6 +67,8 @@ from src.reporting.html_report_generator import generate_html_report
 from src.reporting.timeline_generator import generate_timeline
 from src.reporting.network_statistics import generate_network_statistics
 from src.reporting.linux_statistics import generate_linux_statistics
+
+from src.reporting.linux_execution_statistics import (generate_linux_execution_statistics,)
 
 
 def main():
@@ -146,6 +165,54 @@ def main():
         linux_findings.extend(detect_suspicious_cron_activity(linux_events))
         linux_findings.extend(detect_linux_service_manipulation(linux_events))
 
+        # Advanced Linux Execution Analysis Layer
+
+        linux_executions = []
+
+        for event in linux_events:
+            context = LinuxDetectionContext.from_event(event)
+            execution = LinuxProcessExecution.from_context(context)
+
+            if execution.searchable_text():
+                linux_executions.append(execution)
+
+        advanced_linux_findings = []
+
+        for execution in linux_executions:
+            execution_findings = []
+
+            execution_findings.extend(detect_suspicious_linux_processes([execution]))
+            execution_findings.extend(detect_linux_reverse_shells([execution]))
+            execution_findings.extend(detect_advanced_telnet_activity([execution]))
+            execution_findings.extend(detect_linux_ssh_persistence([execution]))
+            execution_findings.extend(detect_linux_audit_tampering([execution]))
+            execution_findings.extend(detect_linux_log_clearing([execution]))
+            execution_findings.extend(detect_suspicious_file_permissions([execution]))
+            execution_findings.extend(detect_linux_systemd_persistence([execution]))
+            execution_findings.extend(detect_linux_cron_persistence([execution]))
+
+            for finding in execution_findings:
+                finding.risk_score = calculate_advanced_linux_risk_score(finding,execution,)
+
+                techniques = get_linux_mitre_techniques(finding)
+
+                if techniques:
+                    primary_technique = techniques[0]
+
+                    finding.technique = primary_technique.technique_id
+                    finding.technique_name = primary_technique.technique_name
+                    finding.tactic = primary_technique.tactic
+
+                advanced_linux_findings.append(finding)
+
+        linux_findings.extend(advanced_linux_findings)
+
+        linux_execution_statistics = (generate_linux_execution_statistics(
+            linux_executions,advanced_linux_findings,))
+        
+    else:
+        linux_execution_statistics = (generate_linux_execution_statistics([],[],))   
+
     # Unified findings pipeline
 
     all_findings = (nmap_findings+ windows_findings+ firewall_findings
@@ -181,6 +248,7 @@ def main():
         generated_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         findings=enriched_findings,
         timeline=timeline,
+        linux_execution_statistics=linux_execution_statistics,
     )
 
     report.network_statistics = network_statistics

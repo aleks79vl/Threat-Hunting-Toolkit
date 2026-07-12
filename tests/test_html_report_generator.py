@@ -2,6 +2,13 @@ from src.models.threat_finding import ThreatFinding
 from src.models.threat_report import ThreatReport
 from src.reporting.html_report_generator import generate_html_report
 
+def create_report() -> ThreatReport:
+
+    return ThreatReport(title="Threat Hunting Report",
+        generated_at="2026-07-11 18:00:00",
+        findings=[],
+        timeline=[],)
+
 
 def test_generate_html_report_creates_file(tmp_path):
     finding = ThreatFinding(
@@ -187,20 +194,100 @@ def test_generate_html_report_contains_ioc_intelligence(tmp_path):
         ioc_description="Known Tor exit node"
     )
 
-    report = ThreatReport(
-        title="Threat Hunting Report",
-        generated_at="2026-07-01 22:30:00",
-        findings=[finding],
-        timeline=[]
+def test_html_report_contains_linux_execution_statistics(tmp_path):
+    report = create_report()
+
+    report.linux_execution_statistics = {
+        "total_executions": 13,
+        "suspicious_executions": 3,
+        "unique_executables": 2,
+        "top_executables": [
+            ("/bin/bash", 2),
+            ("telnet", 1),
+        ],
+        "top_users": [
+            ("root", 2),
+            ("alex", 1),
+        ],
+        "mitre_statistics": [
+            ("T1059.004", 2),
+            ("T1021", 1),
+        ],
+    }
+
+    output_file = tmp_path / "report.html"
+
+    generate_html_report(
+        report,
+        str(output_file),
     )
 
-    output_file = tmp_path / "threat_report.html"
+    html = output_file.read_text(encoding="utf-8")
 
-    generate_html_report(report, str(output_file))
+    assert "Advanced Linux Execution Statistics" in html
+    assert "Total executions analyzed:" in html
+    assert "Suspicious executions:" in html
+    assert "Unique executables:" in html
 
-    content = output_file.read_text()
+    assert "/bin/bash" in html
+    assert "telnet" in html
+    assert "root" in html
+    assert "alex" in html
+    assert "T1059.004" in html
+    assert "T1021" in html
 
-    assert "IOC Intelligence" in content
-    assert "IOC Match" in content
-    assert "185.220.101.1" in content
-    assert "Local IOC Database" in content
+
+def test_html_report_handles_empty_linux_execution_statistics(
+    tmp_path,
+):
+    report = create_report()
+
+    report.linux_execution_statistics = {}
+
+    output_file = tmp_path / "report.html"
+
+    generate_html_report(
+        report,
+        str(output_file),
+    )
+
+    html = output_file.read_text(encoding="utf-8")
+
+    assert "Advanced Linux Execution Statistics" in html
+    assert "No executable data available" in html
+    assert "No user data available" in html
+    assert "No MITRE data available" in html
+
+def test_html_report_contains_linux_execution_summary(tmp_path):
+    report = create_report()
+
+    report.linux_execution_statistics = {
+        "total_executions": 13,
+        "suspicious_executions": 3,
+        "unique_executables": 1,
+        "top_executables": [
+            ("/bin/bash", 1),
+        ],
+        "top_users": [
+            ("admin", 5),
+        ],
+        "mitre_statistics": [
+            ("T1059.004", 2),
+        ],
+    }
+
+    output_file = tmp_path / "report.html"
+
+    generate_html_report(
+        report,
+        str(output_file),
+    )
+
+    html = output_file.read_text(encoding="utf-8")
+
+    assert "Advanced Linux Execution Summary" in html
+    assert "Total executions: 13" in html
+    assert "Suspicious executions: 3" in html
+    assert "Top executable: /bin/bash" in html
+    assert "Most active user: admin" in html
+    assert "Top MITRE technique: T1059.004" in html

@@ -10,7 +10,9 @@ class ThreatReport:
     generated_at: str
     findings: list[ThreatFinding] = field(default_factory=list)
     timeline: list[dict] = field(default_factory=list)
+    network_statistics: dict = field(default_factory=dict)
     linux_statistics: dict = field(default_factory=dict)
+    linux_execution_statistics: dict = field(default_factory=dict)
 
     def total_findings(self) -> int:
         return len(self.findings)

@@ -6,6 +6,77 @@ The format is based on Keep a Changelog.
 
 ---
 
+# Changelog
+
+---
+
+## v3.5.0 - 2026.07.12
+
+
+### Added
+
+- Linux Log Detection Engine
+- Linux Security Statistics
+- Linux Execution Statistics
+- Linux HTML Reporting
+- Linux JSON Reporting
+- Linux Executive Summary
+- Linux Integration Tests
+- MITRE ATT&CK Summary in Executive Report
+- Linux Detection Architecture Documentation
+
+### Improved
+
+- HTML Report Generator
+- Executive Summary Generator
+- Report Architecture
+- Threat Correlation Pipeline
+- Detection Statistics
+- Report Formatting
+- Documentation
+- README
+
+### Testing
+
+- 360 automated tests passing
+- 100% test success rate
+
+### Current Capabilities
+
+Supported log sources:
+
+- Windows Security Events
+- Linux Authentication Logs
+- Linux System Logs
+- Firewall Logs
+- Apache Logs
+- PCAP / PCAPNG
+- Wireshark CSV
+- Nmap XML
+
+Current Detection Modules:
+
+- Windows Detection
+- Linux Detection
+- Network Detection
+- Web Attack Detection
+- IOC Detection
+- MITRE ATT&CK Mapping
+- Threat Correlation
+- Threat Timeline
+- Risk Scoring
+
+### Statistics
+
+- 214 total findings
+- 7 critical findings
+- 773 network events analyzed
+- 175 network findings
+- 13 Linux events parsed
+- 14 Linux findings
+
+---
+
 ## [3.4.0] - 2026-07-09
 
 ### Added

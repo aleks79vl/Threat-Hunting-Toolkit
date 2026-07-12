@@ -15,10 +15,7 @@ def generate_json_report(
 
     output_file = Path(output_path)
 
-    output_file.parent.mkdir(
-        parents=True,
-        exist_ok=True
-    )
+    output_file.parent.mkdir(parents=True,exist_ok=True)
 
     report_data = report.to_dict()
 
@@ -33,6 +30,13 @@ def generate_json_report(
         "linux_statistics",
         {"total_events": 0,"actions": {},"statuses": {},
         "users": {},"source_ips": {},},
+    )
+
+    report_data["linux_execution_statistics"] = getattr(report,
+        "linux_execution_statistics",
+        {"total_executions": 0,"suspicious_executions": 0,
+        "unique_executables": 0,"top_executables": [],
+        "top_users": [],"mitre_statistics": [],},
     )
 
     report_data["mitre_statistics"] = generate_mitre_statistics(
