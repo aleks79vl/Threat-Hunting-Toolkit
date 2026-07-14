@@ -1,5 +1,5 @@
 from src.parsers.windows_event_parser import parse_windows_events
-from src.detection.windows_event_detector import detect_windows_events
+from src.detection.windows.windows_event_detector import detect_windows_events
 
 
 def test_detect_windows_events_returns_findings():

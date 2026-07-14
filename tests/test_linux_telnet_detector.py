@@ -1,4 +1,4 @@
-from src.detection.linux_telnet_detector import detect_telnet_activity
+from src.detection.linux.telnet_detector import detect_telnet_activity
 from src.models.linux_event import LinuxEvent
 
 

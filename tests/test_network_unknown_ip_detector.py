@@ -1,6 +1,6 @@
 import json
 
-from src.detection.network_unknown_ip_detector import (
+from src.detection.nmap.network_unknown_ip_detector import (
     detect_unknown_network_ips,
 )
 from src.models.network_event import NetworkEvent

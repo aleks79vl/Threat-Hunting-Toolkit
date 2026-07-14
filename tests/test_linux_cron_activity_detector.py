@@ -1,4 +1,4 @@
-from src.detection.linux_cron_activity_detector import (
+from src.detection.linux.cron_activity_detector import (
     detect_suspicious_cron_activity,
 )
 from src.models.linux_event import LinuxEvent

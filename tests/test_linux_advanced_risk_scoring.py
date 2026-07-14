@@ -1,4 +1,4 @@
-from src.detection.linux_advanced_risk_scoring import (
+from src.detection.linux.advanced_risk_scoring import (
     calculate_advanced_linux_risk_score,)
 from src.models.linux_process_execution import LinuxProcessExecution
 from src.models.threat_finding import ThreatFinding

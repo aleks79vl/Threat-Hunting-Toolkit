@@ -1,4 +1,4 @@
-from src.detection.linux_successful_login_after_failures_detector import (
+from src.detection.linux.successful_login_after_failures_detector import (
     detect_successful_login_after_failures,
 )
 from src.models.linux_event import LinuxEvent

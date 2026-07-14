@@ -1,4 +1,4 @@
-from src.detection.linux_mitre_mapping import (get_linux_mitre_tactics,
+from src.detection.linux.mitre_mapping import (get_linux_mitre_tactics,
     get_linux_mitre_technique_ids,get_linux_mitre_techniques,)
 from src.models.threat_finding import ThreatFinding
 

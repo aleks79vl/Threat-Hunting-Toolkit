@@ -1,0 +1,6 @@
+src/main.py:13:from src.detection.unknown_ip_detector import detect_unknown_ips
+src/main.py:14:from src.detection.critical_port_detector import detect_critical_ports
+tests/test_threat_correlation.py:2:from src.detection.unknown_ip_detector import detect_unknown_ips
+tests/test_threat_correlation.py:3:from src.detection.critical_port_detector import detect_critical_ports
+tests/test_critical_port_detector.py:2:from src.detection.critical_port_detector import (
+tests/test_unknown_ip_detector.py:2:from src.detection.unknown_ip_detector import (

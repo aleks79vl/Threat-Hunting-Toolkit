@@ -1,5 +1,5 @@
-from src.detection.linux_audit_tampering_detector import (detect_linux_audit_tampering,)
-from src.detection.linux_detection_context import LinuxDetectionContext
+from src.detection.linux.audit_tampering_detector import (detect_linux_audit_tampering,)
+from src.detection.linux.detection_context import LinuxDetectionContext
 from src.models.linux_process_execution import LinuxProcessExecution
 
 

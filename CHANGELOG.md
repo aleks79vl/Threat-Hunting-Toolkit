@@ -10,6 +10,43 @@ The format is based on Keep a Changelog.
 
 ---
 
+## v3.6.0
+
+### Added
+
+- Structured detection package architecture
+- Dedicated detection namespaces
+- Detection architecture documentation
+
+### Changed
+
+- Detection modules reorganized into technology-specific packages
+- Updated imports across the project
+- Improved project maintainability
+- Improved scalability
+- Cleaner repository structure
+
+### Verification
+
+- 360 automated tests passed
+- HTML reports verified
+- JSON reports verified
+- Threat Hunting pipeline verified
+
+### Architecture
+
+Detection modules are now organized as:
+
+- common
+- firewall
+- linux
+- network
+- nmap
+- web
+- windows
+
+---
+
 ## v3.5.0 - 2026.07.12
 
 

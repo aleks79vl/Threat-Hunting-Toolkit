@@ -1,4 +1,4 @@
-from src.detection.network_ioc_detector import detect_network_iocs
+from src.detection.network.network_ioc_detector import detect_network_iocs
 from src.models.network_event import NetworkEvent
 
 

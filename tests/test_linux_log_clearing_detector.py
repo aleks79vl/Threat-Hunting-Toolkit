@@ -1,5 +1,5 @@
-from src.detection.linux_detection_context import LinuxDetectionContext
-from src.detection.linux_log_clearing_detector import (detect_linux_log_clearing,)
+from src.detection.linux.detection_context import LinuxDetectionContext
+from src.detection.linux.log_clearing_detector import (detect_linux_log_clearing,)
 from src.models.linux_process_execution import LinuxProcessExecution
 
 

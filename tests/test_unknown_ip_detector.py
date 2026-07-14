@@ -1,5 +1,5 @@
 from src.parsers.nmap_parser import parse_nmap_xml
-from src.detection.unknown_ip_detector import (
+from src.detection.nmap.unknown_ip_detector import (
     detect_unknown_ips,
     load_known_ips,
 )

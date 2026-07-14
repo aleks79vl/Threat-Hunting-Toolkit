@@ -24,12 +24,44 @@ The project is designed as a modular framework where new log sources and detecti
 
 ---
 
-# Current Release
+# Project Structure
 
-**Version:** **v3.5.0**
+src/
+
+├── correlation/
+├── detection/
+│   ├── common/
+│   ├── firewall/
+│   ├── linux/
+│   ├── network/
+│   ├── nmap/
+│   ├── web/
+│   └── windows/
+│
+├── intelligence/
+├── mitre/
+├── models/
+├── parsers/
+├── reporting/
+└── utils/
+
+---
+
+# Current Release **Version:** **v3.6.0**
+
+### What's New in v3.6.0
+
+- Reorganized all detection modules into dedicated technology packages
+- Improved maintainability and scalability
+- Updated import architecture across the project
+- Added architecture documentation
+- Preserved full backward functionality
+- 360 automated tests passed successfully
 
 ### Highlights
 
+- Detection Architecture Refactoring
+- Technology-based Detection Packages
 - Linux Detection Engine
 - Linux Security Statistics
 - Linux Execution Statistics
@@ -43,7 +75,7 @@ The project is designed as a modular framework where new log sources and detecti
 - Executive Summary
 - HTML Report Generator
 - JSON Report Generator
-- Enterprise-grade automated test suite
+- Enterprise-grade automated test suite (360 tests)
 
 ---
 

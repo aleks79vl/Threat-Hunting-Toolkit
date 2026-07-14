@@ -1,4 +1,4 @@
-from src.detection.network_web_attack_detector import (
+from src.detection.network.network_web_attack_detector import (
     detect_network_web_attacks,
 )
 from src.models.network_event import NetworkEvent

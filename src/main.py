@@ -10,48 +10,48 @@ from src.parsers.wireshark_csv_parser import parse_wireshark_csv
 from src.parsers.linux_auth_parser import parse_auth_log
 from src.parsers.linux_syslog_parser import parse_syslog
 
-from src.detection.unknown_ip_detector import detect_unknown_ips
-from src.detection.critical_port_detector import detect_critical_ports
-from src.detection.windows_event_detector import detect_windows_events
-from src.detection.firewall_detector import detect_firewall_events
-from src.detection.web_attack_detector import detect_web_attacks
+from src.detection.nmap.unknown_ip_detector import detect_unknown_ips
+from src.detection.nmap.critical_port_detector import detect_critical_ports
+from src.detection.windows.windows_event_detector import detect_windows_events
+from src.detection.firewall.firewall_detector import detect_firewall_events
+from src.detection.web.web_attack_detector import detect_web_attacks
 
-from src.detection.network_unknown_ip_detector import (detect_unknown_network_ips,)
-from src.detection.network_critical_port_detector import (detect_network_critical_ports,)
-from src.detection.network_ioc_detector import detect_network_iocs
-from src.detection.network_web_attack_detector import (detect_network_web_attacks,)
-from src.detection.dns_activity_detector import (detect_suspicious_dns_activity,)
-from src.detection.packet_anomaly_detector import detect_packet_anomalies
-from src.detection.mitm_detector import detect_arp_spoofing
+from src.detection.nmap.network_unknown_ip_detector import (detect_unknown_network_ips,)
+from src.detection.nmap.network_critical_port_detector import (detect_network_critical_ports,)
+from src.detection.network.network_ioc_detector import detect_network_iocs
+from src.detection.network.network_web_attack_detector import (detect_network_web_attacks,)
+from src.detection.network.dns_activity_detector import (detect_suspicious_dns_activity,)
+from src.detection.network.packet_anomaly_detector import detect_packet_anomalies
+from src.detection.network.mitm_detector import detect_arp_spoofing
 
-from src.detection.linux_ssh_failed_login_detector import (detect_ssh_failed_logins,)
-from src.detection.linux_ssh_bruteforce_detector import (detect_ssh_bruteforce,)
-from src.detection.linux_successful_login_after_failures_detector import (
+from src.detection.linux.ssh_failed_login_detector import (detect_ssh_failed_logins,)
+from src.detection.linux.ssh_bruteforce_detector import (detect_ssh_bruteforce,)
+from src.detection.linux.successful_login_after_failures_detector import (
     detect_successful_login_after_failures,)
-from src.detection.linux_telnet_detector import detect_telnet_activity
-from src.detection.linux_sudo_abuse_detector import detect_sudo_abuse
-from src.detection.linux_user_privilege_detector import (
+from src.detection.linux.telnet_detector import detect_telnet_activity
+from src.detection.linux.sudo_abuse_detector import detect_sudo_abuse
+from src.detection.linux.user_privilege_detector import (
     detect_linux_user_privilege_activity,)
-from src.detection.linux_cron_activity_detector import (detect_suspicious_cron_activity,)
-from src.detection.linux_service_manipulation_detector import (
+from src.detection.linux.cron_activity_detector import (detect_suspicious_cron_activity,)
+from src.detection.linux.service_manipulation_detector import (
     detect_linux_service_manipulation,)
 
-from src.detection.linux_detection_context import LinuxDetectionContext
+from src.detection.linux.detection_context import LinuxDetectionContext
 from src.models.linux_process_execution import LinuxProcessExecution
 
-from src.detection.linux_suspicious_process_detector import (
+from src.detection.linux.suspicious_process_detector import (
     detect_suspicious_linux_processes,)
-from src.detection.linux_reverse_shell_detector import (detect_linux_reverse_shells,)
-from src.detection.linux_advanced_telnet_detector import (detect_advanced_telnet_activity,)
-from src.detection.linux_ssh_persistence_detector import (detect_linux_ssh_persistence,)
-from src.detection.linux_audit_tampering_detector import (detect_linux_audit_tampering,)
-from src.detection.linux_log_clearing_detector import (detect_linux_log_clearing,)
-from src.detection.linux_file_permission_detector import (detect_suspicious_file_permissions,)
-from src.detection.linux_systemd_persistence_detector import (detect_linux_systemd_persistence,)
-from src.detection.linux_cron_persistence_detector import (detect_linux_cron_persistence,)
+from src.detection.linux.reverse_shell_detector import (detect_linux_reverse_shells,)
+from src.detection.linux.advanced_telnet_detector import (detect_advanced_telnet_activity,)
+from src.detection.linux.ssh_persistence_detector import (detect_linux_ssh_persistence,)
+from src.detection.linux.audit_tampering_detector import (detect_linux_audit_tampering,)
+from src.detection.linux.log_clearing_detector import (detect_linux_log_clearing,)
+from src.detection.linux.file_permission_detector import (detect_suspicious_file_permissions,)
+from src.detection.linux.systemd_persistence_detector import (detect_linux_systemd_persistence,)
+from src.detection.linux.cron_persistence_detector import (detect_linux_cron_persistence,)
 
-from src.detection.linux_advanced_risk_scoring import (calculate_advanced_linux_risk_score,)
-from src.detection.linux_mitre_mapping import (get_linux_mitre_techniques,)
+from src.detection.linux.advanced_risk_scoring import (calculate_advanced_linux_risk_score,)
+from src.detection.linux.mitre_mapping import (get_linux_mitre_techniques,)
 
 from src.correlation.threat_correlation import correlate_threats
 from src.correlation.network_correlation import correlate_network_findings

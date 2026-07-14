@@ -1,4 +1,4 @@
-from src.detection.linux_sudo_abuse_detector import (
+from src.detection.linux.sudo_abuse_detector import (
     detect_sudo_abuse,
 )
 from src.models.linux_event import LinuxEvent

@@ -1,4 +1,4 @@
-from src.detection.linux_ssh_failed_login_detector import (
+from src.detection.linux.ssh_failed_login_detector import (
     detect_ssh_failed_logins,
 )
 from src.models.linux_event import LinuxEvent

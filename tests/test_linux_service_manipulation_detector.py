@@ -1,4 +1,4 @@
-from src.detection.linux_service_manipulation_detector import (
+from src.detection.linux.service_manipulation_detector import (
     detect_linux_service_manipulation,
 )
 from src.models.linux_event import LinuxEvent

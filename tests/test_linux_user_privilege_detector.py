@@ -1,4 +1,4 @@
-from src.detection.linux_user_privilege_detector import (
+from src.detection.linux.user_privilege_detector import (
     detect_linux_user_privilege_activity,
 )
 from src.models.linux_event import LinuxEvent

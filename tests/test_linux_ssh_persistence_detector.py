@@ -1,5 +1,5 @@
-from src.detection.linux_detection_context import LinuxDetectionContext
-from src.detection.linux_ssh_persistence_detector import (
+from src.detection.linux.detection_context import LinuxDetectionContext
+from src.detection.linux.ssh_persistence_detector import (
     detect_linux_ssh_persistence,
 )
 from src.models.linux_process_execution import LinuxProcessExecution

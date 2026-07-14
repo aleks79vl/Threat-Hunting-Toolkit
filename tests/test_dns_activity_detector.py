@@ -1,4 +1,4 @@
-from src.detection.dns_activity_detector import (
+from src.detection.network.dns_activity_detector import (
     detect_suspicious_dns_activity,
 )
 from src.models.network_event import NetworkEvent

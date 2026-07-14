@@ -1,6 +1,6 @@
 import json
 
-from src.detection.network_critical_port_detector import (
+from src.detection.nmap.network_critical_port_detector import (
     detect_network_critical_ports,
 )
 from src.models.network_event import NetworkEvent

@@ -1,5 +1,5 @@
-from src.detection.linux_detection_context import LinuxDetectionContext
-from src.detection.linux_reverse_shell_detector import (detect_linux_reverse_shells,)
+from src.detection.linux.detection_context import LinuxDetectionContext
+from src.detection.linux.reverse_shell_detector import (detect_linux_reverse_shells,)
 from src.models.linux_process_execution import LinuxProcessExecution
 
 

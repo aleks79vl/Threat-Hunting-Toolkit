@@ -1,6 +1,6 @@
 from src.parsers.nmap_parser import parse_nmap_xml
-from src.detection.unknown_ip_detector import detect_unknown_ips
-from src.detection.critical_port_detector import detect_critical_ports
+from src.detection.nmap.unknown_ip_detector import detect_unknown_ips
+from src.detection.nmap.critical_port_detector import detect_critical_ports
 from src.correlation.threat_correlation import correlate_threats
 from src.models.threat_finding import ThreatFinding
 

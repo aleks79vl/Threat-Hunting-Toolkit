@@ -1,4 +1,4 @@
-from src.detection.packet_anomaly_detector import (
+from src.detection.network.packet_anomaly_detector import (
     detect_packet_anomalies,
 )
 from src.models.network_event import NetworkEvent

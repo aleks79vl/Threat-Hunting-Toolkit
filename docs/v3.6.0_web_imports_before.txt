@@ -1,0 +1,2 @@
+src/main.py:17:from src.detection.web_attack_detector import detect_web_attacks
+tests/test_web_attack_detector.py:2:from src.detection.web_attack_detector import detect_web_attacks

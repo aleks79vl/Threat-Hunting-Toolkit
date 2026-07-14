@@ -1,5 +1,5 @@
-from src.detection.linux_detection_context import LinuxDetectionContext
-from src.detection.linux_suspicious_process_detector import (
+from src.detection.linux.detection_context import LinuxDetectionContext
+from src.detection.linux.suspicious_process_detector import (
     detect_suspicious_linux_processes,)
 from src.models.linux_process_execution import LinuxProcessExecution
 

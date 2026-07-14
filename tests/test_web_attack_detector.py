@@ -1,5 +1,5 @@
 from src.parsers.web_log_parser import parse_web_log
-from src.detection.web_attack_detector import detect_web_attacks
+from src.detection.web.web_attack_detector import detect_web_attacks
 
 
 def test_detect_web_attacks_returns_findings():

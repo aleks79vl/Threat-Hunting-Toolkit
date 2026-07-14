@@ -1,4 +1,4 @@
-from src.detection.linux_ssh_bruteforce_detector import (
+from src.detection.linux.ssh_bruteforce_detector import (
     detect_ssh_bruteforce,
 )
 from src.models.linux_event import LinuxEvent

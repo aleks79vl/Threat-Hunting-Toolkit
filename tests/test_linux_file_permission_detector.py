@@ -1,5 +1,5 @@
-from src.detection.linux_detection_context import LinuxDetectionContext
-from src.detection.linux_file_permission_detector import (detect_suspicious_file_permissions,)
+from src.detection.linux.detection_context import LinuxDetectionContext
+from src.detection.linux.file_permission_detector import (detect_suspicious_file_permissions,)
 from src.models.linux_process_execution import LinuxProcessExecution
 
 

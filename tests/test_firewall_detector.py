@@ -1,5 +1,5 @@
 from src.parsers.firewall_parser import parse_firewall_log
-from src.detection.firewall_detector import (
+from src.detection.firewall.firewall_detector import (
     detect_firewall_events,
     is_external_ip,
 )

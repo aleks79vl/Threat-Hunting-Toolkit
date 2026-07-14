@@ -1,5 +1,5 @@
 from src.parsers.nmap_parser import parse_nmap_xml
-from src.detection.critical_port_detector import (
+from src.detection.nmap.critical_port_detector import (
     load_critical_ports,
     detect_critical_ports,
 )

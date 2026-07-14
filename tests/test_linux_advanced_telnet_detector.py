@@ -1,7 +1,7 @@
-from src.detection.linux_advanced_telnet_detector import (
+from src.detection.linux.advanced_telnet_detector import (
     detect_advanced_telnet_activity,
 )
-from src.detection.linux_detection_context import LinuxDetectionContext
+from src.detection.linux.detection_context import LinuxDetectionContext
 from src.models.linux_process_execution import LinuxProcessExecution
 
 

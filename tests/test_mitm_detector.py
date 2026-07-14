@@ -1,4 +1,4 @@
-from src.detection.mitm_detector import detect_arp_spoofing
+from src.detection.network.mitm_detector import detect_arp_spoofing
 from src.models.network_event import NetworkEvent
 
 

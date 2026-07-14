@@ -1,4 +1,4 @@
-from src.detection.linux_detection_context import (LinuxDetectionContext,)
+from src.detection.linux.detection_context import (LinuxDetectionContext,)
 
 
 class FakeLinuxEvent:
