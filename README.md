@@ -125,6 +125,17 @@ Current detection modules include:
 - MITM / ARP Spoofing Detection
 - Network Threat Correlation
 
+### Physical Security
+
+- USB Device Detection
+- HID, BadUSB and Rubber Ducky Detection
+- External Storage Monitoring
+- Bluetooth Device and File-Transfer Detection
+- Workstation Session Monitoring
+- Device-Policy Enforcement
+- Physical Attack-Chain Correlation
+- Physical Risk Scoring
+
 ### Web
 
 - SQL Injection Detection
@@ -165,6 +176,7 @@ Contains:
 - MITRE Statistics
 - Linux Statistics
 - Network Statistics
+- Physical Security Statistics and Risk Score
 
 ### HTML Report
 
@@ -177,6 +189,7 @@ Includes:
 - Linux Statistics
 - Linux Execution Statistics
 - Network Statistics
+- Physical Security Summary and Event Statistics
 - Threat Timeline
 
 ---
@@ -290,18 +303,21 @@ Current status:
 
 |         Metric                 |         Value             |
 |--------------------------------|--------------------------:|
-| Detection Engines              |            12             |
-| Correlation Engines            |             2             |
-| Report Generators              |             4             |
+| Detectops moduls               |            35             |
+| Correlation Engines            |             3             |
+| Report Generators              |             2             |
 | Supported Platform             | Windows / Linux / Network |
 | Network Events Parsed          |           773             |
 | Network Findings               |           175             |
 | Linux Events Parsed            |            13             |
-| Linux Findings                 |            14             | 
-| Total Findings                 |           214             |       
-| Critical Findings              |             7             |
-| Automated Tests                |           360             |
-| Test Status | 100% Passing |
+| Linux Findings                 |            14             |
+| Physical Events Parsed         |             5             |
+| Physical Findings              |            23             |
+| Physical Risk Score            |           100             |
+| Total Findings                 |           237             |
+| Critical Findings              |            16             |
+| Automated Tests                |           445             |
+| Test Status                    |        100% Passing       |
 
 ---
 

@@ -1,0 +1,60 @@
+{
+    "events": [
+      {
+        "timestamp": "2026-07-16T10:00:00",
+        "event_type": "hid_connect",
+        "device_type": "HID",
+        "device_name": "USB Rubber Ducky",
+        "device_id": "HID-DUCKY-001",
+        "hostname": "WORKSTATION-01",
+        "user": "alex",
+        "serial_number": null,
+        "driver_signed": false
+      },
+      {
+        "timestamp": "2026-07-16T10:01:00",
+        "event_type": "workstation_unlock",
+        "device_type": "workstation",
+        "device_name": "Corporate Workstation",
+        "device_id": "WS-001",
+        "hostname": "WORKSTATION-01",
+        "user": "alex"
+      },
+      {
+        "timestamp": "2026-07-16T10:02:00",
+        "event_type": "hid_input",
+        "device_type": "HID",
+        "device_name": "USB Rubber Ducky",
+        "device_id": "HID-DUCKY-001",
+        "hostname": "WORKSTATION-01",
+        "user": "alex",
+        "input_rate": 30.0,
+        "command": "powershell -enc AAAA"
+      },
+      {
+        "timestamp": "2026-07-16T10:04:00",
+        "event_type": "storage_copy",
+        "device_type": "external_storage",
+        "device_name": "Unknown External SSD",
+        "device_id": "STORAGE-001",
+        "hostname": "WORKSTATION-01",
+        "user": "alex",
+        "bytes_transferred": 524288000,
+        "file_count": 1200,
+        "source_path": "C:\\Users\\alex\\Documents\\Confidential",
+        "destination_path": "E:\\Export",
+        "encrypted": false,
+        "read_only": false
+      },
+      {
+        "timestamp": "2026-07-16T10:06:00",
+        "event_type": "bluetooth_file_transfer",
+        "device_type": "bluetooth",
+        "device_name": "Unknown Phone",
+        "device_id": "BT-001",
+        "hostname": "WORKSTATION-01",
+        "user": "alex",
+        "action": "file_transfer"
+      }
+    ]
+  }

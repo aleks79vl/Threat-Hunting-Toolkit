@@ -76,3 +76,84 @@ def test_generate_executive_summary_recommends_investigation():
     summary = generate_executive_summary(report)
 
     assert "Immediate investigation is recommended" in summary
+
+def test_executive_summary_contains_linux_execution_statistics():
+    report = ThreatReport(title="Threat Hunting Report",
+        generated_at="2026-07-11 18:30:00",findings=[],timeline=[],)
+
+    report.linux_execution_statistics = {
+        "total_executions": 13,
+        "suspicious_executions": 3,
+        "unique_executables": 2,
+        "top_executables": [
+            ("/bin/bash", 2),
+            ("telnet", 1),
+        ],
+        "top_users": [
+            ("admin", 5),
+            ("alex", 2),
+        ],
+        "mitre_statistics": [
+            ("T1059.004", 2),
+            ("T1021", 1),
+        ],}
+
+    summary = generate_executive_summary(report)
+
+    assert "Advanced Linux Execution Summary" in summary
+    assert "Total executions: 13" in summary
+    assert "Suspicious executions: 3" in summary
+    assert "Unique executables: 2" in summary
+
+
+def test_executive_summary_contains_top_linux_values():
+    report = ThreatReport(title="Threat Hunting Report",
+        generated_at="2026-07-11 18:30:00",findings=[],timeline=[],)
+
+    report.linux_execution_statistics = {
+        "total_executions": 13,
+        "suspicious_executions": 3,
+        "unique_executables": 2,
+        "top_executables": [
+            ("/bin/bash", 2),
+        ],
+        "top_users": [
+            ("admin", 5),
+        ],
+        "mitre_statistics": [
+            ("T1059.004", 2),
+        ],
+    }
+
+    summary = generate_executive_summary(report)
+
+    assert "Top executable: /bin/bash" in summary
+    assert "Most active user: admin" in summary
+    assert "Top MITRE technique: T1059.004" in summary
+
+
+def test_executive_summary_handles_empty_linux_execution_statistics():
+    report = ThreatReport(title="Threat Hunting Report",
+        generated_at="2026-07-11 18:30:00",findings=[],timeline=[],)
+
+    report.linux_execution_statistics = {}
+
+    summary = generate_executive_summary(report)
+
+    assert "Total executions: 0" in summary
+    assert "Suspicious executions: 0" in summary
+    assert "Unique executables: 0" in summary
+    assert "Top executable: N/A" in summary
+    assert "Most active user: N/A" in summary
+    assert "Top MITRE technique: N/A" in summary
+
+
+def test_executive_summary_handles_missing_linux_execution_statistics():
+    report = ThreatReport(title="Threat Hunting Report",
+        generated_at="2026-07-11 18:30:00",findings=[],timeline=[],)
+
+    summary = generate_executive_summary(report)
+
+    assert "Advanced Linux Execution Summary" in summary
+    assert "Total executions: 0" in summary
+    assert "Top executable: N/A" in summary

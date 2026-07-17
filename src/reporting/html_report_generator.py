@@ -1,9 +1,178 @@
 from pathlib import Path
 
+from html import escape
+
 from src.models.threat_report import ThreatReport
 from src.reporting.executive_summary import generate_executive_summary
 from src.reporting.mitre_statistics import generate_mitre_statistics
 
+def _generate_physical_security_section(report) -> str:
+    """
+    Generate the Physical Security section for the HTML report.
+
+    The function uses getattr so older ThreatReport objects remain
+    compatible when Physical Security data is unavailable.
+    """
+
+    statistics = getattr(report,"physical_statistics",{},) or {}
+    risk_score = getattr(report,"physical_risk_score",0,)
+    events_parsed = statistics.get("events_parsed",0,)
+    detector_findings = statistics.get("detector_findings",0,)
+    policy_findings = statistics.get("policy_findings",0,)
+    correlation_findings = statistics.get("correlation_findings",0,)
+    total_findings = statistics.get("total_findings",0,)
+    severity_counts = statistics.get("severity_counts",{},) or {}
+    device_types = statistics.get("device_types",{},) or {}
+    event_types = statistics.get("event_types",{},) or {}
+    critical_count = severity_counts.get("critical",0,)
+    high_count = severity_counts.get("high",0,)
+    medium_count = severity_counts.get("medium",0,)
+    low_count = severity_counts.get("low",0,)
+
+    if risk_score >= 90:
+        risk_level = "Critical"
+        risk_class = "critical"
+    elif risk_score >= 70:
+        risk_level = "High"
+        risk_class = "high"
+    elif risk_score >= 40:
+        risk_level = "Medium"
+        risk_class = "medium"
+    else:
+        risk_level = "Low"
+        risk_class = "low"
+
+    device_rows = "".join(
+        (
+            "<tr>"
+            f"<td>{escape(str(device_type))}</td>"
+            f"<td>{count}</td>"
+            "</tr>"
+        )
+        for device_type, count in sorted(device_types.items()))
+
+    if not device_rows:
+        device_rows = (
+            "<tr>"
+            "<td colspan=\"2\">No device telemetry available</td>"
+            "</tr>"
+        )
+
+    event_rows = "".join(
+        ("<tr>"
+            f"<td>{escape(str(event_type))}</td>"
+            f"<td>{count}</td>"
+            "</tr>")
+        for event_type, count in sorted(event_types.items()))
+
+    if not event_rows:
+        event_rows = (
+            "<tr>"
+            "<td colspan=\"2\">No physical events available</td>"
+            "</tr>"
+        )
+
+    return f"""
+    <section class="report-section physical-security-section">
+        <h2>Physical Security</h2>
+
+        <div class="summary-grid">
+            <div class="summary-card">
+                <h3>Physical Risk Score</h3>
+                <div class="risk-score {risk_class}">
+                    {risk_score}/100
+                </div>
+                <p>{risk_level} Risk</p>
+            </div>
+
+            <div class="summary-card">
+                <h3>Events Parsed</h3>
+                <div class="metric-value">{events_parsed}</div>
+            </div>
+
+            <div class="summary-card">
+                <h3>Total Findings</h3>
+                <div class="metric-value">{total_findings}</div>
+            </div>
+
+            <div class="summary-card">
+                <h3>Policy Findings</h3>
+                <div class="metric-value">{policy_findings}</div>
+            </div>
+
+            <div class="summary-card">
+                <h3>Correlation Findings</h3>
+                <div class="metric-value">
+                    {correlation_findings}
+                </div>
+            </div>
+
+            <div class="summary-card">
+                <h3>Detector Findings</h3>
+                <div class="metric-value">
+                    {detector_findings}
+                </div>
+            </div>
+        </div>
+
+        <h3>Severity Distribution</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Severity</th>
+                    <th>Findings</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Critical</td>
+                    <td>{critical_count}</td>
+                </tr>
+                <tr>
+                    <td>High</td>
+                    <td>{high_count}</td>
+                </tr>
+                <tr>
+                    <td>Medium</td>
+                    <td>{medium_count}</td>
+                </tr>
+                <tr>
+                    <td>Low</td>
+                    <td>{low_count}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Physical Device Types</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Device Type</th>
+                    <th>Events</th>
+                </tr>
+            </thead>
+            <tbody>
+                {device_rows}
+            </tbody>
+        </table>
+
+        <h3>Physical Event Types</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Event Type</th>
+                    <th>Events</th>
+                </tr>
+            </thead>
+            <tbody>
+                {event_rows}
+            </tbody>
+        </table>
+    </section>
+    """
 
 def generate_html_report(
     report: ThreatReport,
@@ -16,6 +185,7 @@ def generate_html_report(
     executive_summary = generate_executive_summary(report)
     summary = report.summary()
     mitre_stats = generate_mitre_statistics(report.findings)
+    physical_security_section = (_generate_physical_security_section(report))
 
     network_statistics = {
         "total_network_events": 0,
@@ -41,7 +211,7 @@ def generate_html_report(
         "top_executables": [],
         "top_users": [],
         "mitre_statistics": [],
-        **getattr(report, "linux_execution_statistics", {}),
+         **getattr(report, "linux_execution_statistics", {}),
     }
 
     protocol_rows = ""
@@ -164,6 +334,8 @@ def generate_html_report(
         </tr>
         """
 
+    physical_security_section = _generate_physical_security_section(report)
+
     html_content = f"""
 <!DOCTYPE html>
 <html>
@@ -280,6 +452,8 @@ def generate_html_report(
         </tr>
         {linux_execution_mitre_rows}
     </table>
+
+    {physical_security_section}
 
     <h2>Threat Statistics</h2>
     <ul>

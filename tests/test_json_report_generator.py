@@ -86,29 +86,77 @@ def test_generate_json_report_contains_findings(tmp_path):
     assert data["findings"][0]["severity"] == "high"
 
 
-    def test_generate_json_report_contains_mitre_statistics(tmp_path):
-        finding = ThreatFinding(
-            title="SQL Injection Attempt Detected",
-            severity="critical",
-            description="test",
-            source="test",
-            technique="T1190",
-            technique_name="Exploit Public-Facing Application",
-            tactic="Initial Access"
-        )
+def test_generate_json_report_contains_mitre_statistics(tmp_path):
+    finding = ThreatFinding(
+        title="SQL Injection Attempt Detected",
+        severity="critical",
+        description="test",
+        source="test",
+        technique="T1190",
+        technique_name="Exploit Public-Facing Application",
+        tactic="Initial Access"
+    )
 
-        report = ThreatReport(
-            title="Threat Hunting Report",
-            generated_at="2026-06-30 22:00:00",
-            findings=[finding]
-            )       
+    report = ThreatReport(
+        title="Threat Hunting Report",
+        generated_at="2026-06-30 22:00:00",
+        findings=[finding]
+    )
 
-        output_file = tmp_path / "threat_report.json"
+    output_file = tmp_path / "threat_report.json"
 
-        generate_json_report(report, str(output_file))
+    generate_json_report(report, str(output_file))
 
-        content = output_file.read_text()
+    content = output_file.read_text()
 
-        assert "mitre_statistics" in content
-        assert "Initial Access" in content
-        assert "T1190" in content
+    assert "mitre_statistics" in content
+    assert "Initial Access" in content
+    assert "T1190" in content
+
+def test_generate_json_report_contains_physical_security(tmp_path):
+    report = ThreatReport(
+        title="Threat Hunting Report",
+        generated_at="2026-07-17 20:00:00",
+)
+
+    report.physical_risk_score = 100
+    report.physical_statistics = {
+        "events_parsed": 5,
+        "detector_findings": 13,
+        "policy_findings": 4,
+        "correlation_findings": 6,
+        "total_findings": 23,
+        "event_types": {"hid_connect": 1},
+        "device_types": {"hid": 2},
+        "severity_counts": {"critical": 9, "high": 12},
+        }
+
+    output_file = tmp_path / "threat_report.json"
+
+    generate_json_report(report, str(output_file))
+
+    data = json.loads(output_file.read_text())
+
+    assert data["physical_security"]["risk_score"] == 100
+    assert data["physical_security"]["statistics"]["events_parsed"] == 5
+    assert data["physical_security"]["statistics"]["total_findings"] == 23
+    assert data["physical_security"]["statistics"]["device_types"]["hid"] == 2
+
+def test_generate_json_report_has_empty_physical_security_by_default(
+    tmp_path,
+):
+    report = ThreatReport(
+        title="Threat Hunting Report",
+        generated_at="2026-07-17 20:00:00",
+    )
+
+    output_file = tmp_path / "threat_report.json"
+
+    generate_json_report(report, str(output_file))
+
+    data = json.loads(output_file.read_text())
+
+    assert data["physical_security"] == {
+        "risk_score": 0,
+        "statistics": {},
+    }

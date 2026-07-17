@@ -39,6 +39,11 @@ def generate_json_report(
         "top_users": [],"mitre_statistics": [],},
     )
 
+    report_data["physical_security"] = {
+        "risk_score": getattr(report, "physical_risk_score", 0),
+        "statistics": getattr(report, "physical_statistics", {}),
+    }
+
     report_data["mitre_statistics"] = generate_mitre_statistics(
         report.findings
     )

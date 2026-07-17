@@ -10,6 +10,21 @@ The format is based on Keep a Changelog.
 
 ---
 
+## Unreleased
+
+### Added
+
+- Physical Security Detection Framework
+- USB, HID, storage, Bluetooth and workstation event analysis
+- Physical attack-chain correlation and risk scoring
+- Physical Security sections in HTML and JSON reports
+- Physical Security JSON-report tests
+
+### Verification
+
+- 444 automated tests passed
+- HTML and JSON reports generated successfully
+
 ## v3.6.0
 
 ### Added
