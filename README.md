@@ -49,15 +49,19 @@ src/
 
 # Current Release **Version:** **v3.6.0**
 
+# Current Release: **v3.6.0**
+
 ### What's New in v3.6.0
 
-- Reorganized all detection modules into dedicated technology packages
+- Reorganized detection modules into dedicated technology packages
 - Improved maintainability and scalability
 - Updated import architecture across the project
 - Added architecture documentation
-- Preserved full backward functionality
-- 360 automated tests passed successfully
-
+- Preserved backward compatibility
+- Physical Security Detection Framework
+- Physical Security pipeline, correlation and risk scoring
+- Physical Security HTML and JSON reporting
+- 445 automated tests passed
 ### Highlights
 
 - Detection Architecture Refactoring
