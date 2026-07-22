@@ -41,7 +41,7 @@ Current Focus
 
 ---
 
-# Block 25 — Planned
+# Block 25 — Completed
 
 ## Web Infrastructure Detection Framework
 
@@ -73,52 +73,52 @@ Current Focus
 
 ### API and Authentication
 
-- [х] Credential Stuffing and Brute Force
-- [x] Session Abuse
-- [х] Admin Endpoint Access
-- [x] API Gateway Logs
-- [х] API Resource Consumption
-- [х] Bot and Scraping Detection
+- Credential Stuffing and Brute Force
+- Session Abuse
+- Admin Endpoint Access
+- API Gateway Logs
+- API Resource Consumption
+- Bot and Scraping Detection
 
 ### Reverse Proxy
 
-- [х] X-Forwarded-For
-- [х] Proxy Chains
-- [х] Backend Exposure
-- [x] Header Manipulation
-- [x] SSRF Indicators
-- [х] HTTP Request Smuggling Indicators
-- [х] Cache Poisoning Indicators
+- X-Forwarded-For
+- Proxy Chains
+- Backend Exposure
+- Header Manipulation
+- SSRF Indicators
+- HTTP Request Smuggling Indicators
+- Cache Poisoning Indicators
 
 ### Load Balancers
 
-- [х] Nginx Load Balancer
-- [х] HAProxy
-- [х] Session Abuse
-- [x] Rate Limit Bypass
+- Nginx Load Balancer
+- HAProxy
+- Session Abuse
+- Rate Limit Bypass
 
 ### WAF and Protocol Telemetry
 
-- [х] WAF / CDN Event Normalization
-- [х] TLS Metadata
-- [х] HTTP/1.1 and HTTP/2 Metadata
-- [х] WebSocket Upgrade Events
+- WAF / CDN Event Normalization
+- TLS Metadata
+- HTTP/1.1 and HTTP/2 Metadata
+- WebSocket Upgrade Events
 
 ### Web Correlation
-- [х] Apache + Nginx
-- [х] Firewall + Web
-- [х] IOC + Web
-- [х] Threat Intelligence + Web baseline matching
-- [х] Deep Threat Intelligence enrichment deferred to Block 26
+- Apache + Nginx
+- Firewall + Web
+- IOC + Web
+- Threat Intelligence + Web baseline matching
+- Deep Threat Intelligence enrichment deferred to Block 26
 
 ### Definition of Done
 
-- [х] Parsers, detectors and correlation pipeline integrated into `main.py`
-- [х] HTML and JSON reporting integrated
-- [х] Unit, integration and backward-compatibility tests added
-- [х] Full test suite passes
-- [ ] README, CHANGELOG and roadmap updated
-- [ ] Commit and push completed
+- Parsers, detectors and correlation pipeline integrated into `main.py`
+- HTML and JSON reporting integrated
+- Unit, integration and backward-compatibility tests added
+- Full test suite passes
+- README, CHANGELOG and roadmap updated
+- Commit and push completed
 
 ---
 
