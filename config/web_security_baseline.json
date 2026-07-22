@@ -1,0 +1,15 @@
+{
+    "allowed_tls_versions": [
+      "TLSv1.2",
+      "TLSv1.3"
+    ],
+    "allowed_websocket_paths": [
+      "/socket"
+    ],
+    "suspicious_user_agent_markers": [
+      "masscan",
+      "nikto",
+      "nmap",
+      "sqlmap"
+    ]
+  }

@@ -13,6 +13,9 @@ class ThreatReport:
     network_statistics: dict = field(default_factory=dict)
     linux_statistics: dict = field(default_factory=dict)
     linux_execution_statistics: dict = field(default_factory=dict)
+    web_infrastructure_statistics: dict = field(
+        default_factory=dict
+    )
 
     def total_findings(self) -> int:
         return len(self.findings)
@@ -42,6 +45,9 @@ class ThreatReport:
                 for finding in self.findings
             ],
             "timeline": self.timeline,
+            "web_infrastructure_statistics": (
+                self.web_infrastructure_statistics
+            ),
         }
 
     def to_json(self) -> str:

@@ -3,7 +3,7 @@ from src.detection.firewall.firewall_detector import (
     detect_firewall_events,
     is_external_ip,
 )
-
+from src.utils.event_utils import SecurityEvent
 
 def test_is_external_ip():
     assert is_external_ip("203.0.113.15") is True
@@ -59,3 +59,19 @@ def test_detect_external_connection_attempt():
         finding.title == "External Firewall Connection Attempt"
         for finding in findings
     )
+
+def test_firewall_finding_uses_source_ip_for_correlation():
+    event = SecurityEvent(
+        timestamp="2026-07-22T14:00:00Z",
+        source="firewall",
+        event_type="DENY",
+        src_ip="203.0.113.44",
+        dst_ip="10.0.0.10",
+        dst_port=22,
+        hostname="gateway.example.com",
+    )
+
+    findings = detect_firewall_events([event])
+
+    assert len(findings) == 1
+    assert findings[0].ip == "203.0.113.44"

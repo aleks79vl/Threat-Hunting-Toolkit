@@ -10,6 +10,28 @@ from src.parsers.wireshark_csv_parser import parse_wireshark_csv
 from src.parsers.linux_auth_parser import parse_auth_log
 from src.parsers.linux_syslog_parser import parse_syslog
 from src.parsers.physical_event_loader import load_physical_events
+from src.parsers.apache_access_log_parser import (
+    parse_apache_access_log,
+    parse_apache_vhost_access_log,
+)
+from src.parsers.apache_error_log_parser import (
+    parse_apache_error_log,
+)
+from src.parsers.api_gateway_log_parser import (
+    parse_api_gateway_log,
+)
+from src.parsers.haproxy_log_parser import (
+    parse_haproxy_http_log,
+)
+from src.parsers.nginx_error_log_parser import (
+    parse_nginx_error_log,
+)
+from src.parsers.nginx_json_log_parser import (
+    parse_nginx_json_log,
+)
+from src.parsers.waf_cdn_log_parser import (
+    parse_waf_cdn_log,
+)
 
 from src.detection.nmap.unknown_ip_detector import detect_unknown_ips
 from src.detection.nmap.critical_port_detector import detect_critical_ports
@@ -20,7 +42,12 @@ from src.detection.firewall.firewall_detector import (
     detect_firewall_events,
 )
 from src.detection.web.web_attack_detector import detect_web_attacks
-
+from src.detection.web.web_baseline_detector import (
+    load_web_security_baseline,
+)
+from src.detection.web.web_infrastructure_pipeline import (
+    run_web_infrastructure_detection_pipeline,
+)
 from src.detection.nmap.network_unknown_ip_detector import (
     detect_unknown_network_ips,
 )
@@ -99,7 +126,6 @@ from src.detection.linux.advanced_risk_scoring import (
 from src.detection.linux.mitre_mapping import (
     get_linux_mitre_techniques,
 )
-
 from src.detection.physical.device_policy_detector import DevicePolicy
 from src.detection.physical.physical_pipeline import (
     run_physical_detection_pipeline,
@@ -108,6 +134,15 @@ from src.detection.physical.physical_pipeline import (
 from src.correlation.threat_correlation import correlate_threats
 from src.correlation.network_correlation import (
     correlate_network_findings,
+)
+from src.correlation.apache_nginx_correlation import (
+    correlate_apache_nginx_findings,
+)
+from src.correlation.firewall_web_correlation import (
+    correlate_firewall_and_web_findings,
+)
+from src.correlation.ioc_web_correlation import (
+    correlate_ioc_and_web_findings,
 )
 from src.correlation.risk_scoring import calculate_risk_score
 
@@ -136,6 +171,18 @@ def main() -> None:
     firewall_file = "data/raw/firewall/firewall.log"
     web_log_file = "data/raw/web/apache_access.log"
 
+    apache_vhost_log_file = (
+        "data/raw/web/apache_vhost_access.log"
+    )
+    apache_error_log_file = "data/raw/web/apache_error.log"
+    nginx_access_log_file = "data/raw/web/nginx_access.jsonl"
+    nginx_error_log_file = "data/raw/web/nginx_error.log"
+    api_gateway_log_file = (
+        "data/raw/web/api_gateway_access.jsonl"
+    )
+    haproxy_log_file = "data/raw/web/haproxy_http.log"
+    waf_cdn_log_file = "data/raw/web/waf_cdn_events.jsonl"
+
     pcap_file = "data/raw/pcap/sample.pcap"
     pcap_csv_file = "data/processed/pcap/sample.csv"
 
@@ -151,6 +198,9 @@ def main() -> None:
     whitelist_file = "config/whitelist.json"
     critical_ports_file = "config/critical_ports.json"
     risk_scores_file = "config/risk_scores.json"
+    web_security_baseline_file = (
+        "config/web_security_baseline.json"
+    )
 
     # Output files
 
@@ -198,6 +248,34 @@ def main() -> None:
 
     web_findings = detect_web_attacks(
         web_events
+    )
+
+    web_infrastructure_events = (
+        parse_apache_access_log(web_log_file)
+        + parse_apache_vhost_access_log(
+            apache_vhost_log_file
+        )
+        + parse_apache_error_log(apache_error_log_file)
+        + parse_nginx_json_log(nginx_access_log_file)
+        + parse_nginx_error_log(nginx_error_log_file)
+        + parse_api_gateway_log(api_gateway_log_file)
+        + parse_haproxy_http_log(haproxy_log_file)
+        + parse_waf_cdn_log(waf_cdn_log_file)
+    )
+
+    web_security_baseline = load_web_security_baseline(
+        web_security_baseline_file
+    )
+
+    web_infrastructure_result = (
+        run_web_infrastructure_detection_pipeline(
+            web_infrastructure_events,
+            web_security_baseline=web_security_baseline,
+        )
+    )
+
+    web_infrastructure_findings = (
+        web_infrastructure_result.findings
     )
 
     # PCAP / Wireshark pipeline
@@ -469,6 +547,25 @@ def main() -> None:
         physical_result.all_findings
     )
 
+    apache_nginx_correlation_findings = (
+        correlate_apache_nginx_findings(
+            web_infrastructure_findings
+        )
+    )
+
+    firewall_web_correlation_findings = (
+        correlate_firewall_and_web_findings(
+            firewall_findings
+            + web_findings
+            + web_infrastructure_findings
+        )
+    )
+
+    web_correlation_findings = (
+        apache_nginx_correlation_findings
+        + firewall_web_correlation_findings
+    )
+
     # Unified findings pipeline
 
     all_findings = (
@@ -476,6 +573,8 @@ def main() -> None:
         + windows_findings
         + firewall_findings
         + web_findings
+        + web_infrastructure_findings
+        + web_correlation_findings
         + network_findings
         + linux_findings
         + physical_findings
@@ -508,6 +607,24 @@ def main() -> None:
             finding
         )
 
+    ioc_web_correlation_findings = (
+        correlate_ioc_and_web_findings(enriched_findings)
+    )
+
+    scored_ioc_web_correlation_findings = [
+        apply_ioc_risk_score(
+            calculate_risk_score(
+                finding,
+                risk_scores_file,
+            )
+        )
+        for finding in ioc_web_correlation_findings
+    ]
+
+    enriched_findings.extend(
+        scored_ioc_web_correlation_findings
+    )
+
     # Reporting data
 
     timeline = generate_timeline(
@@ -531,6 +648,9 @@ def main() -> None:
         timeline=timeline,
         linux_execution_statistics=(
             linux_execution_statistics
+        ),
+        web_infrastructure_statistics=(
+            web_infrastructure_result.event_statistics()
         ),
     )
 

@@ -1,0 +1,4 @@
+2026/07/18 16:00:00 [error] 2101#2101: *1 open() "/var/www/html/.env" failed (2: No such file or directory), client: 203.0.113.44, server: portal.example.com, request: "GET /.env HTTP/1.1", host: "portal.example.com"
+2026/07/18 16:00:05 [error] 2101#2101: *2 upstream timed out (110: Connection timed out) while reading response header from upstream, client: 198.51.100.23, server: api.example.com, request: "GET /api/users HTTP/1.1", upstream: "http://10.0.1.15:8080/api/users", host: "api.example.com"
+2026/07/18 16:00:10 [warn] 2101#2101: *3 limiting requests, excess: 20.000 by zone "api_limit", client: 203.0.113.15, server: api.example.com, request: "POST /api/login HTTP/1.1", host: "api.example.com"
+invalid nginx error log line

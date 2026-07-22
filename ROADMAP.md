@@ -1,139 +1,390 @@
-Threat Hunting Toolkit Roadmap
+# Threat Hunting Toolkit Master Roadmap
+
+> Enterprise Threat Hunting Platform Development Plan
+
+---
+
+# Current Status
 
 Current Release
 
-Version: v3.6.0
+v3.6.0
 
-Current focus:
-
-* Multi-source Threat Hunting
-* Detection Architecture Refactoring
-* Technology-based Detection Packages
-* Windows Detection
-* Linux Detection
-* Firewall Detection
-* Network Detection
-* Web Detection
-* Nmap Detection
-* IOC Intelligence
-* MITRE ATT&CK Integration
-* Threat Correlation
-* HTML / JSON Reporting
-* Physical Security Detection Framework
-* Enterprise Test Suite (445 tests)
-
-⸻
+Detection Architecture Refactoring completed.
 
 Completed
 
-v1.x
+- Block 24: Physical Security Detection Framework
+- Physical Security pipeline, correlation and risk scoring
+- HTML and JSON Physical Security reporting
+- 445 automated tests passed
 
-* Project foundation
-* JSON reporting
-* HTML reporting
-* Risk scoring
-* Timeline generation
+Current Focus
 
-v2.x
+- Block 25: Web Infrastructure Detection Framework
 
-* Windows Security Events
-* Nmap XML support
-* Firewall log parsing
-* IOC Matching
-* MITRE ATT&CK mapping
+---
 
-v3.0 – v3.5
+# Block 24 — Completed
 
-* Linux Detection Engine
-* Linux Statistics
-* Linux Execution Statistics
-* Web Attack Detection
-* PCAP Support
-* Wireshark CSV
-* Threat Correlation
-* Executive Summary
-* Enterprise Reporting
-* Documentation
+## Physical Security Detection Framework
 
-v3.6
+### Delivered
 
-* Complete Detection Architecture Refactoring
-* Technology-based module organization
-* Detection packages
-* Improved project scalability
-* Improved maintainability
-* Clean import hierarchy
-* USB, HID, storage, Bluetooth and workstation event detection
-* Device-policy enforcement
-* Physical attack-chain correlation
-* Physical risk scoring
-* Physical Security HTML reporting
-* Physical Security JSON reporting
-* Physical Security integration tests
-* Architecture documentation
+- USB, HID, storage, Bluetooth and workstation event detection
+- Device-policy enforcement
+- Physical attack-chain correlation
+- Physical risk scoring
+- Physical Security HTML reporting
+- Physical Security JSON reporting
+- Unit and integration test coverage
 
-⸻
+---
 
-Next Release (v3.7)
+# Block 25 — Planned
 
-Planned features:
+## Web Infrastructure Detection Framework
 
-* Detection Context Refactoring
-* Shared Detection Interfaces
-* Base Detector Architecture
-* Common Detection Utilities
-* Detection Registry
-* Plugin-ready architecture
+### Foundation
 
-⸻
+- Normalized Web Infrastructure Event model
+- Request ID and Trace ID support
+- Virtual host, upstream and backend fields
+- Response time and response size telemetry
+- Safe handling and redaction of sensitive headers
 
-Future Releases
+### Apache
 
-v4.x
+- Access Logs
+- Error Logs
+- Virtual Hosts
+- Web Shell Detection
 
-Threat Intelligence Platform
+### Nginx
 
-* STIX/TAXII support
-* IOC feeds
-* YARA integration
-* Sigma support
-* Threat Actor Profiles
+- Access Logs
+- Error Logs
+- Reverse Proxy Abuse
+- Upstream Errors
+- HTTP Method Abuse
+- Directory Traversal
+- Upload Abuse
+- PHP Attacks
 
-⸻
+### API and Authentication
 
-v5.x
+- [х] Credential Stuffing and Brute Force
+- [x] Session Abuse
+- [х] Admin Endpoint Access
+- [x] API Gateway Logs
+- [х] API Resource Consumption
+- [х] Bot and Scraping Detection
 
-Enterprise Threat Hunting
+### Reverse Proxy
 
-* Detection Rules Engine
-* Live Monitoring
-* Scheduled Analysis
-* Dashboard
-* REST API
-* Elastic Integration
-* Splunk Integration
+- [х] X-Forwarded-For
+- [х] Proxy Chains
+- [х] Backend Exposure
+- [x] Header Manipulation
+- [x] SSRF Indicators
+- [х] HTTP Request Smuggling Indicators
+- [х] Cache Poisoning Indicators
 
-⸻
+### Load Balancers
 
-v6.x
+- [х] Nginx Load Balancer
+- [х] HAProxy
+- [х] Session Abuse
+- [x] Rate Limit Bypass
 
-AI-assisted Threat Hunting
+### WAF and Protocol Telemetry
 
-* Behavioral Analytics
-* Machine Learning
-* Threat Prediction
-* Risk Forecasting
-* Automated Investigation
+- [х] WAF / CDN Event Normalization
+- [х] TLS Metadata
+- [х] HTTP/1.1 and HTTP/2 Metadata
+- [х] WebSocket Upgrade Events
 
-⸻
+### Web Correlation
+- [х] Apache + Nginx
+- [х] Firewall + Web
+- [х] IOC + Web
+- [х] Threat Intelligence + Web baseline matching
+- [х] Deep Threat Intelligence enrichment deferred to Block 26
 
-Long-Term Vision
+### Definition of Done
 
-The long-term goal of this project is to build a modular Threat Hunting Platform capable of:
+- [х] Parsers, detectors and correlation pipeline integrated into `main.py`
+- [х] HTML and JSON reporting integrated
+- [х] Unit, integration and backward-compatibility tests added
+- [х] Full test suite passes
+- [ ] README, CHANGELOG and roadmap updated
+- [ ] Commit and push completed
 
-* ingesting telemetry from multiple security technologies;
-* correlating events across heterogeneous data sources;
-* enriching findings using Threat Intelligence and MITRE ATT&CK;
-* generating executive and technical reports;
-* supporting enterprise SOC workflows;
-* serving as the foundation for a commercial Threat Hunting solution.
+---
+
+# Block 26
+
+## Threat Intelligence Platform
+
+### IOC
+
+- IOC Database
+- Reputation
+- IOC Cache
+- IOC Scheduler
+
+### Feeds
+
+- MISP
+- STIX
+- TAXII
+- Threat Feeds
+
+### Campaigns
+
+- Threat Actors
+- Campaign Detection
+- IOC Correlation
+
+---
+
+# Block 27
+
+## Active Directory Detection Framework
+
+### Authentication
+
+- Kerberos
+- NTLM
+- LDAP
+- LDAPS
+
+### AD Attacks
+
+- Golden Ticket
+- Silver Ticket
+- Kerberoasting
+- AS-REP
+- Pass-the-Hash
+- Pass-the-Ticket
+
+### Domain Controllers
+
+- DCSync
+- DCShadow
+- SYSVOL
+- Replication
+
+### Lateral Movement
+
+- PsExec
+- SMB
+- WMI
+- WinRM
+- RDP
+
+### AD Monitoring
+
+- Group Policy
+- OU Changes
+- Service Accounts
+- BloodHound Indicators
+
+---
+
+# Block 28
+
+## AI & Zero-Day Behavioral Detection
+
+### Behavioral Analytics
+
+- User Baselines
+- Host Baselines
+- Network Baselines
+- Process Baselines
+
+### AI
+
+- Unknown Threats
+- Zero-Day Indicators
+- Risk Prediction
+- Behavioral Correlation
+
+---
+
+# Block 29
+
+## Cloud Detection Platform
+
+### Microsoft
+
+- Azure
+- Defender XDR
+- Microsoft 365
+- Entra ID
+
+### Amazon AWS
+
+- CloudTrail
+- GuardDuty
+- IAM
+- Security Hub
+- VPC Flow Logs
+- CloudWatch
+
+### Google Cloud
+
+- Audit Logs
+- SCC
+- Google Workspace
+
+---
+
+# Block 30
+
+## Container & Kubernetes Detection Platform
+
+### Docker
+
+- Docker Events
+- Container Lifecycle
+- Container Escape
+- Docker Socket
+- Image Integrity
+
+### Kubernetes
+
+- Audit Logs
+- kube-apiserver
+- kubelet
+- etcd
+- RBAC
+- Pod Security
+- Service Accounts
+- Secrets
+- ConfigMaps
+- HostPath
+- Network Policies
+
+### Runtime
+
+- containerd
+- CRI-O
+- runc
+
+### GitOps
+
+- Helm
+- ArgoCD
+- FluxCD
+
+---
+
+# Block 31
+
+## Real-Time Detection & Response
+
+### Streaming
+
+- Live Detection
+- Watch Mode
+- Alert Queue
+
+### Notifications
+
+- Email
+- Slack
+- Microsoft Teams
+- Webhooks
+
+### Response
+
+- Automated Response
+- Playbooks
+- Response Policies
+
+---
+
+# Block 32
+
+## Enterprise Threat Hunting Platform
+
+### Platform
+
+- REST API
+- Web Dashboard
+- Multi-user
+- RBAC
+- Scheduled Hunts
+- Profiles
+
+### Deployment
+
+- Docker
+- Kubernetes
+- High Availability
+
+### Plugins
+
+- Detection
+- Parser
+- Reporting
+- Threat Intelligence
+
+---
+
+# Unified Telemetry Layer
+
+Windows
+
+Linux
+
+Active Directory
+
+Firewall
+
+Network
+
+Nmap
+
+Apache
+
+Nginx
+
+Threat Intelligence
+
+USB
+
+Physical Security
+
+Azure
+
+AWS
+
+Google Cloud
+
+Docker
+
+Kubernetes
+
+All telemetry is normalized into a single internal event model before entering the Detection Engine.
+
+---
+
+# Final Goal
+
+Enterprise Threat Hunting Platform
+
+- Multi-source telemetry
+- Threat Correlation
+- MITRE ATT&CK
+- IOC Intelligence
+- AI Detection
+- Zero-Day Indicators
+- Physical Security
+- Web Infrastructure
+- Active Directory
+- Cloud
+- Containers
+- Real-Time Detection
+- Enterprise Dashboard

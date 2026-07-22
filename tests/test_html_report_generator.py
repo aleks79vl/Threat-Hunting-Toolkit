@@ -291,3 +291,30 @@ def test_html_report_contains_linux_execution_summary(tmp_path):
     assert "Top executable: /bin/bash" in html
     assert "Most active user: admin" in html
     assert "Top MITRE technique: T1059.004" in html
+
+def test_html_report_contains_web_infrastructure_statistics(
+    tmp_path,
+):
+    report = create_report()
+
+    report.web_infrastructure_statistics = {
+        "total_events": 30,
+        "events_by_source": {
+            "api_gateway": 3,
+            "nginx": 2,
+            "waf_cdn": 3,
+        },
+    }
+
+    output_file = tmp_path / "report.html"
+
+    generate_html_report(report, str(output_file))
+
+    html = output_file.read_text(encoding="utf-8")
+
+    assert "Web Infrastructure Telemetry" in html
+    assert "Total normalized web events:" in html
+    assert "30" in html
+    assert "api_gateway" in html
+    assert "nginx" in html
+    assert "waf_cdn" in html

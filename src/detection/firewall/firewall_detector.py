@@ -39,7 +39,7 @@ def detect_firewall_events(
                         f"to {event.dst_ip}:{event.dst_port} ({service})."
                     ),
                     source="Firewall Detector",
-                    ip=event.dst_ip,
+                    ip=event.src_ip,
                     hostname=event.hostname,
                     port=event.dst_port,
                     recommendation=(
@@ -58,7 +58,7 @@ def detect_firewall_events(
                         f"to {event.dst_ip}:{event.dst_port} ({service})."
                     ),
                     source="Firewall Detector",
-                    ip=event.dst_ip,
+                    ip=event.src_ip,
                     hostname=event.hostname,
                     port=event.dst_port,
                     recommendation=(
@@ -77,7 +77,7 @@ def detect_firewall_events(
                         f"to {event.dst_ip}:{event.dst_port}."
                     ),
                     source="Firewall Detector",
-                    ip=event.dst_ip,
+                    ip=event.src_ip,
                     hostname=event.hostname,
                     port=event.dst_port,
                     recommendation=(

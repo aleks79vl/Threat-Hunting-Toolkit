@@ -10,20 +10,46 @@ The format is based on Keep a Changelog.
 
 ---
 
-## Unreleased
+### Verification
+
+- 589 automated tests passed
+- HTML and JSON reports generated successfully
+
+## v3.7.0 - 2026-07-23
 
 ### Added
 
-- Physical Security Detection Framework
-- USB, HID, storage, Bluetooth and workstation event analysis
-- Physical attack-chain correlation and risk scoring
-- Physical Security sections in HTML and JSON reports
-- Physical Security JSON-report tests
+- Web Infrastructure Detection Framework
+- Normalized `WebInfrastructureEvent` model with request/trace IDs, virtual hosts, upstreams, backends and response telemetry
+- Apache access, virtual-host and error log parsers
+- Nginx JSON access and error log parsers
+- API Gateway, HAProxy and WAF/CDN log parsers
+- Apache Web Shell detection
+- Nginx reverse-proxy, upstream-error, HTTP abuse, traversal, upload and PHP attack detection
+- API authentication, session, admin-endpoint, resource-consumption and bot/scraping detection
+- Backend exposure, header manipulation, SSRF, cache-poisoning and request-smuggling detection
+- Nginx and HAProxy load-balancer detection
+- Session-affinity anomaly and rate-limit-bypass detection
+- WAF/CDN, TLS, HTTP protocol and WebSocket telemetry analysis
+- Apache + Nginx, Firewall + Web and IOC + Web correlation
+- Web Infrastructure Telemetry sections in JSON and HTML reports
+- End-to-end web pipeline and backward-compatibility tests
+
+### Changed
+
+- Integrated Web Infrastructure parsers, detectors and correlation pipeline into `src/main.py`
+- Extended the unified findings pipeline with web correlation findings
+- Extended `ThreatReport` with formal web infrastructure statistics
+- Preserved compatibility for reports created without web telemetry
 
 ### Verification
 
-- 444 automated tests passed
-- HTML and JSON reports generated successfully
+- 589 automated tests passed
+- `git diff --check` passed
+- Full pipeline generated JSON and HTML reports successfully
+- Default fixture dataset: 30 normalized web events, 244 total findings and 17 critical findings
+
+---
 
 ## v3.6.0
 

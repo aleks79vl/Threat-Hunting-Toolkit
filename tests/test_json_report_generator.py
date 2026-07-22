@@ -160,3 +160,33 @@ def test_generate_json_report_has_empty_physical_security_by_default(
         "risk_score": 0,
         "statistics": {},
     }
+
+def test_generate_json_report_contains_web_statistics(tmp_path):
+    web_statistics = {
+        "total_events": 18,
+        "events_by_source": {
+            "apache": 3,
+            "apache_error": 1,
+            "api_gateway": 4,
+            "haproxy": 2,
+            "nginx": 5,
+            "nginx_error": 1,
+            "waf_cdn": 2,
+        },
+    }
+
+    report = ThreatReport(
+        title="Threat Hunting Report",
+        generated_at="2026-07-22 22:00:00",
+        web_infrastructure_statistics=web_statistics,
+    )
+
+    output_file = tmp_path / "threat_report.json"
+
+    generate_json_report(report, str(output_file))
+
+    data = json.loads(output_file.read_text())
+
+    assert data["web_infrastructure_statistics"] == (
+        web_statistics
+    )

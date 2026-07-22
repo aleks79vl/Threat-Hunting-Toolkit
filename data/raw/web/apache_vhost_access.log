@@ -1,0 +1,4 @@
+api.example.com 198.51.100.10 - - [18/Jul/2026:14:30:00 +0000] "GET /api/health HTTP/1.1" 200 128 "-" "HealthCheck/1.0"
+admin.example.com 203.0.113.15 - - [18/Jul/2026:14:30:05 +0000] "POST /admin/login HTTP/1.1" 401 512 "-" "Mozilla/5.0"
+shop.example.com 198.51.100.23 - - [18/Jul/2026:14:30:10 +0000] "GET /product?id=42 HTTP/1.1" 200 2048 "https://shop.example.com/" "Mozilla/5.0"
+invalid vhost log line

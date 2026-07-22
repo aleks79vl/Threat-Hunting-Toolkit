@@ -47,21 +47,21 @@ src/
 
 ---
 
-# Current Release **Version:** **v3.6.0**
+# Current Release: **v3.7.0**
 
-# Current Release: **v3.6.0**
+### What's New in v3.7.0
 
-### What's New in v3.6.0
+- Web Infrastructure Detection Framework
+- Normalized telemetry for Apache, Nginx, API Gateway, HAProxy and WAF/CDN
+- Apache and Nginx access/error log parsing
+- API authentication, session, admin-endpoint, resource-consumption and bot detection
+- Reverse-proxy, header-manipulation, SSRF, cache-poisoning and request-smuggling detection
+- Load-balancer session-affinity and rate-limit-bypass detection
+- WAF/CDN, TLS, HTTP protocol and WebSocket telemetry analysis
+- Apache + Nginx, Firewall + Web and IOC + Web correlation
+- Web Infrastructure Telemetry in JSON and HTML reports
+- 589 automated tests passed
 
-- Reorganized detection modules into dedicated technology packages
-- Improved maintainability and scalability
-- Updated import architecture across the project
-- Added architecture documentation
-- Preserved backward compatibility
-- Physical Security Detection Framework
-- Physical Security pipeline, correlation and risk scoring
-- Physical Security HTML and JSON reporting
-- 445 automated tests passed
 ### Highlights
 
 - Detection Architecture Refactoring
@@ -83,18 +83,19 @@ src/
 
 ---
 
-# Supported Platforms
-
-Current supported telemetry sources:
+# Supported Telemetry Sources
 
 - Windows Security Events
-- Linux Authentication Logs
-- Linux System Logs
+- Linux Authentication and System Logs
 - Firewall Logs
-- Apache Access Logs
-- PCAP / PCAPNG
-- Wireshark CSV
 - Nmap XML
+- PCAP / PCAPNG and Wireshark CSV
+- Apache Access, Virtual Host and Error Logs
+- Nginx JSON Access and Error Logs
+- API Gateway JSONL Logs
+- HAProxy HTTP Logs
+- WAF / CDN JSONL Events
+- Physical Security Events
 
 ---
 
@@ -140,13 +141,18 @@ Current detection modules include:
 - Physical Attack-Chain Correlation
 - Physical Risk Scoring
 
-### Web
+### Web Infrastructure
 
-- SQL Injection Detection
-- XSS Detection
-- Directory Traversal Detection
-- Admin Panel Enumeration
-- Suspicious User-Agent Detection
+- Apache Web Shell Detection
+- Nginx Reverse Proxy, Upstream Error and HTTP Abuse Detection
+- API Brute Force, Session Abuse and Admin Endpoint Detection
+- API Resource Consumption and Bot / Scraping Detection
+- Backend Exposure, Header Manipulation and SSRF Detection
+- Cache Poisoning and HTTP Request Smuggling Indicators
+- Nginx and HAProxy Load Balancer Detection
+- Session Affinity and Rate Limit Bypass Detection
+- WAF / CDN, TLS, HTTP Protocol and WebSocket Telemetry
+- Apache + Nginx, Firewall + Web and IOC + Web Correlation
 
 ---
 
@@ -181,6 +187,7 @@ Contains:
 - Linux Statistics
 - Network Statistics
 - Physical Security Statistics and Risk Score
+- Web Infrastructure Telemetry and Events by Source
 
 ### HTML Report
 
@@ -194,6 +201,7 @@ Includes:
 - Linux Execution Statistics
 - Network Statistics
 - Physical Security Summary and Event Statistics
+- Web Infrastructure Telemetry and Events by Source
 - Threat Timeline
 
 ---
@@ -296,7 +304,7 @@ pytest
 Current status:
 
 ```text
-360 passed
+589 passed
 
 100% Passing
 ```
@@ -305,23 +313,24 @@ Current status:
 
 # Current Statistics
 
-|         Metric                 |         Value             |
-|--------------------------------|--------------------------:|
-| Detectops moduls               |            35             |
-| Correlation Engines            |             3             |
-| Report Generators              |             2             |
-| Supported Platform             | Windows / Linux / Network |
-| Network Events Parsed          |           773             |
-| Network Findings               |           175             |
-| Linux Events Parsed            |            13             |
-| Linux Findings                 |            14             |
-| Physical Events Parsed         |             5             |
-| Physical Findings              |            23             |
-| Physical Risk Score            |           100             |
-| Total Findings                 |           237             |
-| Critical Findings              |            16             |
-| Automated Tests                |           445             |
-| Test Status                    |        100% Passing       |
+|         Metric                       |             Value             |
+|--------------------------------------|------------------------------:|
+| Detectops moduls                     |               35              |
+| Correlation Engines                  |                6              |
+| Web Infrastructure Events Normalized |               30              |
+| Report Generators                    |                2              |
+| Supported Platform                   |    Windows / Linux / Network  |
+| Network Events Parsed                |               773             |
+| Network Findings                     |               175             |
+| Linux Events Parsed                  |                13             |
+| Linux Findings                       |                14             |
+| Physical Events Parsed               |                 5             |
+| Physical Findings                    |                23             |
+| Physical Risk Score                  |               100             |
+| Total Findings                       |               244             |
+| Critical Findings                    |                17             |
+| Automated Tests                      |               589             |
+| Test Status                          |          100% Passing         |
 
 ---
 

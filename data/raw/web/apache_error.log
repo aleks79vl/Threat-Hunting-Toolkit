@@ -1,0 +1,4 @@
+[Fri Jul 18 14:10:00.123456 2026] [core:error] [pid 1201:tid 101] [client 203.0.113.44:51234] AH00126: Invalid URI in request GET /../../etc/passwd HTTP/1.1
+[Fri Jul 18 14:10:05.123456 2026] [proxy:error] [pid 1202:tid 102] (111)Connection refused: [client 198.51.100.23:61300] AH00957: HTTP: attempt to connect to 10.0.1.15:8080 failed
+[Fri Jul 18 14:10:10.123456 2026] [authz_core:error] [pid 1203:tid 103] [client 203.0.113.15:61200] AH01630: client denied by server configuration: /var/www/html/.env
+invalid apache error log line

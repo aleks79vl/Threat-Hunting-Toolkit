@@ -214,6 +214,39 @@ def generate_html_report(
          **getattr(report, "linux_execution_statistics", {}),
     }
 
+    web_infrastructure_statistics = {
+        "total_events": 0,
+        "events_by_source": {},
+        **getattr(
+            report,
+            "web_infrastructure_statistics",
+            {},
+        ),
+    }
+
+    web_source_rows = "".join(
+        (
+            "<tr>"
+            f"<td>{escape(str(source))}</td>"
+            f"<td>{count}</td>"
+            "</tr>"
+        )
+        for source, count in sorted(
+            web_infrastructure_statistics[
+                "events_by_source"
+            ].items()
+        )
+    )
+
+    if not web_source_rows:
+        web_source_rows = (
+            "<tr>"
+            "<td colspan=\"2\">"
+            "No web infrastructure telemetry available"
+            "</td>"
+            "</tr>"
+        )
+
     protocol_rows = ""
 
     for protocol, count in network_statistics["protocols"].items():
@@ -451,6 +484,23 @@ def generate_html_report(
             <th>Detections</th>
         </tr>
         {linux_execution_mitre_rows}
+    </table>
+
+    <h2>Web Infrastructure Telemetry</h2>
+    <ul>
+        <li>
+            <strong>Total normalized web events:</strong>
+            {web_infrastructure_statistics["total_events"]}
+        </li>
+    </ul>
+
+    <h3>Events by Source</h3>
+    <table border="1" cellpadding="8">
+        <tr>
+            <th>Source</th>
+            <th>Events</th>
+        </tr>
+        {web_source_rows}
     </table>
 
     {physical_security_section}
