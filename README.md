@@ -281,8 +281,8 @@ reports/threat_report.json
 HTML output file:
 reports/threat_report.html
 
-Total findings: 214
-Critical findings: 7
+Total findings: 244
+Critical findings: 17
 
 Network events parsed: 773
 Network findings: 175
