@@ -117,19 +117,21 @@ def test_generate_json_report_contains_physical_security(tmp_path):
     report = ThreatReport(
         title="Threat Hunting Report",
         generated_at="2026-07-17 20:00:00",
-)
-
-    report.physical_risk_score = 100
-    report.physical_statistics = {
-        "events_parsed": 5,
-        "detector_findings": 13,
-        "policy_findings": 4,
-        "correlation_findings": 6,
-        "total_findings": 23,
-        "event_types": {"hid_connect": 1},
-        "device_types": {"hid": 2},
-        "severity_counts": {"critical": 9, "high": 12},
-        }
+        physical_risk_score=100,
+        physical_statistics={
+            "events_parsed": 5,
+            "detector_findings": 13,
+            "policy_findings": 4,
+            "correlation_findings": 6,
+            "total_findings": 23,
+            "event_types": {"hid_connect": 1},
+            "device_types": {"hid": 2},
+            "severity_counts": {
+                "critical": 9,
+                "high": 12,
+            },
+        },
+    )
 
     output_file = tmp_path / "threat_report.json"
 

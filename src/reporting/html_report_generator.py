@@ -6,16 +6,13 @@ from src.models.threat_report import ThreatReport
 from src.reporting.executive_summary import generate_executive_summary
 from src.reporting.mitre_statistics import generate_mitre_statistics
 
-def _generate_physical_security_section(report) -> str:
-    """
-    Generate the Physical Security section for the HTML report.
+def _generate_physical_security_section(
+    report: ThreatReport,
+) -> str:
+    """Generate the Physical Security section for the HTML report."""
 
-    The function uses getattr so older ThreatReport objects remain
-    compatible when Physical Security data is unavailable.
-    """
-
-    statistics = getattr(report,"physical_statistics",{},) or {}
-    risk_score = getattr(report,"physical_risk_score",0,)
+    statistics = report.physical_statistics
+    risk_score = report.physical_risk_score
     events_parsed = statistics.get("events_parsed",0,)
     detector_findings = statistics.get("detector_findings",0,)
     policy_findings = statistics.get("policy_findings",0,)
@@ -192,7 +189,7 @@ def generate_html_report(
         "protocols": {},
         "dns_queries": [],
         "http_requests": 0,
-        **getattr(report, "network_statistics", {}),
+        **report.network_statistics,
     }
 
     linux_statistics = {
@@ -201,7 +198,7 @@ def generate_html_report(
         "statuses": {},
         "users": {},
         "source_ips": {},
-        **getattr(report, "linux_statistics", {}),
+        **report.linux_statistics,
     }
 
     linux_execution_statistics = {
@@ -211,17 +208,13 @@ def generate_html_report(
         "top_executables": [],
         "top_users": [],
         "mitre_statistics": [],
-         **getattr(report, "linux_execution_statistics", {}),
+        **report.linux_execution_statistics,
     }
 
     web_infrastructure_statistics = {
         "total_events": 0,
         "events_by_source": {},
-        **getattr(
-            report,
-            "web_infrastructure_statistics",
-            {},
-        ),
+        **report.web_infrastructure_statistics,
     }
 
     web_source_rows = "".join(

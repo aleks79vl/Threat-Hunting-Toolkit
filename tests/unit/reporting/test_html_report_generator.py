@@ -318,3 +318,35 @@ def test_html_report_contains_web_infrastructure_statistics(
     assert "api_gateway" in html
     assert "nginx" in html
     assert "waf_cdn" in html
+
+def test_html_report_contains_physical_security_data(tmp_path):
+    report = ThreatReport(
+        title="Threat Hunting Report",
+        generated_at="2026-07-24 20:00:00",
+        physical_risk_score=100,
+        physical_statistics={
+            "events_parsed": 5,
+            "detector_findings": 13,
+            "policy_findings": 4,
+            "correlation_findings": 6,
+            "total_findings": 23,
+            "event_types": {"hid_connect": 1},
+            "device_types": {"hid": 2},
+            "severity_counts": {
+                "critical": 9,
+                "high": 12,
+            },
+        },
+    )
+
+    output_file = tmp_path / "report.html"
+
+    generate_html_report(report, str(output_file))
+
+    html = output_file.read_text(encoding="utf-8")
+
+    assert "Physical Security" in html
+    assert "100/100" in html
+    assert "Critical Risk" in html
+    assert "hid_connect" in html
+    assert "hid" in html

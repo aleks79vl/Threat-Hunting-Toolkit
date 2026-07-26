@@ -1,276 +1,95 @@
-from datetime import datetime
-from pathlib import Path
-
-from src.parsers.nmap_parser import parse_nmap_xml
-from src.parsers.windows_event_parser import parse_windows_events
-from src.parsers.firewall_parser import parse_firewall_log
-from src.parsers.web_log_parser import parse_web_log
-from src.parsers.pcap_exporter import export_pcap_to_csv
-from src.parsers.wireshark_csv_parser import parse_wireshark_csv
-from src.parsers.linux_auth_parser import parse_auth_log
-from src.parsers.linux_syslog_parser import parse_syslog
-from src.parsers.physical_event_loader import load_physical_events
-from src.parsers.apache_access_log_parser import (
-    parse_apache_access_log,
-    parse_apache_vhost_access_log,
+from src.application.traditional_detection_pipeline import (
+    run_traditional_detection_pipeline,
 )
-from src.parsers.apache_error_log_parser import (
-    parse_apache_error_log,
+from src.application.web_infrastructure_application_pipeline import (
+    run_web_infrastructure_application_pipeline,
 )
-from src.parsers.api_gateway_log_parser import (
-    parse_api_gateway_log,
+from src.application.physical_security_application_pipeline import (
+    run_physical_security_application_pipeline,
 )
-from src.parsers.haproxy_log_parser import (
-    parse_haproxy_http_log,
+from src.application.cross_domain_analysis_pipeline import (
+    run_cross_domain_analysis_pipeline,
 )
-from src.parsers.nginx_error_log_parser import (
-    parse_nginx_error_log,
+from src.application.threat_report_builder import (
+    build_threat_report,
 )
-from src.parsers.nginx_json_log_parser import (
-    parse_nginx_json_log,
+from src.detection.network.network_pipeline import (
+    run_network_detection_pipeline,
 )
-from src.parsers.waf_cdn_log_parser import (
-    parse_waf_cdn_log,
+from src.detection.linux.linux_pipeline import (
+    run_linux_detection_pipeline,
 )
-
-from src.detection.nmap.unknown_ip_detector import detect_unknown_ips
-from src.detection.nmap.critical_port_detector import detect_critical_ports
-from src.detection.windows.windows_event_detector import (
-    detect_windows_events,
-)
-from src.detection.firewall.firewall_detector import (
-    detect_firewall_events,
-)
-from src.detection.web.web_attack_detector import detect_web_attacks
-from src.detection.web.web_baseline_detector import (
-    load_web_security_baseline,
-)
-from src.detection.web.web_infrastructure_pipeline import (
-    run_web_infrastructure_detection_pipeline,
-)
-from src.detection.nmap.network_unknown_ip_detector import (
-    detect_unknown_network_ips,
-)
-from src.detection.nmap.network_critical_port_detector import (
-    detect_network_critical_ports,
-)
-from src.detection.network.network_ioc_detector import (
-    detect_network_iocs,
-)
-from src.detection.network.network_web_attack_detector import (
-    detect_network_web_attacks,
-)
-from src.detection.network.dns_activity_detector import (
-    detect_suspicious_dns_activity,
-)
-from src.detection.network.packet_anomaly_detector import (
-    detect_packet_anomalies,
-)
-from src.detection.network.mitm_detector import detect_arp_spoofing
-
-from src.detection.linux.ssh_failed_login_detector import (
-    detect_ssh_failed_logins,
-)
-from src.detection.linux.ssh_bruteforce_detector import (
-    detect_ssh_bruteforce,
-)
-from src.detection.linux.successful_login_after_failures_detector import (
-    detect_successful_login_after_failures,
-)
-from src.detection.linux.telnet_detector import detect_telnet_activity
-from src.detection.linux.sudo_abuse_detector import detect_sudo_abuse
-from src.detection.linux.user_privilege_detector import (
-    detect_linux_user_privilege_activity,
-)
-from src.detection.linux.cron_activity_detector import (
-    detect_suspicious_cron_activity,
-)
-from src.detection.linux.service_manipulation_detector import (
-    detect_linux_service_manipulation,
-)
-
-from src.detection.linux.detection_context import LinuxDetectionContext
-from src.models.linux_process_execution import LinuxProcessExecution
-
-from src.detection.linux.suspicious_process_detector import (
-    detect_suspicious_linux_processes,
-)
-from src.detection.linux.reverse_shell_detector import (
-    detect_linux_reverse_shells,
-)
-from src.detection.linux.advanced_telnet_detector import (
-    detect_advanced_telnet_activity,
-)
-from src.detection.linux.ssh_persistence_detector import (
-    detect_linux_ssh_persistence,
-)
-from src.detection.linux.audit_tampering_detector import (
-    detect_linux_audit_tampering,
-)
-from src.detection.linux.log_clearing_detector import (
-    detect_linux_log_clearing,
-)
-from src.detection.linux.file_permission_detector import (
-    detect_suspicious_file_permissions,
-)
-from src.detection.linux.systemd_persistence_detector import (
-    detect_linux_systemd_persistence,
-)
-from src.detection.linux.cron_persistence_detector import (
-    detect_linux_cron_persistence,
-)
-
-from src.detection.linux.advanced_risk_scoring import (
-    calculate_advanced_linux_risk_score,
-)
-from src.detection.linux.mitre_mapping import (
-    get_linux_mitre_techniques,
-)
-from src.detection.physical.device_policy_detector import DevicePolicy
-from src.detection.physical.physical_pipeline import (
-    run_physical_detection_pipeline,
-)
-
-from src.correlation.threat_correlation import correlate_threats
-from src.correlation.network_correlation import (
-    correlate_network_findings,
-)
-from src.correlation.apache_nginx_correlation import (
-    correlate_apache_nginx_findings,
-)
-from src.correlation.firewall_web_correlation import (
-    correlate_firewall_and_web_findings,
-)
-from src.correlation.ioc_web_correlation import (
-    correlate_ioc_and_web_findings,
-)
-from src.correlation.risk_scoring import calculate_risk_score
-
-from src.intelligence.ioc_matcher import enrich_finding_with_ioc
-from src.intelligence.ioc_risk_scoring import apply_ioc_risk_score
-
-from src.models.threat_report import ThreatReport
 
 from src.reporting.json_report_generator import generate_json_report
 from src.reporting.html_report_generator import generate_html_report
-from src.reporting.timeline_generator import generate_timeline
-from src.reporting.network_statistics import (
-    generate_network_statistics,
-)
-from src.reporting.linux_statistics import generate_linux_statistics
-from src.reporting.linux_execution_statistics import (
-    generate_linux_execution_statistics,
-)
+from src.reporting.console_summary import print_console_summary
+from src.config.app_config import AppConfig, default_app_config
 
 
-def main() -> None:
+def main(
+    config: AppConfig | None = None,
+) -> None:
+    if config is None:
+        config = default_app_config()
+
     # Input files
 
-    nmap_file = "data/raw/network/nmap_scan.xml"
-    windows_events_file = "data/raw/windows/security_events.csv"
-    firewall_file = "data/raw/firewall/firewall.log"
-    web_log_file = "data/raw/web/apache_access.log"
-
-    apache_vhost_log_file = (
-        "data/raw/web/apache_vhost_access.log"
-    )
-    apache_error_log_file = "data/raw/web/apache_error.log"
-    nginx_access_log_file = "data/raw/web/nginx_access.jsonl"
-    nginx_error_log_file = "data/raw/web/nginx_error.log"
-    api_gateway_log_file = (
-        "data/raw/web/api_gateway_access.jsonl"
-    )
-    haproxy_log_file = "data/raw/web/haproxy_http.log"
-    waf_cdn_log_file = "data/raw/web/waf_cdn_events.jsonl"
-
-    pcap_file = "data/raw/pcap/sample.pcap"
-    pcap_csv_file = "data/processed/pcap/sample.csv"
-
-    linux_auth_file = "data/raw/linux/auth.log"
-    linux_syslog_file = "data/raw/linux/syslog"
-
-    physical_events_file = (
-        "data/raw/physical/sample_physical_events.json"
-    )
+    nmap_file = config.nmap_file
+    windows_events_file = config.windows_events_file
+    firewall_file = config.firewall_file
+    web_log_file = config.web_log_file
+    apache_vhost_log_file = config.apache_vhost_log_file
+    apache_error_log_file = config.apache_error_log_file
+    nginx_access_log_file = config.nginx_access_log_file
+    nginx_error_log_file = config.nginx_error_log_file
+    api_gateway_log_file = config.api_gateway_log_file
+    haproxy_log_file = config.haproxy_log_file
+    waf_cdn_log_file = config.waf_cdn_log_file
+    pcap_file = config.pcap_file
+    pcap_csv_file = config.pcap_csv_file
+    linux_auth_file = config.linux_auth_file
+    linux_syslog_file = config.linux_syslog_file
+    physical_events_file = config.physical_events_file
 
     # Configuration files
 
-    whitelist_file = "config/whitelist.json"
-    critical_ports_file = "config/critical_ports.json"
-    risk_scores_file = "config/risk_scores.json"
-    web_security_baseline_file = (
-        "config/web_security_baseline.json"
-    )
-
-    # Output files
-
-    json_output_file = "reports/threat_report.json"
-    html_output_file = "reports/threat_report.html"
+    whitelist_file = config.whitelist_file
+    critical_ports_file = config.critical_ports_file
+    risk_scores_file = config.risk_scores_file
+    web_security_baseline_file = config.web_security_baseline_file
+    json_output_file = config.json_output_file
+    html_output_file = config.html_output_file
 
     # Traditional log sources
 
-    nmap_events = parse_nmap_xml(nmap_file)
-
-    unknown_events = detect_unknown_ips(
-        nmap_events,
-        whitelist_file,
+    traditional_result = run_traditional_detection_pipeline(
+        nmap_file=nmap_file,
+        windows_events_file=windows_events_file,
+        firewall_file=firewall_file,
+        web_log_file=web_log_file,
+        whitelist_file=whitelist_file,
+        critical_ports_file=critical_ports_file,
     )
 
-    critical_events = detect_critical_ports(
-        nmap_events,
-        critical_ports_file,
-    )
-
-    nmap_findings = correlate_threats(
-        unknown_events,
-        critical_events,
-    )
-
-    windows_events = parse_windows_events(
-        windows_events_file
-    )
-
-    windows_findings = detect_windows_events(
-        windows_events
-    )
-
-    firewall_events = parse_firewall_log(
-        firewall_file
-    )
-
-    firewall_findings = detect_firewall_events(
-        firewall_events
-    )
-
-    web_events = parse_web_log(
-        web_log_file
-    )
-
-    web_findings = detect_web_attacks(
-        web_events
-    )
-
-    web_infrastructure_events = (
-        parse_apache_access_log(web_log_file)
-        + parse_apache_vhost_access_log(
-            apache_vhost_log_file
-        )
-        + parse_apache_error_log(apache_error_log_file)
-        + parse_nginx_json_log(nginx_access_log_file)
-        + parse_nginx_error_log(nginx_error_log_file)
-        + parse_api_gateway_log(api_gateway_log_file)
-        + parse_haproxy_http_log(haproxy_log_file)
-        + parse_waf_cdn_log(waf_cdn_log_file)
-    )
-
-    web_security_baseline = load_web_security_baseline(
-        web_security_baseline_file
-    )
+    nmap_findings = traditional_result.nmap_findings
+    windows_findings = traditional_result.windows_findings
+    firewall_events = traditional_result.firewall_events
+    firewall_findings = traditional_result.firewall_findings
+    web_findings = traditional_result.web_findings
 
     web_infrastructure_result = (
-        run_web_infrastructure_detection_pipeline(
-            web_infrastructure_events,
-            web_security_baseline=web_security_baseline,
+        run_web_infrastructure_application_pipeline(
+            apache_access_log_file=web_log_file,
+            apache_vhost_log_file=apache_vhost_log_file,
+            apache_error_log_file=apache_error_log_file,
+            nginx_access_log_file=nginx_access_log_file,
+            nginx_error_log_file=nginx_error_log_file,
+            api_gateway_log_file=api_gateway_log_file,
+            haproxy_log_file=haproxy_log_file,
+            waf_cdn_log_file=waf_cdn_log_file,
+            web_security_baseline_file=(
+                web_security_baseline_file
+            ),
         )
     )
 
@@ -280,392 +99,79 @@ def main() -> None:
 
     # PCAP / Wireshark pipeline
 
-    network_events = []
-    network_findings = []
+    network_result = run_network_detection_pipeline(
+        pcap_file=pcap_file,
+        pcap_csv_file=pcap_csv_file,
+        whitelist_file=whitelist_file,
+        critical_ports_file=critical_ports_file,
+    )
 
-    if Path(pcap_file).exists():
-        export_pcap_to_csv(
-            pcap_file,
-            pcap_csv_file,
-        )
+    network_events = network_result.events
+    network_findings = network_result.findings
 
-        network_events = parse_wireshark_csv(
-            pcap_csv_file
-        )
-
-    # Network Detection Layer
-
-    if network_events:
-        network_findings.extend(
-            detect_unknown_network_ips(
-                network_events,
-                whitelist_file,
-            )
-        )
-
-        network_findings.extend(
-            detect_network_critical_ports(
-                network_events,
-                critical_ports_file,
-            )
-        )
-
-        network_findings.extend(
-            detect_network_iocs(network_events)
-        )
-
-        network_findings.extend(
-            detect_network_web_attacks(network_events)
-        )
-
-        network_findings.extend(
-            detect_suspicious_dns_activity(network_events)
-        )
-
-        network_findings.extend(
-            detect_packet_anomalies(network_events)
-        )
-
-        network_findings.extend(
-            detect_arp_spoofing(network_events)
-        )
-
-        correlated_network_findings = (
-            correlate_network_findings(
-                network_findings
-            )
-        )
-
-        network_findings.extend(
-            correlated_network_findings
-        )
 
     # Linux Log Pipeline
 
-    linux_auth_events = []
-    linux_syslog_events = []
-
-    if Path(linux_auth_file).exists():
-        linux_auth_events = parse_auth_log(
-            linux_auth_file
-        )
-
-    if Path(linux_syslog_file).exists():
-        linux_syslog_events = parse_syslog(
-            linux_syslog_file
-        )
-
-    linux_events = (
-        linux_auth_events
-        + linux_syslog_events
+    linux_result = run_linux_detection_pipeline(
+        linux_auth_file=linux_auth_file,
+        linux_syslog_file=linux_syslog_file,
     )
 
-    linux_findings = []
-    linux_executions = []
-    advanced_linux_findings = []
-
-    if linux_events:
-        linux_findings.extend(
-            detect_ssh_failed_logins(linux_events)
-        )
-
-        linux_findings.extend(
-            detect_ssh_bruteforce(linux_events)
-        )
-
-        linux_findings.extend(
-            detect_successful_login_after_failures(
-                linux_events
-            )
-        )
-
-        linux_findings.extend(
-            detect_telnet_activity(linux_events)
-        )
-
-        linux_findings.extend(
-            detect_sudo_abuse(linux_events)
-        )
-
-        linux_findings.extend(
-            detect_linux_user_privilege_activity(
-                linux_events
-            )
-        )
-
-        linux_findings.extend(
-            detect_suspicious_cron_activity(
-                linux_events
-            )
-        )
-
-        linux_findings.extend(
-            detect_linux_service_manipulation(
-                linux_events
-            )
-        )
-
-        # Advanced Linux Execution Analysis Layer
-
-        for event in linux_events:
-            context = LinuxDetectionContext.from_event(
-                event
-            )
-
-            execution = LinuxProcessExecution.from_context(
-                context
-            )
-
-            if execution.searchable_text():
-                linux_executions.append(execution)
-
-        for execution in linux_executions:
-            execution_findings = []
-
-            execution_findings.extend(
-                detect_suspicious_linux_processes(
-                    [execution]
-                )
-            )
-
-            execution_findings.extend(
-                detect_linux_reverse_shells(
-                    [execution]
-                )
-            )
-
-            execution_findings.extend(
-                detect_advanced_telnet_activity(
-                    [execution]
-                )
-            )
-
-            execution_findings.extend(
-                detect_linux_ssh_persistence(
-                    [execution]
-                )
-            )
-
-            execution_findings.extend(
-                detect_linux_audit_tampering(
-                    [execution]
-                )
-            )
-
-            execution_findings.extend(
-                detect_linux_log_clearing(
-                    [execution]
-                )
-            )
-
-            execution_findings.extend(
-                detect_suspicious_file_permissions(
-                    [execution]
-                )
-            )
-
-            execution_findings.extend(
-                detect_linux_systemd_persistence(
-                    [execution]
-                )
-            )
-
-            execution_findings.extend(
-                detect_linux_cron_persistence(
-                    [execution]
-                )
-            )
-
-            for finding in execution_findings:
-                finding.risk_score = (
-                    calculate_advanced_linux_risk_score(
-                        finding,
-                        execution,
-                    )
-                )
-
-                techniques = get_linux_mitre_techniques(
-                    finding
-                )
-
-                if techniques:
-                    primary_technique = techniques[0]
-
-                    finding.technique = (
-                        primary_technique.technique_id
-                    )
-                    finding.technique_name = (
-                        primary_technique.technique_name
-                    )
-                    finding.tactic = (
-                        primary_technique.tactic
-                    )
-
-                advanced_linux_findings.append(
-                    finding
-                )
-
-        linux_findings.extend(
-            advanced_linux_findings
-        )
-
-    linux_execution_statistics = (
-        generate_linux_execution_statistics(
-            linux_executions,
-            advanced_linux_findings,
-        )
-    )
+    linux_events = linux_result.events
+    linux_findings = linux_result.findings
+    linux_statistics = linux_result.statistics[
+        "linux_statistics"
+    ]
+    linux_execution_statistics = linux_result.statistics[
+        "linux_execution_statistics"
+    ]
 
     # Physical Security Pipeline
 
-    physical_events = load_physical_events(
-        physical_events_file
-    )
-
-    physical_policy = DevicePolicy(
-        allowed_device_ids={
-            "CORP-USB-001",
-        },
-        allowed_users={
-            "security-admin",
-        },
-        allowed_hosts={
-            "SECURE-WS-01",
-        },
-        require_serial_number=True,
-        require_encrypted_storage=True,
-        require_read_only_storage=True,
-        require_signed_driver=True,
-    )
-
-    physical_result = run_physical_detection_pipeline(
-        physical_events,
-        policy=physical_policy,
+    physical_result = (
+        run_physical_security_application_pipeline(
+            physical_events_file=physical_events_file,
+        )
     )
 
     physical_findings = (
         physical_result.all_findings
     )
 
-    apache_nginx_correlation_findings = (
-        correlate_apache_nginx_findings(
-            web_infrastructure_findings
+    cross_domain_analysis_result = (
+        run_cross_domain_analysis_pipeline(
+            nmap_findings=nmap_findings,
+            windows_findings=windows_findings,
+            firewall_findings=firewall_findings,
+            web_findings=web_findings,
+            web_infrastructure_findings=(
+                web_infrastructure_findings
+            ),
+            network_findings=network_findings,
+            linux_findings=linux_findings,
+            physical_findings=physical_findings,
+            risk_scores_file=risk_scores_file,
         )
     )
 
-    firewall_web_correlation_findings = (
-        correlate_firewall_and_web_findings(
-            firewall_findings
-            + web_findings
-            + web_infrastructure_findings
-        )
-    )
-
-    web_correlation_findings = (
-        apache_nginx_correlation_findings
-        + firewall_web_correlation_findings
-    )
-
-    # Unified findings pipeline
-
-    all_findings = (
-        nmap_findings
-        + windows_findings
-        + firewall_findings
-        + web_findings
-        + web_infrastructure_findings
-        + web_correlation_findings
-        + network_findings
-        + linux_findings
-        + physical_findings
-    )
-
-    # Risk scoring
-
-    scored_findings = [
-        calculate_risk_score(
-            finding,
-            risk_scores_file,
-        )
-        for finding in all_findings
-    ]
-
-    # IOC Intelligence enrichment
-
-    enriched_findings = []
-
-    for finding in scored_findings:
-        finding = enrich_finding_with_ioc(
-            finding
-        )
-
-        finding = apply_ioc_risk_score(
-            finding
-        )
-
-        enriched_findings.append(
-            finding
-        )
-
-    ioc_web_correlation_findings = (
-        correlate_ioc_and_web_findings(enriched_findings)
-    )
-
-    scored_ioc_web_correlation_findings = [
-        apply_ioc_risk_score(
-            calculate_risk_score(
-                finding,
-                risk_scores_file,
-            )
-        )
-        for finding in ioc_web_correlation_findings
-    ]
-
-    enriched_findings.extend(
-        scored_ioc_web_correlation_findings
+    enriched_findings = (
+        cross_domain_analysis_result.findings
     )
 
     # Reporting data
 
-    timeline = generate_timeline(
-        enriched_findings
-    )
-
-    network_statistics = generate_network_statistics(
-        network_events
-    )
-
-    linux_statistics = generate_linux_statistics(
-        linux_events
-    )
-
-    report = ThreatReport(
-        title="Threat Hunting Report",
-        generated_at=datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        ),
+    report = build_threat_report(
         findings=enriched_findings,
-        timeline=timeline,
+        network_statistics=network_result.statistics,
+        linux_statistics=linux_statistics,
         linux_execution_statistics=(
             linux_execution_statistics
         ),
         web_infrastructure_statistics=(
             web_infrastructure_result.event_statistics()
         ),
-    )
-
-    report.network_statistics = network_statistics
-    report.linux_statistics = linux_statistics
-
-    # Temporary Physical Security attributes.
-    # Formal report integration will be completed in Block 24.14.
-
-    report.physical_statistics = (
-        physical_result.statistics
-    )
-
-    report.physical_risk_score = (
-        physical_result.risk_score
+        physical_statistics=physical_result.statistics,
+        physical_risk_score=physical_result.risk_score,
     )
 
     # Report generation
@@ -682,71 +188,23 @@ def main() -> None:
 
     # Console summary
 
-    print(
-        "Threat Hunting Report generated successfully."
-    )
-
-    print(
-        f"JSON output file: {json_output_file}"
-    )
-
-    print(
-        f"HTML output file: {html_output_file}"
-    )
-
-    print(
-        f"Total findings: "
-        f"{report.total_findings()}"
-    )
-
-    print(
-        "Critical findings: "
-        f"{report.count_by_severity('critical')}"
-    )
-
-    print(
-        f"Network events parsed: "
-        f"{len(network_events)}"
-    )
-
-    print(
-        f"Network findings: "
-        f"{len(network_findings)}"
-    )
-
-    print(
-        f"Linux events parsed: "
-        f"{len(linux_events)}"
-    )
-
-    print(
-        f"Linux findings: "
-        f"{len(linux_findings)}"
-    )
-
-    print(
-        f"Physical events parsed: "
-        f"{len(physical_result.events)}"
-    )
-
-    print(
-        f"Physical findings: "
-        f"{len(physical_findings)}"
-    )
-
-    print(
-        f"Physical policy findings: "
-        f"{len(physical_result.policy_findings)}"
-    )
-
-    print(
-        f"Physical correlation findings: "
-        f"{len(physical_result.correlation_findings)}"
-    )
-
-    print(
-        f"Physical risk score: "
-        f"{physical_result.risk_score}"
+    print_console_summary(
+        report,
+        json_output_file=json_output_file,
+        html_output_file=html_output_file,
+        network_event_count=len(network_events),
+        network_finding_count=len(network_findings),
+        linux_event_count=len(linux_events),
+        linux_finding_count=len(linux_findings),
+        physical_event_count=len(physical_result.events),
+        physical_finding_count=len(physical_findings),
+        physical_policy_finding_count=len(
+            physical_result.policy_findings
+        ),
+        physical_correlation_finding_count=len(
+            physical_result.correlation_findings
+        ),
+        physical_risk_score=physical_result.risk_score,
     )
 
 

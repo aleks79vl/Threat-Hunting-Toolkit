@@ -28,6 +28,10 @@ The project is designed as a modular framework where new log sources and detecti
 
 src/
 
+├── application/
+│   └── Application-level orchestration pipelines
+├── config/
+│   └── Runtime configuration model and defaults
 ├── correlation/
 ├── detection/
 │   ├── common/
@@ -35,9 +39,9 @@ src/
 │   ├── linux/
 │   ├── network/
 │   ├── nmap/
+│   ├── physical/
 │   ├── web/
 │   └── windows/
-│
 ├── intelligence/
 ├── mitre/
 ├── models/
@@ -60,7 +64,7 @@ src/
 - WAF/CDN, TLS, HTTP protocol and WebSocket telemetry analysis
 - Apache + Nginx, Firewall + Web and IOC + Web correlation
 - Web Infrastructure Telemetry in JSON and HTML reports
-- 589 automated tests passed
+- Current development baseline: 603 automated tests passing
 
 ### Highlights
 
@@ -79,7 +83,7 @@ src/
 - Executive Summary
 - HTML Report Generator
 - JSON Report Generator
-- Enterprise-grade automated test suite (360 tests)
+- Enterprise-grade automated test suite (603 tests)
 
 ---
 
@@ -206,26 +210,23 @@ Includes:
 
 ---
 
-# Architecture
 
-```
+### Arhitecture
+
+```text
 Raw Logs
       ▼
 Parsers
       ▼
-Normalized Security Events
+Normalized Events
       ▼
-Detection Engines
+Domain Pipelines
+(Traditional / Web / Network / Linux / Physical)
       ▼
-Threat Correlation
+Cross-Domain Analysis
+(Correlation / Risk Scoring / IOC Enrichment)
       ▼
-Risk Scoring
-      ▼
-IOC Intelligence
-      ▼
-MITRE ATT&CK Mapping
-      ▼
-Timeline Generation
+ThreatReport Builder
       ▼
 JSON / HTML Reports
 ```
@@ -295,16 +296,15 @@ Linux findings: 14
 
 # Testing
 
-Run:
+Run the full regression suite:
 
 ```bash
-pytest
-```
+python3 -m pytest -q
 
 Current status:
 
 ```text
-589 passed
+603 passed
 
 100% Passing
 ```
@@ -329,7 +329,7 @@ Current status:
 | Physical Risk Score                  |               100             |
 | Total Findings                       |               244             |
 | Critical Findings                    |                17             |
-| Automated Tests                      |               589             |
+| Automated Tests                      |               603             |
 | Test Status                          |          100% Passing         |
 
 ---

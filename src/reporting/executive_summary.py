@@ -30,9 +30,8 @@ def generate_executive_summary(report: ThreatReport) -> str:
         "top_executables": [],
         "top_users": [],
         "mitre_statistics": [],
-        **getattr(report,
-            "linux_execution_statistics",
-            {},),}
+        **report.linux_execution_statistics,
+    }
 
     top_executables = linux_execution_statistics.get("top_executables",[],)
 

@@ -19,29 +19,15 @@ def generate_json_report(
 
     report_data = report.to_dict()
 
-    report_data["network_statistics"] = getattr(report,
-        "network_statistics",
-        {"total_network_events": 0,"protocols": {},
-        "dns_queries": [],"http_requests": 0,},
-    )
-
-    report_data["linux_statistics"] = getattr(
-        report,
-        "linux_statistics",
-        {"total_events": 0,"actions": {},"statuses": {},
-        "users": {},"source_ips": {},},
-    )
-
-    report_data["linux_execution_statistics"] = getattr(report,
-        "linux_execution_statistics",
-        {"total_executions": 0,"suspicious_executions": 0,
-        "unique_executables": 0,"top_executables": [],
-        "top_users": [],"mitre_statistics": [],},
+    report_data["network_statistics"] = report.network_statistics
+    report_data["linux_statistics"] = report.linux_statistics
+    report_data["linux_execution_statistics"] = (
+        report.linux_execution_statistics
     )
 
     report_data["physical_security"] = {
-        "risk_score": getattr(report, "physical_risk_score", 0),
-        "statistics": getattr(report, "physical_statistics", {}),
+        "risk_score": report.physical_risk_score,
+        "statistics": report.physical_statistics,
     }
 
     report_data["mitre_statistics"] = generate_mitre_statistics(

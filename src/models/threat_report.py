@@ -16,6 +16,8 @@ class ThreatReport:
     web_infrastructure_statistics: dict = field(
         default_factory=dict
     )
+    physical_statistics: dict = field(default_factory=dict)
+    physical_risk_score: int = 0
 
     def total_findings(self) -> int:
         return len(self.findings)

@@ -6,14 +6,25 @@ The format is based on Keep a Changelog.
 
 ---
 
-# Changelog
+## Unreleased
 
----
+### Changed
+
+- Added application-level orchestration pipelines for Traditional, Web Infrastructure, Physical Security and cross-domain analysis.
+- Added a dedicated `ThreatReport` builder and console summary renderer.
+- Reduced `src/main.py` to 211 lines of explicit orchestration.
+- Standardized Network and Linux pipeline results and formalized Physical Security fields in `ThreatReport`.
+- Reorganized the automated test suite into unit, integration, physical and fixture directories.
+- Retained legacy Apache web parsing and detections after a coverage audit confirmed that Web Infrastructure does not yet provide equivalent Apache SQLi/XSS coverage.
 
 ### Verification
 
-- 589 automated tests passed
-- HTML and JSON reports generated successfully
+- 603 automated tests passed.
+- `python3 -m src.main` generated JSON and HTML reports successfully.
+- Default fixture dataset preserved 244 total findings and 17 critical findings.
+- `git diff --check` passed.
+
+---
 
 ## v3.7.0 - 2026-07-23
 
