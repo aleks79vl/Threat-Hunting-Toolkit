@@ -5,6 +5,11 @@ from html import escape
 from src.models.threat_report import ThreatReport
 from src.reporting.executive_summary import generate_executive_summary
 from src.reporting.mitre_statistics import generate_mitre_statistics
+from src.security.redaction import redact_for_export
+
+def _escape_redacted(value) -> str:
+    redacted = redact_for_export({"value": value})["value"]
+    return escape(str(redacted))
 
 def _generate_physical_security_section(
     report: ThreatReport,
@@ -42,8 +47,8 @@ def _generate_physical_security_section(
     device_rows = "".join(
         (
             "<tr>"
-            f"<td>{escape(str(device_type))}</td>"
-            f"<td>{escape(str(count))}</td>"
+            f"<td>{_escape_redacted(str(device_type))}</td>"
+            f"<td>{_escape_redacted(str(count))}</td>"
             "</tr>"
         )
         for device_type, count in sorted(device_types.items()))
@@ -57,8 +62,8 @@ def _generate_physical_security_section(
 
     event_rows = "".join(
         ("<tr>"
-            f"<td>{escape(str(event_type))}</td>"
-            f"<td>{escape(str(count))}</td>"
+            f"<td>{_escape_redacted(str(event_type))}</td>"
+            f"<td>{_escape_redacted(str(count))}</td>"
             "</tr>")
         for event_type, count in sorted(event_types.items()))
 
@@ -84,27 +89,27 @@ def _generate_physical_security_section(
 
             <div class="summary-card">
                 <h3>Events Parsed</h3>
-                <div class="metric-value">{escape(str(events_parsed))}</div>
+                <div class="metric-value">{_escape_redacted(str(events_parsed))}</div>
             </div>
 
             <div class="summary-card">
                 <h3>Total Findings</h3>
-                <div class="metric-value">{escape(str(total_findings))}</div>
+                <div class="metric-value">{_escape_redacted(str(total_findings))}</div>
             </div>
 
             <div class="summary-card">
                 <h3>Policy Findings</h3>
-                <div class="metric-value">{escape(str(policy_findings))}</div>
+                <div class="metric-value">{_escape_redacted(str(policy_findings))}</div>
             </div>
 
             <div class="summary-card">
                 <h3>Correlation Findings</h3>
-                <div class="metric-value"> {escape(str(correlation_findings))}</div>
+                <div class="metric-value"> {_escape_redacted(str(correlation_findings))}</div>
             </div>
 
             <div class="summary-card">
                 <h3>Detector Findings</h3>
-                <div class="metric-value"> {escape(str(detector_findings))}</div>
+                <div class="metric-value"> {_escape_redacted(str(detector_findings))}</div>
             </div>
         </div>
 
@@ -120,19 +125,19 @@ def _generate_physical_security_section(
             <tbody>
                 <tr>
                     <td>Critical</td>
-                    <td>{escape(str(critical_count))}</td>
+                    <td>{_escape_redacted(str(critical_count))}</td>
                 </tr>
                 <tr>
                     <td>High</td>
-                    <td>{escape(str(high_count))}</td>
+                    <td>{_escape_redacted(str(high_count))}</td>
                 </tr>
                 <tr>
                     <td>Medium</td>
-                    <td>{escape(str(medium_count))}</td>
+                    <td>{_escape_redacted(str(medium_count))}</td>
                 </tr>
                 <tr>
                     <td>Low</td>
-                    <td>{escape(str(low_count))}</td>
+                    <td>{_escape_redacted(str(low_count))}</td>
                 </tr>
             </tbody>
         </table>
@@ -216,8 +221,8 @@ def generate_html_report(
     web_source_rows = "".join(
         (
             "<tr>"
-            f"<td>{escape(str(source))}</td>"
-            f"<td>{escape(str(count))}</td>"
+            f"<td>{_escape_redacted(str(source))}</td>"
+            f"<td>{_escape_redacted(str(count))}</td>"
             "</tr>"
         )
         for source, count in sorted(
@@ -239,22 +244,22 @@ def generate_html_report(
     protocol_rows = ""
 
     for protocol, count in network_statistics["protocols"].items():
-        protocol_rows += f"<li>{escape(str(protocol))}: {escape(str(count))}</li>"
+        protocol_rows += f"<li>{_escape_redacted(str(protocol))}: {_escape_redacted(str(count))}</li>"
 
     linux_action_rows = "".join(
-        f"<tr><td>{escape(str(action))}</td><td>{escape(str(count))}</td></tr>"
+        f"<tr><td>{_escape_redacted(action)}</td><td>{_escape_redacted(str(count))}</td></tr>"
         for action, count in linux_statistics.get("actions", {}).items()
         )
     linux_status_rows = "".join(
-        f"<tr><td>{escape(str(status))}</td><td>{escape(str(count))}</td></tr>"
+        f"<tr><td>{_escape_redacted(str(status))}</td><td>{_escape_redacted(str(count))}</td></tr>"
         for status, count in linux_statistics.get("statuses", {}).items()
         )
     linux_user_rows = "".join(
-        f"<tr><td>{escape(str(user))}</td><td>{escape(str(count))}</td></tr>"
+        f"<tr><td>{_escape_redacted(str(user))}</td><td>{_escape_redacted(str(count))}</td></tr>"
         for user, count in linux_statistics.get("users", {}).items()
         )
     linux_source_ip_rows = "".join(
-        f"<tr><td>{escape(str(ip))}</td><td>{escape(str(count))}</td></tr>"
+        f"<tr><td>{_escape_redacted(str(ip))}</td><td>{_escape_redacted(str(count))}</td></tr>"
         for ip, count in linux_statistics.get("source_ips", {}).items()
         )
 
@@ -264,28 +269,28 @@ def generate_html_report(
         findings_rows += f"""
         <tr>
             <td>
-                <b>{escape(str(finding.title))}</b><br><br>
+                <b>{_escape_redacted(finding.title)}</b><br><br>
 
                 <small>
                     <b>MITRE ATT&CK:</b><br>
-                    <b>Technique:</b> {escape(str(getattr(finding, "technique", "Unknown")))}<br>
-                    <b>Name:</b> {escape(str(getattr(finding, "technique_name", "Unknown")))}<br>
-                    <b>Tactic:</b> {escape(str(getattr(finding, "tactic", "Unknown")))}<br><br>
+                    <b>Technique:</b> {_escape_redacted(str(getattr(finding, "technique", "Unknown")))}<br>
+                    <b>Name:</b> {_escape_redacted(str(getattr(finding, "technique_name", "Unknown")))}<br>
+                    <b>Tactic:</b> {_escape_redacted(str(getattr(finding, "tactic", "Unknown")))}<br><br>
 
                     <b>IOC Intelligence:</b><br>
-                    <b>IOC Match:</b> {escape(str(getattr(finding, "ioc_match", False)))}<br>
-                    <b>IOC Type:</b> {escape(str(getattr(finding, "ioc_type", "")))}<br>
-                    <b>IOC Value:</b> {escape(str(getattr(finding, "ioc_value", "")))}<br>
-                    <b>IOC Confidence:</b> {escape(str(getattr(finding, "ioc_confidence", "")))}<br>
-                    <b>IOC Source:</b> {escape(str(getattr(finding, "ioc_source", "")))}
+                    <b>IOC Match:</b> {_escape_redacted(str(getattr(finding, "ioc_match", False)))}<br>
+                    <b>IOC Type:</b> {_escape_redacted(str(getattr(finding, "ioc_type", "")))}<br>
+                    <b>IOC Value:</b> {_escape_redacted(getattr(finding, "ioc_value", ""))}<br>
+                    <b>IOC Confidence:</b> {_escape_redacted(str(getattr(finding, "ioc_confidence", "")))}<br>
+                    <b>IOC Source:</b> {_escape_redacted(getattr(finding, "ioc_source", ""))}
                 </small>
             </td>
-            <td>{escape(str(finding.severity).upper())}</td>
-            <td>{escape(str(finding.ip))}</td>
-            <td>{escape(str(finding.hostname))}</td>
-            <td>{escape(str(finding.port))}</td>
-            <td>{escape(str(finding.risk_score))}</td>
-            <td>{escape(str(finding.recommendation))}</td>
+            <td>{_escape_redacted(str(finding.severity).upper())}</td>
+            <td>{_escape_redacted(str(finding.ip))}</td>
+            <td>{_escape_redacted(finding.hostname)}</td>
+            <td>{_escape_redacted(str(finding.port))}</td>
+            <td>{_escape_redacted(str(finding.risk_score))}</td>
+            <td>{escape(str(redact_for_export({"recommendation": finding.recommendation})["recommendation"]))}</td>
         </tr>
         """
 
@@ -294,21 +299,21 @@ def generate_html_report(
     for item in report.timeline:
         timeline_rows += f"""
         <tr>
-            <td>{escape(str(item.get("time", "")))}</td>
-            <td>{escape(str(item.get("event", "")))}</td>
-            <td>{escape(str(item.get("severity", "")).upper())}</td>
-            <td>{escape(str(item.get("ip", "")))}</td>
-            <td>{escape(str(item.get("port", "")))}</td>
-            <td>{escape(str(item.get("risk_score", "")))}</td>
-            <td>{escape(str(item.get("source", "")))}</td>
+            <td>{_escape_redacted(str(item.get("time", "")))}</td>
+            <td>{_escape_redacted(item.get("event", ""))}</td>
+            <td>{_escape_redacted(str(item.get("severity", "")).upper())}</td>
+            <td>{_escape_redacted(str(item.get("ip", "")))}</td>
+            <td>{_escape_redacted(str(item.get("port", "")))}</td>
+            <td>{_escape_redacted(str(item.get("risk_score", "")))}</td>
+            <td>{_escape_redacted(str(item.get("source", "")))}</td>
         </tr>
         """
 
     linux_execution_rows = "".join(
         f"""
         <tr>
-            <td>{escape(str(executable))}</td>
-            <td>{escape(str(count))}</td>
+            <td>{_escape_redacted(executable)}</td>
+            <td>{_escape_redacted(str(count))}</td>
         </tr>
         """
         for executable, count in linux_execution_statistics.get(
@@ -320,8 +325,8 @@ def generate_html_report(
     linux_execution_user_rows = "".join(
         f"""
         <tr>
-            <td>{escape(str(user))}</td>
-            <td>{escape(str(count))}</td>
+            <td>{_escape_redacted(user)}</td>
+            <td>{_escape_redacted(str(count))}</td>
         </tr>
         """
         for user, count in linux_execution_statistics.get(
@@ -333,8 +338,8 @@ def generate_html_report(
     linux_execution_mitre_rows = "".join(
         f"""
         <tr>
-            <td>{escape(str(technique))}</td>
-            <td>{escape(str(count))}</td>
+            <td>{_escape_redacted(technique)}</td>
+            <td>{_escape_redacted(str(count))}</td>
         </tr>
         """
         for technique, count in linux_execution_statistics.get(
@@ -371,15 +376,15 @@ def generate_html_report(
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>{escape(str(report.title))}</title>
+    <title>{_escape_redacted(report.title)}</title>
 </head>
 <body>
-    <h1>{escape(str(report.title))}</h1>
+    <h1>{_escape_redacted(report.title)}</h1>
 
-    <p><strong>Generated at:</strong> {escape(str(report.generated_at))}</p>
+    <p><strong>Generated at:</strong> {_escape_redacted(str(report.generated_at))}</p>
 
     <h2>Executive Summary</h2>
-    <pre>{escape(str(executive_summary))}</pre>
+    <pre>{_escape_redacted(executive_summary)}</pre>
 
     <h2>MITRE ATT&CK Statistics</h2>
     <ul>
@@ -389,8 +394,8 @@ def generate_html_report(
 
     <h2>Network Traffic Summary</h2>
     <ul>
-        <li><strong>Total network events:</strong> {escape(str(network_statistics["total_network_events"]))}</li>
-       <li><strong>HTTP requests:</strong> {escape(str(network_statistics["http_requests"]))}</li>
+        <li><strong>Total network events:</strong> {_escape_redacted(str(network_statistics["total_network_events"]))}</li>
+       <li><strong>HTTP requests:</strong> {_escape_redacted(str(network_statistics["http_requests"]))}</li>
         <li><strong>DNS queries:</strong> {len(network_statistics["dns_queries"])}</li>
     </ul>
 
@@ -401,7 +406,7 @@ def generate_html_report(
 
     <h2>Linux Security Statistics</h2>
     <ul>
-        <li><strong>Total Linux events:</strong> {escape(str(linux_statistics.get("total_events", 0)))}</li>
+        <li><strong>Total Linux events:</strong> {_escape_redacted(str(linux_statistics.get("total_events", 0)))}</li>
     </ul>
 
     <h3>Linux Actions</h3>
@@ -444,14 +449,14 @@ def generate_html_report(
     <ul>
         <li>
             <strong>Total executions analyzed:</strong>
-            {escape(str(linux_execution_statistics.get("total_executions", 0)))}
+            {_escape_redacted(str(linux_execution_statistics.get("total_executions", 0)))}
         </li>
         <li>
             <strong>Suspicious executions:</strong>
-            {escape(str(linux_execution_statistics.get("suspicious_executions", 0)))}
+            {_escape_redacted(str(linux_execution_statistics.get("suspicious_executions", 0)))}
         </li>
         <li>
-            <strong>Unique executables:</strong> {escape(str(linux_execution_statistics.get("unique_executables", 0)))}
+            <strong>Unique executables:</strong> {_escape_redacted(str(linux_execution_statistics.get("unique_executables", 0)))}
         </li>
     </ul>
 
@@ -486,7 +491,7 @@ def generate_html_report(
     <ul>
         <li>
             <strong>Total normalized web events:</strong>
-            {escape(str(web_infrastructure_statistics["total_events"]))}
+            {_escape_redacted(str(web_infrastructure_statistics["total_events"]))}
         </li>
     </ul>
 

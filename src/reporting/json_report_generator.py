@@ -3,6 +3,7 @@ from pathlib import Path
 
 from src.models.threat_report import ThreatReport
 from src.reporting.mitre_statistics import generate_mitre_statistics
+from src.security.redaction import redact_for_export
 
 
 def generate_json_report(
@@ -49,6 +50,8 @@ def generate_json_report(
             "source": finding.get("ioc_source", ""),
             "description": finding.get("ioc_description", ""),
         }
+
+    report_data = redact_for_export(report_data)
 
     with open(output_file, "w", encoding="utf-8") as file:
         json.dump(report_data, file, indent=4)

@@ -192,3 +192,30 @@ def test_generate_json_report_contains_web_statistics(tmp_path):
     assert data["web_infrastructure_statistics"] == (
         web_statistics
     )
+
+def test_generate_json_report_redacts_raw_event(tmp_path):
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-17 12:00:00",
+        network_statistics={
+            "source_ip": "192.168.1.100",
+            "raw_event": "credential: UltraSecret987!",
+        },
+    )
+
+    output_file = tmp_path / "redaction_test.json"
+
+    generate_json_report(report, str(output_file))
+
+    data = json.loads(output_file.read_text(encoding="utf-8"))
+
+    assert "raw_event" not in data["network_statistics"]
+    assert data["network_statistics"]["source_ip"] == "192.168.1.100"
+
+    assert "UltraSecret987!" not in output_file.read_text(
+        encoding="utf-8"
+    )
+
+    assert report.network_statistics["raw_event"] == (
+        "credential: UltraSecret987!"
+    )

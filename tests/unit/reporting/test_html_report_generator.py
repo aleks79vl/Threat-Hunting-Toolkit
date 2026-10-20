@@ -1880,3 +1880,1723 @@ def test_html_report_preserves_suspicious_executions(tmp_path):
     )
 
     assert malicious_count not in html_content
+
+def test_generate_html_report_redacts_password_in_recommendation(tmp_path):
+    finding = ThreatFinding(
+        title="Suspicious Login",
+        severity="high",
+        description="Suspicious authentication activity detected.",
+        source="authentication_detector",
+        ip="192.168.1.100",
+        recommendation="Investigate login with password=Secret123",
+    )
+
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-17 12:00:00",
+        findings=[finding],
+        timeline=[],
+    )
+
+    output_file = tmp_path / "redaction_test.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "password=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "192.168.1.100" in content
+    assert "Suspicious Login" in content
+
+    assert finding.recommendation == (
+        "Investigate login with password=Secret123"
+    )
+
+def test_generate_html_report_redacts_password_in_finding_title(tmp_path):
+    finding = ThreatFinding(
+        title="Suspicious login password=Secret123",
+        severity="high",
+        description="Suspicious authentication activity.",
+        source="authentication_detector",
+        ip="192.168.1.100",
+    )
+
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-17 12:00:00",
+        findings=[finding],
+        timeline=[],
+    )
+
+    output_file = tmp_path / "redaction_title_test.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "password=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "192.168.1.100" in content
+
+    assert finding.title == "Suspicious login password=Secret123"
+
+def test_generate_html_report_redacts_password_in_report_title(tmp_path):
+    report = ThreatReport(
+        title="Security Report password=Secret123",
+        generated_at="2026-10-17 12:00:00",
+        findings=[],
+        timeline=[],
+    )
+
+    output_file = tmp_path / "redaction_report_title.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "password=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "Security Report" in content
+
+    assert report.title == "Security Report password=Secret123"
+
+def test_generate_html_report_redacts_password_in_timeline(tmp_path):
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-17 12:00:00",
+        findings=[],
+        timeline=[
+            {
+                "time": "12:00:00",
+                "event": "Failed login password=Secret123",
+                "severity": "high",
+                "ip": "192.168.1.100",
+                "source": "authentication",
+            }
+        ],
+    )
+
+    output_file = tmp_path / "redaction_timeline.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "password=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "192.168.1.100" in content
+    assert "Failed login" in content
+
+    assert report.timeline[0]["event"] == (
+        "Failed login password=Secret123"
+    )
+
+def test_generate_html_report_redacts_password_in_hostname(tmp_path):
+    finding = ThreatFinding(
+        title="Suspicious Host",
+        severity="high",
+        description="Suspicious network activity detected.",
+        source="network_detector",
+        ip="192.168.1.100",
+        hostname="server password=Secret123",
+    )
+
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-17 12:00:00",
+        findings=[finding],
+        timeline=[],
+    )
+
+    output_file = tmp_path / "redaction_hostname.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "password=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "192.168.1.100" in content
+    assert "Suspicious Host" in content
+
+    assert finding.hostname == "server password=Secret123"
+
+def test_generate_html_report_redacts_api_key_in_ioc_source(tmp_path):
+    finding = ThreatFinding(
+        title="Malicious IP Detected",
+        severity="high",
+        description="Known malicious IP detected.",
+        source="ioc_detector",
+        ip="192.168.1.100",
+        ioc_match=True,
+        ioc_type="ip",
+        ioc_value="192.168.1.100",
+        ioc_source="Threat feed api_key=Secret123",
+    )
+
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-17 12:00:00",
+        findings=[finding],
+        timeline=[],
+    )
+
+    output_file = tmp_path / "redaction_ioc_source.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "Threat feed" in content
+    assert "192.168.1.100" in content
+
+    assert finding.ioc_source == "Threat feed api_key=Secret123"
+
+def test_generate_html_report_redacts_password_in_executive_summary(tmp_path):
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-17 12:00:00",
+        findings=[],
+        timeline=[],
+        linux_execution_statistics={
+            "top_executables": [
+                ("bash password=Secret123", 3),
+            ],
+        },
+    )
+
+    output_file = tmp_path / "redaction_executive_summary.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    executive_summary = content.split("<pre>", 1)[1].split("</pre>", 1)[0]
+
+    assert "password=[REDACTED]" in executive_summary
+    assert "Secret123" not in executive_summary
+    assert "Top executable: bash" in executive_summary
+
+    assert report.linux_execution_statistics["top_executables"][0][0] == (
+        "bash password=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_ioc_value(tmp_path):
+    finding = ThreatFinding(
+        title="Suspicious IOC Detected",
+        severity="high",
+        description="Suspicious indicator detected.",
+        source="ioc_detector",
+        ip="192.168.1.100",
+        ioc_match=True,
+        ioc_type="custom",
+        ioc_value="indicator api_key=Secret123",
+        ioc_source="Threat Intelligence Feed",
+    )
+
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-17 12:00:00",
+        findings=[finding],
+        timeline=[],
+    )
+
+    output_file = tmp_path / "redaction_ioc_value.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "indicator" in content
+    assert "192.168.1.100" in content
+
+    assert finding.ioc_value == "indicator api_key=Secret123"
+
+def test_generate_html_report_redacts_password_in_linux_executables(tmp_path):
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-17 12:00:00",
+        findings=[],
+        timeline=[],
+        linux_execution_statistics={
+            "top_executables": [
+                ("bash password=Secret123", 3),
+            ],
+        },
+    )
+
+    output_file = tmp_path / "redaction_linux_executables.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "bash password=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "Linux Execution" in content
+
+    assert report.linux_execution_statistics["top_executables"][0] == (
+        "bash password=Secret123",
+        3,
+    )
+
+def test_generate_html_report_redacts_password_in_linux_execution_users(tmp_path):
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-17 12:00:00",
+        findings=[],
+        timeline=[],
+        linux_execution_statistics={
+            "top_users": [
+                ("admin password=Secret123", 5),
+            ],
+        },
+    )
+
+    output_file = tmp_path / "redaction_linux_users.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "admin password=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "admin" in content
+
+    assert report.linux_execution_statistics["top_users"][0] == (
+        "admin password=Secret123",
+        5,
+    )
+
+def test_generate_html_report_redacts_password_in_linux_mitre_statistics(tmp_path):
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-17 12:00:00",
+        findings=[],
+        timeline=[],
+        linux_execution_statistics={
+            "mitre_statistics": [
+                ("T1059 password=Secret123", 3),
+            ],
+        },
+    )
+
+    output_file = tmp_path / "redaction_linux_mitre.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "T1059 password=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "T1059" in content
+
+    assert report.linux_execution_statistics["mitre_statistics"][0] == (
+        "T1059 password=Secret123",
+        3,
+    )
+
+def test_generate_html_report_redacts_api_key_in_timeline_source(tmp_path):
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-17 12:00:00",
+        findings=[],
+        timeline=[
+            {
+                "time": "12:00:00",
+                "event": "Suspicious network activity",
+                "severity": "high",
+                "ip": "192.168.1.100",
+                "source": "network_monitor api_key=Secret123",
+            }
+        ],
+    )
+
+    output_file = tmp_path / "redaction_timeline_source.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "network_monitor" in content
+    assert "192.168.1.100" in content
+
+    assert report.timeline[0]["source"] == (
+        "network_monitor api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_password_in_linux_actions(tmp_path):
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-17 12:00:00",
+        findings=[],
+        timeline=[],
+        linux_statistics={
+            "actions": {
+                "Failed login password=Secret123": 5,
+            },
+        },
+    )
+
+    output_file = tmp_path / "redaction_linux_actions.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "Failed login password=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "Failed login" in content
+
+    assert report.linux_statistics["actions"] == {
+        "Failed login password=Secret123": 5,
+    }
+
+def test_generate_html_report_redacts_password_in_linux_statuses(tmp_path):
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-17 12:00:00",
+        findings=[],
+        timeline=[],
+        linux_statistics={
+            "statuses": {
+                "Failed password=Secret123": 5,
+            },
+        },
+    )
+
+    output_file = tmp_path / "redaction_linux_statuses.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "Failed password=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "Failed" in content
+
+    assert report.linux_statistics["statuses"] == {
+        "Failed password=Secret123": 5,
+    }
+
+def test_generate_html_report_redacts_password_in_linux_users(tmp_path):
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-17 12:00:00",
+        findings=[],
+        timeline=[],
+        linux_statistics={
+            "users": {
+                "admin password=Secret123": 5,
+            },
+        },
+    )
+
+    output_file = tmp_path / "redaction_linux_users.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "admin password=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "admin" in content
+
+    assert report.linux_statistics["users"] == {
+        "admin password=Secret123": 5,
+    }
+
+def test_generate_html_report_redacts_password_in_linux_source_ips(tmp_path):
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-17 12:00:00",
+        findings=[],
+        timeline=[],
+        linux_statistics={
+            "source_ips": {
+                "192.168.1.100 password=Secret123": 5,
+            },
+        },
+    )
+
+    output_file = tmp_path / "redaction_linux_source_ips.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "192.168.1.100 password=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "192.168.1.100" in content
+
+    assert report.linux_statistics["source_ips"] == {
+        "192.168.1.100 password=Secret123": 5,
+    }
+
+def test_generate_html_report_redacts_api_key_in_web_sources(tmp_path):
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-18 08:00:00",
+        findings=[],
+        timeline=[],
+        web_infrastructure_statistics={
+            "events_by_source": {
+                "nginx api_key=Secret123": 5,
+            },
+        },
+    )
+
+    output_file = tmp_path / "redaction_web_sources.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "nginx api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "nginx" in content
+
+    assert report.web_infrastructure_statistics["events_by_source"] == {
+        "nginx api_key=Secret123": 5,
+    }
+
+def test_generate_html_report_redacts_api_key_in_network_protocols(tmp_path):
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-18 08:00:00",
+        findings=[],
+        timeline=[],
+        network_statistics={
+            "protocols": {
+                "TCP api_key=Secret123": 5,
+            },
+        },
+    )
+
+    output_file = tmp_path / "redaction_network_protocols.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "TCP api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "TCP" in content
+
+    assert report.network_statistics["protocols"] == {
+        "TCP api_key=Secret123": 5,
+    }
+
+def test_generate_html_report_redacts_api_key_in_mitre_technique_name(tmp_path):
+    finding = ThreatFinding(
+        title="Suspicious Activity",
+        severity="high",
+        description="MITRE Redaction Security Test",
+        source="security_test",
+        ip="192.168.1.100",
+        hostname="test-server",
+        port=443,
+        risk_score=80,
+        technique="T1190",
+        technique_name="Exploit Public-Facing Application api_key=Secret123",
+        tactic="Initial Access",
+    )
+
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-18 08:00:00",
+        findings=[finding],
+        timeline=[],
+    )
+
+    output_file = tmp_path / "redaction_mitre_technique_name.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "Exploit Public-Facing Application api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "T1190" in content
+    assert "Initial Access" in content
+
+    assert finding.technique_name == (
+        "Exploit Public-Facing Application api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_mitre_technique(tmp_path):
+    finding = ThreatFinding(
+        title="Suspicious Activity",
+        severity="high",
+        description="MITRE Technique Redaction Test",
+        source="security_test",
+        ip="192.168.1.100",
+        hostname="test-server",
+        port=443,
+        risk_score=80,
+        technique="T1190 api_key=Secret123",
+        technique_name="Exploit Public-Facing Application",
+        tactic="Initial Access",
+    )
+
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-18 08:00:00",
+        findings=[finding],
+        timeline=[],
+    )
+
+    output_file = tmp_path / "redaction_mitre_technique.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "T1190 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "Exploit Public-Facing Application" in content
+    assert "Initial Access" in content
+
+    assert finding.technique == "T1190 api_key=Secret123"
+
+def test_generate_html_report_redacts_api_key_in_mitre_tactic(tmp_path):
+    finding = ThreatFinding(
+        title="Suspicious Activity",
+        severity="high",
+        description="MITRE Tactic Redaction Test",
+        source="security_test",
+        ip="192.168.1.100",
+        hostname="test-server",
+        port=443,
+        risk_score=80,
+        technique="T1190",
+        technique_name="Exploit Public-Facing Application",
+        tactic="Initial Access api_key=Secret123",
+    )
+
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-18 08:00:00",
+        findings=[finding],
+        timeline=[],
+    )
+
+    output_file = tmp_path / "redaction_mitre_tactic.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "Initial Access api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "T1190" in content
+    assert "Exploit Public-Facing Application" in content
+
+    assert finding.tactic == "Initial Access api_key=Secret123"
+
+def test_generate_html_report_redacts_api_key_in_ioc_type(tmp_path):
+    finding = ThreatFinding(
+        title="Suspicious Activity",
+        severity="high",
+        description="IOC Type Redaction Test",
+        source="security_test",
+        ip="192.168.1.100",
+        hostname="test-server",
+        port=443,
+        risk_score=80,
+        ioc_type="domain api_key=Secret123",
+    )
+
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-18 08:00:00",
+        findings=[finding],
+        timeline=[],
+    )
+
+    output_file = tmp_path / "redaction_ioc_type.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "domain api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "192.168.1.100" in content
+
+    assert finding.ioc_type == "domain api_key=Secret123"
+
+def test_generate_html_report_redacts_api_key_in_ioc_confidence(tmp_path):
+    finding = ThreatFinding(
+        title="Suspicious Activity",
+        severity="high",
+        description="IOC Confidence Redaction Test",
+        source="security_test",
+        ip="192.168.1.100",
+        hostname="test-server",
+        port=443,
+        risk_score=80,
+        ioc_confidence="high api_key=Secret123",
+    )
+
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-18 08:00:00",
+        findings=[finding],
+        timeline=[],
+    )
+
+    output_file = tmp_path / "redaction_ioc_confidence.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "high api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "192.168.1.100" in content
+
+    assert finding.ioc_confidence == "high api_key=Secret123"
+
+def test_generate_html_report_redacts_api_key_in_physical_device_type(tmp_path):
+    report = create_report()
+
+    report.physical_statistics = {
+        "device_types": {
+            "camera api_key=Secret123": 3,
+        },
+        "event_types": {},
+    }
+
+    output_file = tmp_path / "redaction_physical_device_type.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "camera api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert report.physical_statistics["device_types"] == {
+        "camera api_key=Secret123": 3,
+    }
+
+def test_generate_html_report_redacts_api_key_in_physical_event_type(tmp_path):
+    report = create_report()
+
+    report.physical_statistics = {
+        "device_types": {},
+        "event_types": {
+            "access_denied api_key=Secret123": 5,
+        },
+    }
+
+    output_file = tmp_path / "redaction_physical_event_type.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "access_denied api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert report.physical_statistics["event_types"] == {
+        "access_denied api_key=Secret123": 5,
+    }
+
+def test_generate_html_report_redacts_api_key_in_generated_at(tmp_path):
+    report = create_report()
+
+    report.generated_at = "2026-10-18 09:00:00 api_key=Secret123"
+
+    output_file = tmp_path / "redaction_generated_at.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "2026-10-18 09:00:00 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert report.generated_at == "2026-10-18 09:00:00 api_key=Secret123"
+
+def test_generate_html_report_redacts_api_key_in_timeline_time(tmp_path):
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-19 08:00:00",
+        findings=[],
+        timeline=[
+            {
+                "time": "2026-10-19 08:00:00 api_key=Secret123",
+                "event": "Suspicious network activity",
+                "severity": "high",
+                "ip": "192.168.1.100",
+                "port": 443,
+                "risk_score": 80,
+                "source": "network_monitor",
+            }
+        ],
+    )
+
+    output_file = tmp_path / "redaction_timeline_time.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "2026-10-19 08:00:00 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert "Suspicious network activity" in content
+    assert "192.168.1.100" in content
+
+    assert (
+        report.timeline[0]["time"]
+        == "2026-10-19 08:00:00 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_timeline_severity(tmp_path):
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-19 08:00:00",
+        findings=[],
+        timeline=[
+            {
+                "time": "2026-10-19 08:00:00",
+                "event": "Suspicious network activity",
+                "severity": "high api_key=Secret123",
+                "ip": "192.168.1.100",
+                "port": 443,
+                "risk_score": 80,
+                "source": "network_monitor",
+            }
+        ],
+    )
+
+    output_file = tmp_path / "redaction_timeline_severity.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "HIGH API_KEY=[REDACTED]" in content
+    assert "SECRET123" not in content
+    assert "192.168.1.100" in content
+
+    assert report.timeline[0]["severity"] == "high api_key=Secret123"
+
+def test_generate_html_report_redacts_api_key_in_timeline_ip(tmp_path):
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-19 08:00:00",
+        findings=[],
+        timeline=[
+            {
+                "time": "2026-10-19 08:00:00",
+                "event": "Suspicious network activity",
+                "severity": "high",
+                "ip": "192.168.1.100 api_key=Secret123",
+                "port": 443,
+                "risk_score": 80,
+                "source": "network_monitor",
+            }
+        ],
+    )
+
+    output_file = tmp_path / "redaction_timeline_ip.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "192.168.1.100 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert "Suspicious network activity" in content
+
+    assert (
+        report.timeline[0]["ip"]
+        == "192.168.1.100 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_timeline_port(tmp_path):
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-19 08:00:00",
+        findings=[],
+        timeline=[
+            {
+                "time": "2026-10-19 08:00:00",
+                "event": "Suspicious network activity",
+                "severity": "high",
+                "ip": "192.168.1.100",
+                "port": "443 api_key=Secret123",
+                "risk_score": 80,
+                "source": "network_monitor",
+            }
+        ],
+    )
+
+    output_file = tmp_path / "redaction_timeline_port.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "443 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert "192.168.1.100" in content
+    assert "Suspicious network activity" in content
+
+    assert report.timeline[0]["port"] == "443 api_key=Secret123"
+
+def test_generate_html_report_redacts_api_key_in_timeline_risk_score(tmp_path):
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-19 08:00:00",
+        findings=[],
+        timeline=[
+            {
+                "time": "2026-10-19 08:00:00",
+                "event": "Suspicious network activity",
+                "severity": "high",
+                "ip": "192.168.1.100",
+                "port": 443,
+                "risk_score": "80 api_key=Secret123",
+                "source": "network_monitor",
+            }
+        ],
+    )
+
+    output_file = tmp_path / "redaction_timeline_risk_score.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "80 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert "192.168.1.100" in content
+    assert "Suspicious network activity" in content
+
+    assert report.timeline[0]["risk_score"] == "80 api_key=Secret123"
+
+def test_generate_html_report_redacts_api_key_in_finding_severity(tmp_path):
+    finding = ThreatFinding(
+        title="Suspicious Activity",
+        severity="high api_key=Secret123",
+        description="Severity Redaction Security Test",
+        source="security_test",
+        ip="192.168.1.100",
+        hostname="test-server",
+        port=443,
+        risk_score=80,
+        technique="T1190",
+        technique_name="Exploit Public-Facing Application",
+        tactic="Initial Access",
+    )
+
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-19 08:00:00",
+        findings=[finding],
+        timeline=[],
+    )
+
+    output_file = tmp_path / "redaction_finding_severity.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "HIGH API_KEY=[REDACTED]" in content
+    assert "SECRET123" not in content
+    assert "192.168.1.100" in content
+    assert "T1190" in content
+
+    assert finding.severity == "high api_key=Secret123"
+
+def test_generate_html_report_redacts_api_key_in_finding_ip(tmp_path):
+    finding = ThreatFinding(
+        title="Suspicious Activity",
+        severity="high",
+        description="IP Redaction Security Test",
+        source="security_test",
+        ip="192.168.1.100 api_key=Secret123",
+        hostname="test-server",
+        port=443,
+        risk_score=80,
+        technique="T1190",
+        technique_name="Exploit Public-Facing Application",
+        tactic="Initial Access",
+    )
+
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-19 08:00:00",
+        findings=[finding],
+        timeline=[],
+    )
+
+    output_file = tmp_path / "redaction_finding_ip.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "192.168.1.100 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert "T1190" in content
+    assert "Suspicious Activity" in content
+
+    assert finding.ip == "192.168.1.100 api_key=Secret123"
+
+def test_generate_html_report_redacts_api_key_in_finding_port(tmp_path):
+    finding = ThreatFinding(
+        title="Suspicious Activity",
+        severity="high",
+        description="Port Redaction Security Test",
+        source="security_test",
+        ip="192.168.1.100",
+        hostname="test-server",
+        port="443 api_key=Secret123",
+        risk_score=80,
+        technique="T1190",
+        technique_name="Exploit Public-Facing Application",
+        tactic="Initial Access",
+    )
+
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-19 08:00:00",
+        findings=[finding],
+        timeline=[],
+    )
+
+    output_file = tmp_path / "redaction_finding_port.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "443 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert "192.168.1.100" in content
+    assert "T1190" in content
+
+    assert finding.port == "443 api_key=Secret123"
+
+def test_generate_html_report_redacts_api_key_in_finding_risk_score(tmp_path):
+    finding = ThreatFinding(
+        title="Suspicious Activity",
+        severity="high",
+        description="Risk Score Redaction Security Test",
+        source="security_test",
+        ip="192.168.1.100",
+        hostname="test-server",
+        port=443,
+        risk_score="80 api_key=Secret123",
+        technique="T1190",
+        technique_name="Exploit Public-Facing Application",
+        tactic="Initial Access",
+    )
+
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-19 08:00:00",
+        findings=[finding],
+        timeline=[],
+    )
+
+    output_file = tmp_path / "redaction_finding_risk_score.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "80 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert "192.168.1.100" in content
+    assert "T1190" in content
+
+    assert finding.risk_score == "80 api_key=Secret123"
+
+def test_generate_html_report_redacts_api_key_in_finding_ioc_match(tmp_path):
+    finding = ThreatFinding(
+        title="Suspicious Activity",
+        severity="high",
+        description="IOC Match Redaction Security Test",
+        source="security_test",
+        ip="192.168.1.100",
+        hostname="test-server",
+        port=443,
+        risk_score=80,
+        technique="T1190",
+        technique_name="Exploit Public-Facing Application",
+        tactic="Initial Access",
+        ioc_match="True api_key=Secret123",
+    )
+
+    report = ThreatReport(
+        title="Security Redaction Test",
+        generated_at="2026-10-19 08:00:00",
+        findings=[finding],
+        timeline=[],
+    )
+
+    output_file = tmp_path / "redaction_finding_ioc_match.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "True api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert "192.168.1.100" in content
+    assert "T1190" in content
+
+    assert finding.ioc_match == "True api_key=Secret123"
+
+def test_generate_html_report_redacts_api_key_in_physical_device_count(tmp_path):
+    report = create_report()
+
+    report.physical_statistics = {
+        "device_types": {
+            "camera": "3 api_key=Secret123",
+        },
+        "event_types": {},
+    }
+
+    output_file = tmp_path / "redaction_physical_device_count.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "3 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "camera" in content
+
+    assert report.physical_statistics["device_types"] == {
+        "camera": "3 api_key=Secret123",
+    }
+
+def test_generate_html_report_redacts_api_key_in_physical_event_count(tmp_path):
+    report = create_report()
+
+    report.physical_statistics = {
+        "device_types": {},
+        "event_types": {
+            "access_denied": "5 api_key=Secret123",
+        },
+    }
+
+    output_file = tmp_path / "redaction_physical_event_count.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "5 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "access_denied" in content
+
+    assert report.physical_statistics["event_types"] == {
+        "access_denied": "5 api_key=Secret123",
+    }
+
+def test_generate_html_report_redacts_api_key_in_physical_events_parsed(tmp_path):
+    report = create_report()
+
+    report.physical_statistics = {
+        "events_parsed": "12 api_key=Secret123",
+        "device_types": {},
+        "event_types": {},
+    }
+
+    output_file = tmp_path / "redaction_physical_events_parsed.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "12 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert report.physical_statistics["events_parsed"] == (
+    "12 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_physical_total_findings(tmp_path):
+    report = create_report()
+
+    report.physical_statistics = {
+        "total_findings": "7 api_key=Secret123",
+        "device_types": {},
+        "event_types": {},
+    }
+
+    output_file = tmp_path / "redaction_physical_total_findings.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "7 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert report.physical_statistics["total_findings"] == (
+        "7 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_physical_policy_findings(tmp_path):
+    report = create_report()
+
+    report.physical_statistics = {
+        "policy_findings": "4 api_key=Secret123",
+        "device_types": {},
+        "event_types": {},
+    }
+
+    output_file = tmp_path / "redaction_physical_policy_findings.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "4 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert report.physical_statistics["policy_findings"] == (
+        "4 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_physical_correlation_findings(tmp_path):
+    report = create_report()
+
+    report.physical_statistics = {
+        "correlation_findings": "6 api_key=Secret123",
+        "device_types": {},
+        "event_types": {},
+    }
+
+    output_file = tmp_path / "redaction_physical_correlation_findings.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "6 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert report.physical_statistics["correlation_findings"] == (
+        "6 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_physical_detector_findings(tmp_path):
+    report = create_report()
+
+    report.physical_statistics = {
+        "detector_findings": "8 api_key=Secret123",
+        "device_types": {},
+        "event_types": {},
+    }
+
+    output_file = tmp_path / "redaction_physical_detector_findings.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "8 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert report.physical_statistics["detector_findings"] == (
+        "8 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_physical_critical_count(tmp_path):
+    report = create_report()
+
+    report.physical_statistics = {
+        "severity_counts": {
+            "critical": "2 api_key=Secret123",
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+        },
+        "device_types": {},
+        "event_types": {},
+    }
+
+    output_file = tmp_path / "redaction_physical_critical_count.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "2 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert report.physical_statistics["severity_counts"]["critical"] == (
+        "2 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_physical_high_count(tmp_path):
+    report = create_report()
+
+    report.physical_statistics = {
+        "severity_counts": {
+            "critical": 0,
+            "high": "3 api_key=Secret123",
+            "medium": 0,
+            "low": 0,
+        },
+        "device_types": {},
+        "event_types": {},
+    }
+
+    output_file = tmp_path / "redaction_physical_high_count.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "3 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert report.physical_statistics["severity_counts"]["high"] == (
+        "3 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_physical_medium_count(tmp_path):
+    report = create_report()
+
+    report.physical_statistics = {
+        "severity_counts": {
+            "medium": "4 api_key=Secret123",
+        },
+        "device_types": {},
+        "event_types": {},
+    }
+
+    output_file = tmp_path / "redaction_physical_medium_count.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "4 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert report.physical_statistics["severity_counts"]["medium"] == (
+        "4 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_physical_low_count(tmp_path):
+    report = create_report()
+
+    report.physical_statistics = {
+        "severity_counts": {
+            "low": "2 api_key=Secret123",
+        },
+        "device_types": {},
+        "event_types": {},
+    }
+
+    output_file = tmp_path / "redaction_physical_low_count.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "2 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert report.physical_statistics["severity_counts"]["low"] == (
+        "2 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_web_source_count(tmp_path):
+    report = create_report()
+
+    report.web_infrastructure_statistics = {
+        "total_events": 7,
+        "events_by_source": {
+            "nginx": "7 api_key=Secret123",
+        },
+    }
+
+    output_file = tmp_path / "redaction_web_source_count.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "7 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert report.web_infrastructure_statistics["events_by_source"]["nginx"] == (
+        "7 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_protocol_count(tmp_path):
+    report = create_report()
+
+    report.network_statistics = {
+        "total_network_events": 5,
+        "http_requests": 2,
+        "protocols": {
+            "TCP": "5 api_key=Secret123",
+        },
+    }
+
+    output_file = tmp_path / "redaction_protocol_count.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "5 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert report.network_statistics["protocols"]["TCP"] == (
+        "5 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_linux_action_count(tmp_path):
+    report = create_report()
+
+    report.linux_statistics = {
+        "total_events": 5,
+        "actions": {
+            "sudo": "5 api_key=Secret123",
+        },
+    }
+
+    output_file = tmp_path / "redaction_linux_action_count.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "5 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert report.linux_statistics["actions"]["sudo"] == (
+        "5 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_linux_status_count(tmp_path):
+    report = create_report()
+
+    report.linux_statistics = {
+        "total_events": 5,
+        "statuses": {
+            "failed": "5 api_key=Secret123",
+        },
+    }
+
+    output_file = tmp_path / "redaction_linux_status_count.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "5 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert report.linux_statistics["statuses"]["failed"] == (
+        "5 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_linux_user_count(tmp_path):
+    report = create_report()
+
+    report.linux_statistics = {
+        "total_events": 5,
+        "users": {
+            "root": "5 api_key=Secret123",
+        },
+    }
+
+    output_file = tmp_path / "redaction_linux_user_count.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "5 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert report.linux_statistics["users"]["root"] == (
+        "5 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_linux_source_ip_count(tmp_path):
+    report = create_report()
+
+    report.linux_statistics = {
+        "total_events": 5,
+        "source_ips": {
+            "192.168.1.100": "5 api_key=Secret123",
+        },
+    }
+
+    output_file = tmp_path / "redaction_linux_source_ip_count.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "5 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert "192.168.1.100" in content
+
+    assert report.linux_statistics["source_ips"]["192.168.1.100"] == (
+        "5 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_top_executable_count(tmp_path):
+    report = create_report()
+
+    report.linux_execution_statistics = {
+        "top_executables": [
+            ("/usr/bin/bash", "3 api_key=Secret123"),
+        ],
+    }
+
+    output_file = tmp_path / "redaction_top_executable_count.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "3 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert "/usr/bin/bash" in content
+
+    assert report.linux_execution_statistics["top_executables"][0][1] == (
+        "3 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_top_user_count(tmp_path):
+    report = create_report()
+
+    report.linux_execution_statistics = {
+        "top_users": [
+            ("root", "4 api_key=Secret123"),
+        ],
+    }
+
+    output_file = tmp_path / "redaction_top_user_count.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "4 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert "root" in content
+
+    assert report.linux_execution_statistics["top_users"][0][1] == (
+        "4 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_mitre_count(tmp_path):
+    report = create_report()
+
+    report.linux_execution_statistics = {
+        "mitre_statistics": [
+            ("T1059.004", "7 api_key=Secret123"),
+        ],
+    }
+
+    output_file = tmp_path / "redaction_mitre_count.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "7 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert "T1059.004" in content
+
+    assert report.linux_execution_statistics["mitre_statistics"][0][1] == (
+        "7 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_total_network_events(tmp_path):
+    report = create_report()
+
+    report.network_statistics = {
+        "total_network_events": "8 api_key=Secret123",
+        "http_requests": 3,
+        "dns_queries": [],
+        "protocols": {},
+    }
+
+    output_file = tmp_path / "redaction_total_network_events.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "8 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert "Total network events:" in content
+
+    assert report.network_statistics["total_network_events"] == (
+        "8 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_http_requests(tmp_path):
+    report = create_report()
+
+    report.network_statistics = {
+        "total_network_events": 8,
+        "http_requests": "3 api_key=Secret123",
+        "dns_queries": [],
+        "protocols": {},
+    }
+
+    output_file = tmp_path / "redaction_http_requests.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "3 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert "HTTP requests:" in content
+
+    assert report.network_statistics["http_requests"] == (
+        "3 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_linux_total_events(tmp_path):
+    report = create_report()
+
+    report.linux_statistics = {
+        "total_events": "12 api_key=Secret123",
+    }
+
+    output_file = tmp_path / "redaction_linux_total_events.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "12 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert "Total Linux events:" in content
+
+    assert report.linux_statistics["total_events"] == (
+        "12 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_total_executions(tmp_path):
+    report = create_report()
+
+    report.linux_execution_statistics = {
+        "total_executions": "15 api_key=Secret123",
+    }
+
+    output_file = tmp_path / "redaction_total_executions.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "15 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+
+    assert "Total executions analyzed:" in content
+
+    assert report.linux_execution_statistics["total_executions"] == (
+        "15 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_suspicious_executions(tmp_path):
+    report = create_report()
+
+    report.linux_execution_statistics = {
+        "suspicious_executions": "5 api_key=Secret123",
+    }
+
+    output_file = tmp_path / "redaction_suspicious_executions.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "5 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "Suspicious executions:" in content
+
+    assert report.linux_execution_statistics["suspicious_executions"] == (
+        "5 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_unique_executables(tmp_path):
+    report = create_report()
+
+    report.linux_execution_statistics = {
+        "unique_executables": "6 api_key=Secret123",
+    }
+
+    output_file = tmp_path / "redaction_unique_executables.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "6 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "Unique executables:" in content
+
+    assert report.linux_execution_statistics["unique_executables"] == (
+        "6 api_key=Secret123"
+    )
+
+def test_generate_html_report_redacts_api_key_in_web_total_events(tmp_path):
+    report = create_report()
+
+    report.web_infrastructure_statistics = {
+        "total_events": "20 api_key=Secret123",
+        "events_by_source": {},
+    }
+
+    output_file = tmp_path / "redaction_web_total_events.html"
+
+    generate_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "20 api_key=[REDACTED]" in content
+    assert "Secret123" not in content
+    assert "Total normalized web events:" in content
+
+    assert report.web_infrastructure_statistics["total_events"] == (
+        "20 api_key=Secret123"
+    )
