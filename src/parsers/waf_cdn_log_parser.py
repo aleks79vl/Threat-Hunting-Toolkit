@@ -45,6 +45,24 @@ def parse_waf_cdn_log(
                     user_agent=data.get("user_agent", ""),
                     tls_version=data.get("tls_version", ""),
                     sni=data.get("sni", ""),
+                    request_headers=(
+                        {
+                            name: value
+                            for name, value in data["request_headers"].items()
+                            if isinstance(name, str) and isinstance(value, str)
+                        }
+                        if isinstance(data.get("request_headers"), dict)
+                        else {}
+                    ),
+                    response_headers=(
+                        {
+                            name: value
+                            for name, value in data["response_headers"].items()
+                            if isinstance(name, str) and isinstance(value, str)
+                        }
+                        if isinstance(data.get("response_headers"), dict)
+                        else {}
+                    ),
                     metadata={
                         "provider": data.get("provider", ""),
                         "waf_action": data.get("action", ""),

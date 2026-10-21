@@ -78,6 +78,24 @@ def parse_nginx_json_log(
                     response_time_ms=response_time_ms,
                     user_agent=data.get("http_user_agent", ""),
                     referer=data.get("http_referer", ""),
+                    request_headers=(
+                        {
+                            name: value
+                            for name, value in data["request_headers"].items()
+                            if isinstance(name, str) and isinstance(value, str)
+                        }
+                        if isinstance(data.get("request_headers"), dict)
+                        else {}
+                    ),
+                    response_headers=(
+                        {
+                            name: value
+                            for name, value in data["response_headers"].items()
+                            if isinstance(name, str) and isinstance(value, str)
+                        }
+                        if isinstance(data.get("response_headers"), dict)
+                        else {}
+                    ),
                     tls_version=data.get("ssl_protocol", ""),
                     sni=data.get("ssl_server_name", ""),
                     websocket_upgrade=(
