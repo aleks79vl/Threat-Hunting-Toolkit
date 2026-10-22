@@ -95,6 +95,7 @@ def test_web_infrastructure_fixture_pipeline():
         "HAProxy Load Balancer Detector",
     } <= finding_sources
 
+
 def test_nginx_json_headers_trigger_header_manipulation_detection(tmp_path):
     log_file = tmp_path / "nginx_header_attack.jsonl"
 
@@ -118,6 +119,7 @@ def test_nginx_json_headers_trigger_header_manipulation_detection(tmp_path):
     }
 
     assert "Potential Header-Based Route Override" in finding_titles
+
 
 def test_nginx_json_headers_trigger_http_request_smuggling_detection(
     tmp_path,
@@ -147,6 +149,7 @@ def test_nginx_json_headers_trigger_http_request_smuggling_detection(
 
     assert "Ambiguous HTTP Request Framing Detected" in finding_titles
 
+
 def test_nginx_json_headers_trigger_cache_poisoning_detection(tmp_path):
     log_file = tmp_path / "nginx_cache_poisoning.jsonl"
 
@@ -164,6 +167,7 @@ def test_nginx_json_headers_trigger_cache_poisoning_detection(tmp_path):
         encoding="utf-8",
     )
 
+
     events = parse_nginx_json_log(log_file)
     result = run_web_infrastructure_detection_pipeline(events)
 
@@ -176,6 +180,7 @@ def test_nginx_json_headers_trigger_cache_poisoning_detection(tmp_path):
         "Potential Web Cache Poisoning via Forwarded Host"
         in finding_titles
     )
+
 
 def test_nginx_json_headers_trigger_backend_exposure_detection(tmp_path):
     log_file = tmp_path / "nginx_backend_exposure.jsonl"
@@ -205,6 +210,7 @@ def test_nginx_json_headers_trigger_backend_exposure_detection(tmp_path):
         in finding_titles
     )
 
+
 def test_nginx_json_safe_forwarded_host_does_not_trigger_cache_poisoning(
     tmp_path,
 ):
@@ -224,6 +230,7 @@ def test_nginx_json_safe_forwarded_host_does_not_trigger_cache_poisoning(
         encoding="utf-8",
     )
 
+
     events = parse_nginx_json_log(log_file)
     result = run_web_infrastructure_detection_pipeline(events)
 
@@ -236,6 +243,7 @@ def test_nginx_json_safe_forwarded_host_does_not_trigger_cache_poisoning(
         "Potential Web Cache Poisoning via Forwarded Host"
         not in finding_titles
     )
+
 
 def test_nginx_json_normal_content_length_does_not_trigger_smuggling(
     tmp_path,
@@ -265,6 +273,7 @@ def test_nginx_json_normal_content_length_does_not_trigger_smuggling(
 
     assert "Ambiguous HTTP Request Framing Detected" not in finding_titles
 
+
 def test_nginx_json_normal_headers_do_not_trigger_header_manipulation(
     tmp_path,
 ):
@@ -292,6 +301,7 @@ def test_nginx_json_normal_headers_do_not_trigger_header_manipulation(
     }
 
     assert "Potential Header-Based Route Override" not in finding_titles
+
 
 def test_nginx_json_public_redirect_does_not_trigger_backend_exposure(
     tmp_path,
@@ -322,6 +332,7 @@ def test_nginx_json_public_redirect_does_not_trigger_backend_exposure(
         "Private Backend Address Exposed in Response"
         not in finding_titles
     )
+
 
 def test_waf_cdn_json_headers_trigger_header_manipulation_detection(
     tmp_path,
@@ -355,6 +366,7 @@ def test_waf_cdn_json_headers_trigger_header_manipulation_detection(
         in finding_titles
     )
 
+
 def test_waf_cdn_json_headers_trigger_http_request_smuggling_detection(
     tmp_path,
 ):
@@ -384,6 +396,7 @@ def test_waf_cdn_json_headers_trigger_http_request_smuggling_detection(
     }
 
     assert "Ambiguous HTTP Request Framing Detected" in finding_titles
+
 
 def test_waf_cdn_json_headers_trigger_cache_poisoning_detection(
     tmp_path,
@@ -419,6 +432,7 @@ def test_waf_cdn_json_headers_trigger_cache_poisoning_detection(
         in finding_titles
     )
 
+
 def test_waf_cdn_json_headers_trigger_backend_exposure_detection(
     tmp_path,
 ):
@@ -450,6 +464,7 @@ def test_waf_cdn_json_headers_trigger_backend_exposure_detection(
         "Private Backend Address Exposed in Response"
         in finding_titles
     )
+
 
 def test_waf_cdn_json_safe_forwarded_host_does_not_trigger_cache_poisoning(
     tmp_path,
@@ -485,6 +500,7 @@ def test_waf_cdn_json_safe_forwarded_host_does_not_trigger_cache_poisoning(
         not in finding_titles
     )
 
+
 def test_waf_cdn_json_normal_content_length_does_not_trigger_smuggling(
     tmp_path,
 ):
@@ -514,6 +530,7 @@ def test_waf_cdn_json_normal_content_length_does_not_trigger_smuggling(
     }
 
     assert "Ambiguous HTTP Request Framing Detected" not in finding_titles
+
 
 def test_waf_cdn_json_normal_headers_do_not_trigger_header_manipulation(
     tmp_path,
@@ -545,6 +562,7 @@ def test_waf_cdn_json_normal_headers_do_not_trigger_header_manipulation(
 
     assert "Potential Header-Based Route Override" not in finding_titles
 
+
 def test_waf_cdn_json_public_redirect_does_not_trigger_backend_exposure(
     tmp_path,
 ):
@@ -565,6 +583,249 @@ def test_waf_cdn_json_public_redirect_does_not_trigger_backend_exposure(
     )
 
     events = parse_waf_cdn_log(log_file)
+    result = run_web_infrastructure_detection_pipeline(events)
+
+    finding_titles = {
+        finding.title
+        for finding in result.findings
+    }
+
+    assert (
+        "Private Backend Address Exposed in Response"
+        not in finding_titles
+    )
+
+
+def test_api_gateway_json_headers_trigger_header_manipulation_detection(
+    tmp_path,
+):
+    log_file = tmp_path / "api_gateway_header_attack.jsonl"
+
+    log_file.write_text(
+        '{"timestamp":"2026-10-22T10:00:00Z",'
+        '"client_ip":"192.0.2.10",'
+        '"http_method":"GET",'
+        '"path":"/profile",'
+        '"status":200,'
+        '"host":"api.example.com",'
+        '"request_headers":{'
+        '"X-Original-URL":"/admin/users"}}\n',
+        encoding="utf-8",
+    )
+
+    events = parse_api_gateway_log(str(log_file))
+    result = run_web_infrastructure_detection_pipeline(events)
+
+    finding_titles = {
+        finding.title
+        for finding in result.findings
+    }
+
+    assert "Potential Header-Based Route Override" in finding_titles
+
+
+def test_api_gateway_json_headers_trigger_http_request_smuggling_detection(
+    tmp_path,
+):
+    log_file = tmp_path / "api_gateway_smuggling.jsonl"
+
+    log_file.write_text(
+        '{"timestamp":"2026-10-22T10:00:00Z",'
+        '"client_ip":"192.0.2.10",'
+        '"http_method":"POST",'
+        '"path":"/submit",'
+        '"status":200,'
+        '"host":"api.example.com",'
+        '"request_headers":{'
+        '"Content-Length":"10",'
+        '"Transfer-Encoding":"chunked"}}\n',
+        encoding="utf-8",
+    )
+
+    events = parse_api_gateway_log(str(log_file))
+    result = run_web_infrastructure_detection_pipeline(events)
+
+    finding_titles = {
+        finding.title
+        for finding in result.findings
+    }
+
+    assert "Ambiguous HTTP Request Framing Detected" in finding_titles
+
+
+def test_api_gateway_json_headers_trigger_cache_poisoning_detection(
+    tmp_path,
+):
+    log_file = tmp_path / "api_gateway_cache_poisoning.jsonl"
+
+    log_file.write_text(
+        '{"timestamp":"2026-10-22T10:00:00Z",'
+        '"client_ip":"192.0.2.10",'
+        '"http_method":"GET",'
+        '"path":"/news",'
+        '"status":200,'
+        '"host":"api.example.com",'
+        '"request_headers":{'
+        '"X-Forwarded-Host":"attacker.example"},'
+        '"response_headers":{'
+        '"Cache-Control":"public, max-age=300"}}\n',
+        encoding="utf-8",
+    )
+
+    events = parse_api_gateway_log(str(log_file))
+    result = run_web_infrastructure_detection_pipeline(events)
+
+    finding_titles = {
+        finding.title
+        for finding in result.findings
+    }
+
+    assert (
+        "Potential Web Cache Poisoning via Forwarded Host"
+        in finding_titles
+    )
+
+
+def test_api_gateway_json_headers_trigger_backend_exposure_detection(
+    tmp_path,
+):
+    log_file = tmp_path / "api_gateway_backend_exposure.jsonl"
+
+    log_file.write_text(
+        '{"timestamp":"2026-10-22T10:00:00Z",'
+        '"client_ip":"192.0.2.10",'
+        '"http_method":"GET",'
+        '"path":"/redirect",'
+        '"status":302,'
+        '"host":"api.example.com",'
+        '"response_headers":{'
+        '"Location":"http://10.0.0.5/internal"}}\n',
+        encoding="utf-8",
+    )
+
+    events = parse_api_gateway_log(str(log_file))
+    result = run_web_infrastructure_detection_pipeline(events)
+
+    finding_titles = {
+        finding.title
+        for finding in result.findings
+    }
+
+    assert (
+        "Private Backend Address Exposed in Response"
+        in finding_titles
+    )
+
+
+def test_api_gateway_json_safe_forwarded_host_does_not_trigger_cache_poisoning(
+    tmp_path,
+):
+    log_file = tmp_path / "api_gateway_safe_cache.jsonl"
+
+    log_file.write_text(
+        '{"timestamp":"2026-10-22T10:00:00Z",'
+        '"client_ip":"192.0.2.10",'
+        '"http_method":"GET",'
+        '"path":"/news",'
+        '"status":200,'
+        '"host":"api.example.com",'
+        '"request_headers":{'
+        '"X-Forwarded-Host":"api.example.com"},'
+        '"response_headers":{'
+        '"Cache-Control":"public, max-age=300"}}\n',
+        encoding="utf-8",
+    )
+
+    events = parse_api_gateway_log(str(log_file))
+    result = run_web_infrastructure_detection_pipeline(events)
+
+    finding_titles = {
+        finding.title
+        for finding in result.findings
+    }
+
+    assert (
+        "Potential Web Cache Poisoning via Forwarded Host"
+        not in finding_titles
+    )
+
+
+def test_api_gateway_json_normal_content_length_does_not_trigger_smuggling(
+    tmp_path,
+):
+    log_file = tmp_path / "api_gateway_normal_post.jsonl"
+
+    log_file.write_text(
+        '{"timestamp":"2026-10-22T10:00:00Z",'
+        '"client_ip":"192.0.2.10",'
+        '"http_method":"POST",'
+        '"path":"/submit",'
+        '"status":200,'
+        '"host":"api.example.com",'
+        '"request_headers":{'
+        '"Content-Length":"10",'
+        '"Content-Type":"application/json"}}\n',
+        encoding="utf-8",
+    )
+
+    events = parse_api_gateway_log(str(log_file))
+    result = run_web_infrastructure_detection_pipeline(events)
+
+    finding_titles = {
+        finding.title
+        for finding in result.findings
+    }
+
+    assert "Ambiguous HTTP Request Framing Detected" not in finding_titles
+
+
+def test_api_gateway_json_normal_headers_do_not_trigger_header_manipulation(
+    tmp_path,
+):
+    log_file = tmp_path / "api_gateway_normal_headers.jsonl"
+
+    log_file.write_text(
+        '{"timestamp":"2026-10-22T10:00:00Z",'
+        '"client_ip":"192.0.2.10",'
+        '"http_method":"GET",'
+        '"path":"/profile",'
+        '"status":200,'
+        '"host":"api.example.com",'
+        '"request_headers":{'
+        '"Accept":"application/json",'
+        '"X-Request-ID":"req-12345"}}\n',
+        encoding="utf-8",
+    )
+
+    events = parse_api_gateway_log(str(log_file))
+    result = run_web_infrastructure_detection_pipeline(events)
+
+    finding_titles = {
+        finding.title
+        for finding in result.findings
+    }
+
+    assert "Potential Header-Based Route Override" not in finding_titles
+
+
+def test_api_gateway_json_public_redirect_does_not_trigger_backend_exposure(
+    tmp_path,
+):
+    log_file = tmp_path / "api_gateway_safe_redirect.jsonl"
+
+    log_file.write_text(
+        '{"timestamp":"2026-10-22T10:00:00Z",'
+        '"client_ip":"192.0.2.10",'
+        '"http_method":"GET",'
+        '"path":"/redirect",'
+        '"status":302,'
+        '"host":"api.example.com",'
+        '"response_headers":{'
+        '"Location":"https://www.example.com/login"}}\n',
+        encoding="utf-8",
+    )
+
+    events = parse_api_gateway_log(str(log_file))
     result = run_web_infrastructure_detection_pipeline(events)
 
     finding_titles = {
