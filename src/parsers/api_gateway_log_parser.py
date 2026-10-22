@@ -73,6 +73,24 @@ def parse_api_gateway_log(
                         data.get("response_latency_ms")
                     ),
                     user_agent=data.get("user_agent", ""),
+                    request_headers=(
+                        {
+                            name: value
+                            for name, value in data["request_headers"].items()
+                            if isinstance(name, str) and isinstance(value, str)
+                        }
+                        if isinstance(data.get("request_headers"), dict)
+                        else {}
+                    ),
+                    response_headers=(
+                        {
+                            name: value
+                            for name, value in data["response_headers"].items()
+                            if isinstance(name, str) and isinstance(value, str)
+                        }
+                        if isinstance(data.get("response_headers"), dict)
+                        else {}
+                    ),
                     metadata=metadata,
                 )
             )
