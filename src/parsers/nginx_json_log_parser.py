@@ -103,6 +103,14 @@ def parse_nginx_json_log(
                         == "websocket"
                     ),
                     raw_event=line.strip(),
+
+                    metadata={
+                        "session_id_hash": data.get(
+                            "session_id_hash",
+                            "",
+                        ),
+                    },
+
                 )
             )
 

@@ -39,6 +39,7 @@ def test_nginx_event_detects_websocket_upgrade():
     assert event.status_code == 101
     assert event.tls_version == "TLSv1.3"
 
+
 def test_nginx_parser_preserves_request_and_response_headers(tmp_path):
     log_file = tmp_path / "nginx_headers.jsonl"
 
@@ -63,6 +64,7 @@ def test_nginx_parser_preserves_request_and_response_headers(tmp_path):
     assert events[0].response_headers == {
         "Cache-Control": "public, max-age=300",
     }
+
 
 def test_nginx_parser_redacts_sensitive_headers(tmp_path):
     log_file = tmp_path / "nginx_sensitive_headers.jsonl"
@@ -97,6 +99,7 @@ def test_nginx_parser_redacts_sensitive_headers(tmp_path):
         == "public, max-age=300"
     )
 
+
 def test_nginx_parser_handles_invalid_header_types(tmp_path):
     log_file = tmp_path / "nginx_invalid_headers.jsonl"
 
@@ -118,6 +121,7 @@ def test_nginx_parser_handles_invalid_header_types(tmp_path):
     assert events[0].response_headers == {
         "Cache-Control": "no-store",
     }
+
 
 def test_nginx_parser_filters_invalid_header_values(tmp_path):
     log_file = tmp_path / "nginx_invalid_header_values.jsonl"
@@ -146,3 +150,28 @@ def test_nginx_parser_filters_invalid_header_values(tmp_path):
     assert events[0].response_headers == {
         "X-Trace-ID": "trace-123",
     }
+
+
+def test_nginx_parser_preserves_session_id_hash(tmp_path):
+    log_file = tmp_path / "nginx_session.jsonl"
+
+    session_hash = "sha256:" + "a" * 64
+
+    log_file.write_text(
+        '{"time":"2026-10-23T10:00:00Z",'
+        '"remote_addr":"192.0.2.10",'
+        '"request_method":"GET",'
+        '"request_uri":"/profile",'
+        '"status":200,'
+        '"upstream_addr":"10.0.1.15:8080",'
+        f'"session_id_hash":"{session_hash}"'
+        '}\n',
+        encoding="utf-8",
+    )
+
+    events = parse_nginx_json_log(str(log_file))
+
+    assert len(events) == 1
+    assert events[0].source == "nginx"
+    assert events[0].backend == "10.0.1.15:8080"
+    assert events[0].metadata["session_id_hash"] == session_hash
