@@ -8,6 +8,14 @@ The format is based on Keep a Changelog.
 
 ## Unreleased
 
+### Added
+
+- Extended HTTP request and response header ingestion for Nginx JSON telemetry.
+- Extended HTTP request and response header ingestion for WAF/CDN telemetry.
+- Extended HTTP request and response header ingestion for API Gateway telemetry.
+- Added regression tests for the implemented HTTP header ingestion improvements.
+
+
 ### Changed
 
 - Added application-level orchestration pipelines for Traditional, Web Infrastructure, Physical Security and cross-domain analysis.
@@ -19,7 +27,7 @@ The format is based on Keep a Changelog.
 
 ### Verification
 
-- 603 automated tests passed.
+- 777 automated tests passed in the latest verified Python 3.12 development baseline.
 - `python3 -m src.main` generated JSON and HTML reports successfully.
 - Default fixture dataset preserved 244 total findings and 17 critical findings.
 - `git diff --check` passed.
