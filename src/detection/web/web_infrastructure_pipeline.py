@@ -267,7 +267,7 @@ def run_web_infrastructure_detection_pipeline(
 
     result.findings.extend(
         detect_websocket_upgrade_anomalies(
-            waf_cdn_events,
+            nginx_events + waf_cdn_events,
             allowed_websocket_paths=allowed_websocket_paths,
         )
     )
@@ -275,7 +275,7 @@ def run_web_infrastructure_detection_pipeline(
     if web_security_baseline is not None:
         result.findings.extend(
             detect_web_baseline_deviations(
-                waf_cdn_events,
+                nginx_events + waf_cdn_events,
                 web_security_baseline,
             )
         )

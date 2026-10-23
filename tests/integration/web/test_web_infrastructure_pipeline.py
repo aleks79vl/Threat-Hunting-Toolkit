@@ -65,6 +65,7 @@ def test_pipeline_generates_event_statistics():
         },
     }
 
+
 def test_pipeline_runs_nginx_detectors():
     result = run_web_infrastructure_detection_pipeline(
         [
@@ -87,6 +88,7 @@ def test_pipeline_runs_nginx_detectors():
         result.findings[0].title
         == "Nginx Directory Traversal Attempt Detected"
     )
+
 
 def test_pipeline_runs_api_gateway_detectors():
     events = [
@@ -117,6 +119,7 @@ def test_pipeline_runs_api_gateway_detectors():
         == "Potential API Brute Force Attack"
     )
 
+
 def test_pipeline_runs_haproxy_detector():
     result = run_web_infrastructure_detection_pipeline(
         [
@@ -144,6 +147,7 @@ def test_pipeline_runs_haproxy_detector():
         == "HAProxy Backend Unavailable"
     )
 
+
 def test_pipeline_runs_waf_protocol_detectors():
     result = run_web_infrastructure_detection_pipeline(
         [
@@ -170,6 +174,7 @@ def test_pipeline_runs_waf_protocol_detectors():
         == "HTTP/2 Connection Header Detected"
     )
 
+
 def test_pipeline_runs_apache_detector():
     result = run_web_infrastructure_detection_pipeline(
         [
@@ -192,6 +197,7 @@ def test_pipeline_runs_apache_detector():
         result.findings[0].title
         == "Potential Apache Web Shell Access"
     )
+
 
 def test_pipeline_runs_cross_source_request_detectors():
     events = [
@@ -273,6 +279,7 @@ def test_pipeline_runs_cross_source_request_detectors():
         "Potential SSRF Request to Internal Target",
     } <= finding_titles
 
+
 def test_pipeline_runs_load_balancer_detectors():
     events = [
         WebInfrastructureEvent(
@@ -349,6 +356,7 @@ def test_pipeline_runs_load_balancer_detectors():
     assert "Load Balancer Session Affinity Anomaly" in finding_titles
     assert "Potential Rate Limit Bypass" in finding_titles
 
+
 def test_pipeline_runs_nginx_upstream_error_detector():
     result = run_web_infrastructure_detection_pipeline(
         [
@@ -376,4 +384,113 @@ def test_pipeline_runs_nginx_upstream_error_detector():
     assert (
         result.findings[0].title
         == "Nginx Upstream Timeout Detected"
+    )
+
+
+def test_nginx_session_hash_reaches_load_balancer_detector(tmp_path):
+    from src.parsers.nginx_json_log_parser import parse_nginx_json_log
+
+    log_file = tmp_path / "nginx_sessions.jsonl"
+    session_hash = "sha256:" + "a" * 64
+
+    log_file.write_text(
+        '{"time":"2026-10-23T10:00:00Z",'
+        '"remote_addr":"192.0.2.10",'
+        '"request_method":"GET",'
+        '"request_uri":"/profile",'
+        '"status":200,'
+        '"server_name":"api.example.com",'
+        '"upstream_addr":"backend-a",'
+        f'"session_id_hash":"{session_hash}"'
+        '}\n'
+        '{"time":"2026-10-23T10:00:01Z",'
+        '"remote_addr":"192.0.2.10",'
+        '"request_method":"GET",'
+        '"request_uri":"/profile",'
+        '"status":200,'
+        '"server_name":"api.example.com",'
+        '"upstream_addr":"backend-b",'
+        f'"session_id_hash":"{session_hash}"'
+        '}\n',
+        encoding="utf-8",
+    )
+
+    events = parse_nginx_json_log(str(log_file))
+
+    assert len(events) == 2
+    assert all(
+        event.metadata["session_id_hash"] == session_hash
+        for event in events
+    )
+
+    result = run_web_infrastructure_detection_pipeline(events)
+
+    session_findings = [
+        finding
+        for finding in result.findings
+        if finding.title == "Load Balancer Session Affinity Anomaly"
+    ]
+
+    assert len(session_findings) == 1
+    assert session_findings[0].ioc_value == session_hash
+
+
+def test_pipeline_routes_nginx_websocket_events_to_detector():
+    events = [
+        WebInfrastructureEvent(
+            timestamp="2026-10-23T10:00:00Z",
+            source="nginx",
+            client_ip="192.0.2.10",
+            method="GET",
+            path="/socket",
+            status_code=101,
+            host="ws.example.com",
+            server_port=80,
+            websocket_upgrade=True,
+        )
+    ]
+
+    result = run_web_infrastructure_detection_pipeline(events)
+
+    finding_titles = {
+        finding.title
+        for finding in result.findings
+    }
+
+    assert "WebSocket Upgrade Without TLS" in finding_titles
+
+
+def test_pipeline_routes_nginx_websocket_events_to_baseline():
+    events = [
+        WebInfrastructureEvent(
+            timestamp="2026-10-23T10:00:00Z",
+            source="nginx",
+            client_ip="192.0.2.10",
+            method="GET",
+            path="/private-ws",
+            status_code=101,
+            host="ws.example.com",
+            server_port=443,
+            tls_version="TLSv1.3",
+            websocket_upgrade=True,
+        )
+    ]
+
+    baseline = {
+        "allowed_websocket_paths": ["/socket"],
+    }
+
+    result = run_web_infrastructure_detection_pipeline(
+        events,
+        web_security_baseline=baseline,
+    )
+
+    finding_titles = {
+        finding.title
+        for finding in result.findings
+    }
+
+    assert (
+        "WebSocket Path Deviates from Web Baseline"
+        in finding_titles
     )
