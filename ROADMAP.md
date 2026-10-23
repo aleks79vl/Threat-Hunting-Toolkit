@@ -1,27 +1,48 @@
-# Threat Hunting Toolkit Master Roadmap
+# Threat Hunting Toolkit — Development Roadmap
 
-> Enterprise Threat Hunting Platform Development Plan
+> Roadmap for the standalone Python threat detection and security telemetry analysis toolkit.
 
 ---
 
 # Current Status
 
-Current Release
+## Latest Tagged Release
 
-v3.6.0
+**v3.7.0**
 
-Detection Architecture Refactoring completed.
+The project continues to evolve beyond the latest tagged release.
 
-Completed
+## Completed Development Milestones
 
-- Block 24: Physical Security Detection Framework
-- Physical Security pipeline, correlation and risk scoring
-- HTML and JSON Physical Security reporting
-- 445 automated tests passed
+- **Block 24 — Physical Security Detection Framework**
+  - Physical Security event analysis and detection.
+  - Device-policy evaluation and attack-chain correlation.
+  - Physical risk scoring.
+  - JSON and HTML reporting integration.
 
-Current Focus
+- **Block 25 — Web Infrastructure Detection Framework**
+  - Apache, Nginx, API Gateway, HAProxy, and WAF/CDN telemetry processing.
+  - Web Infrastructure detection and correlation.
+  - HTTP request and response metadata analysis.
+  - JSON and HTML reporting integration.
 
-- Block 25: Web Infrastructure Detection Framework
+## Current Development Focus
+
+**CORE-01 — HTTP Header Telemetry Improvements**
+
+- Nginx JSON request/response header support merged.
+- WAF/CDN request/response header support merged.
+- API Gateway request/response header support merged.
+- Remaining CORE-01 work is not yet marked complete.
+
+## Verified Development Baseline
+
+- **Python:** 3.12
+- **Automated tests:** 777 passed
+- **Execution model:** Local, configuration-driven telemetry analysis
+- **Reports:** JSON and HTML
+
+These results describe the verified development baseline, not production performance or compatibility across all environments.
 
 ---
 
@@ -122,269 +143,87 @@ Current Focus
 
 ---
 
-# Block 26
+# Block 26 — Planned
 
-## Threat Intelligence Platform
+## Threat Intelligence Enrichment
 
-### IOC
+**Scope:** Extend the existing IOC analysis capabilities of Threat Hunting Toolkit without introducing a continuously running threat intelligence platform.
 
-- IOC Database
-- Reputation
-- IOC Cache
-- IOC Scheduler
+### Existing Foundation
 
-### Feeds
+- Local IOC database stored in `data/ioc_database.json`.
+- IOC loading and matching capabilities.
+- IOC-based analysis integrated with detection and correlation workflows.
 
-- MISP
-- STIX
-- TAXII
-- Threat Feeds
+### Planned Improvements
 
-### Campaigns
+- Improve IOC normalization and validation.
+- Extend IOC matching and enrichment capabilities.
+- Improve correlation between IOC matches and security findings.
+- Improve threat intelligence context in JSON and HTML reports.
+- Add unit and integration tests for new enrichment functionality.
+- Document supported IOC formats, matching behavior, and limitations.
 
-- Threat Actors
-- Campaign Detection
-- IOC Correlation
+### Future Research
 
----
+The following capabilities may be evaluated separately and are not committed deliverables of Block 26:
 
-# Block 27
+- STIX-based IOC import.
+- TAXII and MISP interoperability.
+- Optional ingestion of external threat intelligence data.
+- Threat actor and campaign context based on supported evidence.
 
-## Active Directory Detection Framework
+### Out of Scope
 
-### Authentication
+- Continuously running IOC synchronization services.
+- Background feed schedulers.
+- Centralized, multi-user threat intelligence management.
+- Real-time threat intelligence infrastructure.
+- Enterprise Threat Intelligence Platform development.
 
-- Kerberos
-- NTLM
-- LDAP
-- LDAPS
+### Completion Criteria
 
-### AD Attacks
+- New enrichment capabilities integrate with the existing Toolkit execution model.
+- Existing IOC matching behavior remains backward compatible.
+- Automated tests validate new functionality and regression scenarios.
+- Documentation and reporting accurately describe supported capabilities.
 
-- Golden Ticket
-- Silver Ticket
-- Kerberoasting
-- AS-REP
-- Pass-the-Hash
-- Pass-the-Ticket
-
-### Domain Controllers
-
-- DCSync
-- DCShadow
-- SYSVOL
-- Replication
-
-### Lateral Movement
-
-- PsExec
-- SMB
-- WMI
-- WinRM
-- RDP
-
-### AD Monitoring
-
-- Group Policy
-- OU Changes
-- Service Accounts
-- BloodHound Indicators
 
 ---
 
-# Block 28
+# Threat Hunting Toolkit — Completion Criteria
 
-## AI & Zero-Day Behavioral Detection
+## Project Objective
 
-### Behavioral Analytics
+Complete Threat Hunting Toolkit as a standalone, configuration-driven Python tool for security telemetry analysis, threat detection, event correlation, and investigation reporting.
 
-- User Baselines
-- Host Baselines
-- Network Baselines
-- Process Baselines
+The Toolkit is not intended to become an enterprise monitoring platform.
 
-### AI
+## Completion Checklist
 
-- Unknown Threats
-- Zero-Day Indicators
-- Risk Prediction
-- Behavioral Correlation
+- [ ] Complete the remaining approved CORE-01 development tasks.
+- [ ] Resolve critical defects identified during final regression testing.
+- [ ] Verify that existing detection pipelines remain operational.
+- [ ] Verify cross-domain correlation and IOC matching functionality.
+- [ ] Validate JSON and HTML report generation.
+- [ ] Verify sensitive-data redaction in supported reporting workflows.
+- [ ] Execute the complete automated regression test suite successfully.
+- [ ] Review and update README, ROADMAP, CHANGELOG, and relevant technical documentation.
+- [ ] Complete a final review of project architecture, dependencies, and known limitations.
+- [ ] Prepare and validate the final Toolkit release.
 
----
+## Scope Control
 
-# Block 29
+Any additional feature must be evaluated against the agreed Toolkit scope before implementation.
 
-## Cloud Detection Platform
+Future research directions must not automatically become mandatory Toolkit completion requirements.
 
-### Microsoft
+## Definition of Complete
 
-- Azure
-- Defender XDR
-- Microsoft 365
-- Entra ID
+Threat Hunting Toolkit may be considered complete when:
 
-### Amazon AWS
-
-- CloudTrail
-- GuardDuty
-- IAM
-- Security Hub
-- VPC Flow Logs
-- CloudWatch
-
-### Google Cloud
-
-- Audit Logs
-- SCC
-- Google Workspace
-
----
-
-# Block 30
-
-## Container & Kubernetes Detection Platform
-
-### Docker
-
-- Docker Events
-- Container Lifecycle
-- Container Escape
-- Docker Socket
-- Image Integrity
-
-### Kubernetes
-
-- Audit Logs
-- kube-apiserver
-- kubelet
-- etcd
-- RBAC
-- Pod Security
-- Service Accounts
-- Secrets
-- ConfigMaps
-- HostPath
-- Network Policies
-
-### Runtime
-
-- containerd
-- CRI-O
-- runc
-
-### GitOps
-
-- Helm
-- ArgoCD
-- FluxCD
-
----
-
-# Block 31
-
-## Real-Time Detection & Response
-
-### Streaming
-
-- Live Detection
-- Watch Mode
-- Alert Queue
-
-### Notifications
-
-- Email
-- Slack
-- Microsoft Teams
-- Webhooks
-
-### Response
-
-- Automated Response
-- Playbooks
-- Response Policies
-
----
-
-# Block 32
-
-## Enterprise Threat Hunting Platform
-
-### Platform
-
-- REST API
-- Web Dashboard
-- Multi-user
-- RBAC
-- Scheduled Hunts
-- Profiles
-
-### Deployment
-
-- Docker
-- Kubernetes
-- High Availability
-
-### Plugins
-
-- Detection
-- Parser
-- Reporting
-- Threat Intelligence
-
----
-
-# Unified Telemetry Layer
-
-Windows
-
-Linux
-
-Active Directory
-
-Firewall
-
-Network
-
-Nmap
-
-Apache
-
-Nginx
-
-Threat Intelligence
-
-USB
-
-Physical Security
-
-Azure
-
-AWS
-
-Google Cloud
-
-Docker
-
-Kubernetes
-
-All telemetry is normalized into a single internal event model before entering the Detection Engine.
-
----
-
-# Final Goal
-
-Enterprise Threat Hunting Platform
-
-- Multi-source telemetry
-- Threat Correlation
-- MITRE ATT&CK
-- IOC Intelligence
-- AI Detection
-- Zero-Day Indicators
-- Physical Security
-- Web Infrastructure
-- Active Directory
-- Cloud
-- Containers
-- Real-Time Detection
-- Enterprise Dashboard
+1. All agreed mandatory Toolkit functionality is implemented.
+2. Critical regression tests pass.
+3. Reports and documented execution workflows are validated.
+4. Remaining known limitations are documented.
+5. The final release is reviewed and approved.
