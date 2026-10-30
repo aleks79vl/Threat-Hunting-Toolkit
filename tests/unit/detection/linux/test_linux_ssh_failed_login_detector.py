@@ -63,3 +63,50 @@ def test_ignore_non_ssh_failed_event():
     findings = detect_ssh_failed_logins(events)
 
     assert findings == []
+
+
+def test_failed_ssh_finding_preserves_normalized_utc_time():
+    event = LinuxEvent(
+        timestamp="Jul  7 10:00:01",
+        timestamp_utc="2026-07-07T07:00:01+00:00",
+        hostname="auth-host",
+        service="ssh",
+        process="sshd",
+        user="admin",
+        source_ip="203.0.113.50",
+        action="authentication",
+        status="failed",
+    )
+
+    findings = detect_ssh_failed_logins([event])
+
+    assert len(findings) == 1
+
+    finding = findings[0]
+
+    assert finding.title == "Failed SSH Login Detected"
+    assert finding.first_seen == "2026-07-07T07:00:01+00:00"
+    assert finding.last_seen == "2026-07-07T07:00:01+00:00"
+
+    # Original event must remain unchanged.
+    assert event.timestamp == "Jul  7 10:00:01"
+
+
+def test_failed_ssh_finding_does_not_invent_unknown_time():
+    event = LinuxEvent(
+        timestamp="Jul  7 10:00:01",
+        timestamp_utc=None,
+        hostname="auth-host",
+        service="ssh",
+        process="sshd",
+        user="admin",
+        source_ip="203.0.113.50",
+        action="authentication",
+        status="failed",
+    )
+
+    findings = detect_ssh_failed_logins([event])
+
+    assert len(findings) == 1
+    assert findings[0].first_seen is None
+    assert findings[0].last_seen is None

@@ -69,6 +69,8 @@ def main(
         web_log_file=web_log_file,
         whitelist_file=whitelist_file,
         critical_ports_file=critical_ports_file,
+        windows_source_timezone=config.windows_source_timezone,
+        firewall_source_timezone=config.firewall_source_timezone,
     )
 
     nmap_findings = traditional_result.nmap_findings
@@ -115,6 +117,10 @@ def main(
     linux_result = run_linux_detection_pipeline(
         linux_auth_file=linux_auth_file,
         linux_syslog_file=linux_syslog_file,
+        linux_auth_source_year=config.linux_auth_source_year,
+        linux_auth_source_timezone=config.linux_auth_source_timezone,
+        linux_syslog_source_year=config.linux_syslog_source_year,
+        linux_syslog_source_timezone=config.linux_syslog_source_timezone,
     )
 
     linux_events = linux_result.events

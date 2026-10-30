@@ -1,5 +1,5 @@
-from collections import Counter
-from datetime import time
+from collections import Counter, defaultdict
+from datetime import datetime, time, timezone
 
 from src.models.physical_event import PhysicalEvent
 from src.models.threat_finding import ThreatFinding
@@ -12,6 +12,65 @@ WORKSTATION_EVENT_TYPES = {
     "remote_logon",
     "session_switch",
 }
+
+
+def _is_aware(timestamp: datetime | None) -> bool:
+    return (
+        timestamp is not None
+        and timestamp.tzinfo is not None
+        and timestamp.utcoffset() is not None
+    )
+
+
+def _workstation_time_range(
+    events: list[PhysicalEvent],
+) -> tuple[str | None, str | None]:
+    if not events:
+        return None, None
+
+    timestamps = []
+
+    for event in events:
+        timestamp = event.timestamp
+
+        if not _is_aware(timestamp):
+            return None, None
+
+        timestamps.append(
+            timestamp.astimezone(timezone.utc)
+        )
+
+    return (
+        min(timestamps).isoformat(),
+        max(timestamps).isoformat(),
+    )
+
+
+def _event_sort_key(
+    event: PhysicalEvent,
+) -> tuple[int, datetime]:
+    timestamp = event.timestamp
+
+    if timestamp is None:
+        return (2, datetime.max)
+
+    if _is_aware(timestamp):
+        return (
+            0,
+            timestamp.astimezone(timezone.utc),
+        )
+
+    return (1, timestamp)
+
+
+def _timestamps_comparable(
+    first: datetime | None,
+    second: datetime | None,
+) -> bool:
+    if first is None or second is None:
+        return False
+
+    return _is_aware(first) == _is_aware(second)
 
 
 def _is_outside_working_hours(
@@ -43,8 +102,9 @@ def detect_workstation_activity(
 
     findings: list[ThreatFinding] = []
     unlock_counts: Counter[tuple[str, str]] = Counter()
+    unlock_events_by_identity = defaultdict(list)
 
-    sorted_events = sorted(events, key=lambda event: event.timestamp)
+    sorted_events = sorted(events, key=_event_sort_key)
 
     device_connection_events = {
         "usb_insert",
@@ -64,6 +124,8 @@ def detect_workstation_activity(
         hostname = event.hostname or "unknown"
         user = event.user or "unknown"
 
+        first_seen, last_seen = _workstation_time_range([event])
+
         if event.event_type == "remote_logon":
             findings.append(
                 ThreatFinding(
@@ -79,11 +141,14 @@ def detect_workstation_activity(
                         "Verify that the remote session was authorized "
                         "and review the source endpoint."
                     ),
+                    first_seen=first_seen,
+                    last_seen=last_seen,
                 )
             )
 
         if (
             event.event_type == "console_logon"
+            and event.timestamp is not None
             and _is_outside_working_hours(
                 event,
                 workday_start,
@@ -104,11 +169,16 @@ def detect_workstation_activity(
                         "Verify physical access authorization and review "
                         "related workstation and badge activity."
                     ),
+                    first_seen=first_seen,
+                    last_seen=last_seen,
                 )
             )
 
         if event.event_type == "workstation_unlock":
-            unlock_counts[(hostname, user)] += 1
+            identity = (hostname, user)
+
+            unlock_counts[identity] += 1
+            unlock_events_by_identity[identity].append(event)
 
             previous_events = sorted_events[:index]
 
@@ -119,6 +189,10 @@ def detect_workstation_activity(
                     if (
                         previous.event_type in device_connection_events
                         and previous.hostname == event.hostname
+                        and _timestamps_comparable(
+                            event.timestamp,
+                            previous.timestamp,
+                        )
                         and 0
                         <= (
                             event.timestamp - previous.timestamp
@@ -130,6 +204,12 @@ def detect_workstation_activity(
             )
 
             if recent_device_event is not None:
+                correlation_first, correlation_last = (
+                    _workstation_time_range(
+                        [recent_device_event, event]
+                    )
+                )
+
                 findings.append(
                     ThreatFinding(
                         title=(
@@ -148,6 +228,8 @@ def detect_workstation_activity(
                             "Review whether the connected device was used "
                             "to influence or bypass workstation access."
                         ),
+                        first_seen=correlation_first,
+                        last_seen=correlation_last,
                     )
                 )
 
@@ -172,12 +254,18 @@ def detect_workstation_activity(
                         "Verify whether the user switch was authorized "
                         "and review authentication activity."
                     ),
+                    first_seen=first_seen,
+                    last_seen=last_seen,
                 )
             )
 
     for (hostname, user), count in unlock_counts.items():
         if count < unlock_threshold:
             continue
+
+        first_seen, last_seen = _workstation_time_range(
+            unlock_events_by_identity[(hostname, user)]
+        )
 
         findings.append(
             ThreatFinding(
@@ -193,6 +281,8 @@ def detect_workstation_activity(
                     "Review session activity for shared credentials, "
                     "automation or suspicious physical access."
                 ),
+                first_seen=first_seen,
+                last_seen=last_seen,
             )
         )
 

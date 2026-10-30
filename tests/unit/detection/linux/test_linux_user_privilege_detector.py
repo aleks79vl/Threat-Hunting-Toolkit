@@ -94,3 +94,102 @@ def test_ignore_empty_events():
     findings = detect_linux_user_privilege_activity([])
 
     assert findings == []
+
+
+def test_new_linux_user_finding_preserves_utc_time():
+    event = LinuxEvent(
+        timestamp="Jul  7 09:10:44",
+        timestamp_utc="2026-07-07T06:10:44.123456789+00:00",
+        hostname="ubuntu-server",
+        service="user",
+        process="useradd",
+        message="new user: name=backup, UID=1002",
+        user="backup",
+        action="user_create",
+        status="success",
+    )
+
+    findings = detect_linux_user_privilege_activity([event])
+
+    assert len(findings) == 1
+
+    finding = findings[0]
+
+    assert finding.title == "New Linux User Detected"
+    assert finding.severity == "medium"
+    assert finding.first_seen == (
+        "2026-07-07T06:10:44.123456789+00:00"
+    )
+    assert finding.last_seen == (
+        "2026-07-07T06:10:44.123456789+00:00"
+    )
+
+    assert event.timestamp == "Jul  7 09:10:44"
+
+
+def test_privileged_user_modification_preserves_utc_time():
+    event = LinuxEvent(
+        timestamp="Jul  7 09:20:01",
+        timestamp_utc="2026-07-07T06:20:01.987654321+00:00",
+        hostname="ubuntu-server",
+        service="user",
+        process="usermod",
+        message="usermod -aG sudo backup",
+        user="backup",
+        action="group_modify",
+        status="success",
+    )
+
+    findings = detect_linux_user_privilege_activity([event])
+
+    assert len(findings) == 1
+
+    finding = findings[0]
+
+    assert finding.title == (
+        "Privileged User Modification Detected"
+    )
+    assert finding.severity == "critical"
+    assert finding.first_seen == (
+        "2026-07-07T06:20:01.987654321+00:00"
+    )
+    assert finding.last_seen == (
+        "2026-07-07T06:20:01.987654321+00:00"
+    )
+
+    assert event.timestamp == "Jul  7 09:20:01"
+
+
+def test_new_linux_user_does_not_invent_unknown_time():
+    event = LinuxEvent(
+        timestamp="Jul  7 09:10:44",
+        timestamp_utc=None,
+        hostname="ubuntu-server",
+        user="backup",
+        action="user_create",
+        message="new user: name=backup",
+    )
+
+    findings = detect_linux_user_privilege_activity([event])
+
+    assert len(findings) == 1
+    assert findings[0].first_seen is None
+    assert findings[0].last_seen is None
+
+
+def test_privileged_user_modification_rejects_invalid_utc():
+    event = LinuxEvent(
+        timestamp="Jul  7 09:20:01",
+        timestamp_utc="invalid timestamp",
+        hostname="ubuntu-server",
+        process="usermod",
+        message="usermod -aG sudo backup",
+        user="backup",
+        action="group_modify",
+    )
+
+    findings = detect_linux_user_privilege_activity([event])
+
+    assert len(findings) == 1
+    assert findings[0].first_seen is None
+    assert findings[0].last_seen is None

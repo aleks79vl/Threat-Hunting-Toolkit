@@ -36,6 +36,8 @@ def run_traditional_detection_pipeline(
     web_log_file: str,
     whitelist_file: str,
     critical_ports_file: str,
+    windows_source_timezone: str | None = None,
+    firewall_source_timezone: str | None = None,
 ) -> TraditionalDetectionResult:
     nmap_events = parse_nmap_xml(nmap_file)
 
@@ -53,10 +55,18 @@ def run_traditional_detection_pipeline(
     )
 
     windows_events = parse_windows_events(windows_events_file)
-    windows_findings = detect_windows_events(windows_events)
+
+    windows_findings = detect_windows_events(
+        windows_events,
+        source_timezone=windows_source_timezone,
+    )
 
     firewall_events = parse_firewall_log(firewall_file)
-    firewall_findings = detect_firewall_events(firewall_events)
+
+    firewall_findings = detect_firewall_events(
+    firewall_events,
+    source_timezone=firewall_source_timezone,
+)
 
     web_events = parse_web_log(web_log_file)
     web_findings = detect_web_attacks(web_events)

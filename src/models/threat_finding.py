@@ -25,6 +25,11 @@ class ThreatFinding:
     ioc_confidence: str = ""
     ioc_source: str = ""
     ioc_description: str = ""
+    first_seen: str | None = None
+    last_seen: str | None = None
+    observation_start: str | None = None
+    observation_end: str | None = None
+    observation_scope: str | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)

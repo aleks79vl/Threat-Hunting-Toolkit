@@ -116,3 +116,68 @@ def test_ignore_empty_executions():
     findings = detect_linux_audit_tampering([])
 
     assert findings == []
+
+
+def test_audit_tampering_finding_preserves_utc_time():
+    execution = create_execution(
+        command="systemctl stop auditd"
+    )
+    execution.timestamp_utc = (
+        "2026-07-07T07:00:01.123456789+00:00"
+    )
+
+    original_timestamp = execution.timestamp
+
+    findings = detect_linux_audit_tampering(
+        [execution]
+    )
+
+    assert len(findings) == 1
+
+    finding = findings[0]
+
+    assert finding.title == (
+        "Linux Audit Tampering Activity Detected"
+    )
+    assert finding.severity == "critical"
+    assert finding.first_seen == (
+        "2026-07-07T07:00:01.123456789+00:00"
+    )
+    assert finding.last_seen == (
+        "2026-07-07T07:00:01.123456789+00:00"
+    )
+
+    # Preserve original Linux syslog timestamp.
+    assert execution.timestamp == original_timestamp
+    assert execution.timestamp == "Jul 7 10:00:01"
+
+
+def test_audit_tampering_does_not_invent_unknown_time():
+    execution = create_execution(
+        command="auditctl -e 0"
+    )
+
+    assert execution.timestamp_utc is None
+
+    findings = detect_linux_audit_tampering(
+        [execution]
+    )
+
+    assert len(findings) == 1
+    assert findings[0].first_seen is None
+    assert findings[0].last_seen is None
+
+
+def test_audit_tampering_rejects_invalid_utc_time():
+    execution = create_execution(
+        command="rm -f /etc/audit/audit.rules"
+    )
+    execution.timestamp_utc = "invalid timestamp"
+
+    findings = detect_linux_audit_tampering(
+        [execution]
+    )
+
+    assert len(findings) == 1
+    assert findings[0].first_seen is None
+    assert findings[0].last_seen is None

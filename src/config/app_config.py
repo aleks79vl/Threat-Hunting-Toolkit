@@ -25,6 +25,12 @@ class AppConfig:
     web_security_baseline_file: str
     json_output_file: str
     html_output_file: str
+    windows_source_timezone: str | None = None
+    firewall_source_timezone: str | None = None
+    linux_auth_source_year: int | None = None
+    linux_auth_source_timezone: str | None = None
+    linux_syslog_source_year: int | None = None
+    linux_syslog_source_timezone: str | None = None
 
 
 def default_app_config() -> AppConfig:

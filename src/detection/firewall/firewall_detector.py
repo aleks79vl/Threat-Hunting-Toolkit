@@ -1,3 +1,4 @@
+from src.utils.event_time import normalize_event_time
 from src.models.threat_finding import ThreatFinding
 from src.utils.event_utils import SecurityEvent
 
@@ -21,13 +22,19 @@ def is_external_ip(ip: str) -> bool:
 
 
 def detect_firewall_events(
-    events: list[SecurityEvent]
+    events: list[SecurityEvent],
+    source_timezone: str | None = None,
 ) -> list[ThreatFinding]:
 
     findings = []
 
     for event in events:
         service = CRITICAL_PORTS.get(event.dst_port)
+
+        event_time = normalize_event_time(
+        event.timestamp,
+        source_timezone=source_timezone,
+        )
 
         if event.event_type == "DENY" and service:
             findings.append(
@@ -39,6 +46,8 @@ def detect_firewall_events(
                         f"to {event.dst_ip}:{event.dst_port} ({service})."
                     ),
                     source="Firewall Detector",
+                    first_seen=event_time,
+                    last_seen=event_time,
                     ip=event.src_ip,
                     hostname=event.hostname,
                     port=event.dst_port,
@@ -58,6 +67,8 @@ def detect_firewall_events(
                         f"to {event.dst_ip}:{event.dst_port} ({service})."
                     ),
                     source="Firewall Detector",
+                    first_seen=event_time,
+                    last_seen=event_time,
                     ip=event.src_ip,
                     hostname=event.hostname,
                     port=event.dst_port,
@@ -77,6 +88,8 @@ def detect_firewall_events(
                         f"to {event.dst_ip}:{event.dst_port}."
                     ),
                     source="Firewall Detector",
+                    first_seen=event_time,
+                    last_seen=event_time,
                     ip=event.src_ip,
                     hostname=event.hostname,
                     port=event.dst_port,

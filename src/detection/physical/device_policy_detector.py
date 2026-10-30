@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from datetime import timezone
 
 from src.models.physical_event import PhysicalEvent
 from src.models.threat_finding import ThreatFinding
@@ -67,6 +68,22 @@ def _finding(
     event: PhysicalEvent,
     recommendation: str,
 ) -> ThreatFinding:
+
+    timestamp = event.timestamp
+
+    event_time = None
+
+    if (
+        timestamp is not None
+        and timestamp.tzinfo is not None
+        and timestamp.utcoffset() is not None
+    ):
+        event_time = (
+            timestamp
+            .astimezone(timezone.utc)
+            .isoformat()
+        )
+
     return ThreatFinding(
         title=title,
         severity=severity,
@@ -74,6 +91,8 @@ def _finding(
         source="Device Policy Detector",
         hostname=event.hostname or "",
         recommendation=recommendation,
+        first_seen=event_time,
+        last_seen=event_time,
     )
 
 

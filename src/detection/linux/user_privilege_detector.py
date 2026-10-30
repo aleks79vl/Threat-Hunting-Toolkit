@@ -1,5 +1,6 @@
 from src.models.linux_event import LinuxEvent
 from src.models.threat_finding import ThreatFinding
+from src.utils.event_time import normalize_event_time
 
 
 PRIVILEGE_PATTERNS = {
@@ -18,6 +19,10 @@ def detect_linux_user_privilege_activity(
     for event in events:
         message_lower = event.message.lower()
 
+        event_time_utc = normalize_event_time(
+            event.timestamp_utc
+        )
+
         if event.action == "user_create":
             findings.append(
                 ThreatFinding(
@@ -29,6 +34,8 @@ def detect_linux_user_privilege_activity(
                     ),
                     source="Linux Log Detection",
                     hostname=event.hostname,
+                    first_seen=event_time_utc,
+                    last_seen=event_time_utc,
                     recommendation=(
                         "Verify whether the new user account was created "
                         "as part of authorized administrative activity."
@@ -55,6 +62,8 @@ def detect_linux_user_privilege_activity(
                     ),
                     source="Linux Log Detection",
                     hostname=event.hostname,
+                    first_seen=event_time_utc,
+                    last_seen=event_time_utc,
                     recommendation=(
                         "Investigate privileged group membership changes "
                         "and validate whether the action was authorized."

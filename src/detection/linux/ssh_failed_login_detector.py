@@ -29,6 +29,8 @@ def detect_ssh_failed_logins(
                         "Review SSH authentication logs and verify whether "
                         "the source IP is authorized."
                     ),
+                    first_seen=event.timestamp_utc,
+                    last_seen=event.timestamp_utc,
                 )
             )
 

@@ -1,5 +1,6 @@
 from src.models.linux_process_execution import LinuxProcessExecution
 from src.models.threat_finding import ThreatFinding
+from src.utils.event_time import normalize_event_time
 
 
 SUSPICIOUS_EXECUTABLES = {
@@ -46,6 +47,10 @@ def detect_suspicious_linux_processes(executions: list[LinuxProcessExecution],
         if not executable_match and not path_match and not argument_match:
             continue
 
+        event_time_utc = normalize_event_time(
+            execution.timestamp_utc
+        )
+
         findings.append(
             ThreatFinding(
                 title="Suspicious Linux Process Execution Detected",
@@ -55,6 +60,8 @@ def detect_suspicious_linux_processes(executions: list[LinuxProcessExecution],
                     f"Command: {execution.command}"
                 ),
                 source="Linux Host Detection",
+                first_seen=event_time_utc,
+                last_seen=event_time_utc,
                 ip=execution.source_ip,
                 hostname=execution.hostname,
                 recommendation=(

@@ -2,6 +2,7 @@ from src.detection.network.network_web_attack_detector import (
     detect_network_web_attacks,
 )
 from src.models.network_event import NetworkEvent
+from datetime import datetime, timezone
 
 
 def create_http_event(
@@ -118,3 +119,145 @@ def test_duplicate_web_attack_creates_single_finding():
     findings = detect_network_web_attacks(events)
 
     assert len(findings) == 1
+
+
+def _packet_timestamp(
+    hour: int,
+    minute: int,
+    fraction: str = "000000000",
+) -> str:
+    dt = datetime(
+        2026, 7, 16, hour, minute,
+        tzinfo=timezone.utc,
+    )
+
+    return f"{int(dt.timestamp())}.{fraction}"
+
+
+def test_web_attack_findings_preserve_packet_time():
+    cases = [
+        (
+            "/login.php?id=' OR 1=1",
+            "SQL Injection Attempt Detected in PCAP",
+        ),
+        (
+            "/search?q=<script>alert(1)</script>",
+            "XSS Attempt Detected in PCAP",
+        ),
+        (
+            "/download?file=../../etc/passwd",
+            "Directory Traversal Attempt Detected in PCAP",
+        ),
+        (
+            "/admin",
+            "Admin Panel Enumeration Detected in PCAP",
+        ),
+        (
+            "/shell.php",
+            "Suspicious Web Shell URI Detected in PCAP",
+        ),
+    ]
+
+    for uri, expected_title in cases:
+        event = create_http_event(uri)
+
+        event.timestamp = _packet_timestamp(
+            9, 0, "123456789"
+        )
+
+        findings = detect_network_web_attacks([event])
+
+        assert len(findings) == 1
+        assert findings[0].title == expected_title
+
+        assert findings[0].first_seen == (
+            "2026-07-16T09:00:00.123456789+00:00"
+        )
+        assert findings[0].last_seen == (
+            "2026-07-16T09:00:00.123456789+00:00"
+        )
+
+
+def test_web_attack_deduplication_preserves_time_range():
+    admin_events = [
+        create_http_event("/admin")
+        for _ in range(3)
+    ]
+
+    admin_events[0].timestamp = _packet_timestamp(9, 0)
+    admin_events[1].timestamp = _packet_timestamp(9, 3)
+    admin_events[2].timestamp = _packet_timestamp(9, 7)
+
+    shell_event = create_http_event("/shell.php")
+    shell_event.timestamp = _packet_timestamp(8, 0)
+
+    findings = detect_network_web_attacks([
+        admin_events[2],
+        shell_event,
+        admin_events[1],
+        admin_events[0],
+    ])
+
+    admin_findings = [
+        finding
+        for finding in findings
+        if finding.title
+        == "Admin Panel Enumeration Detected in PCAP"
+    ]
+
+    shell_findings = [
+        finding
+        for finding in findings
+        if finding.title
+        == "Suspicious Web Shell URI Detected in PCAP"
+    ]
+
+    assert len(admin_findings) == 1
+    assert len(shell_findings) == 1
+
+    assert admin_findings[0].first_seen == (
+        "2026-07-16T09:00:00+00:00"
+    )
+    assert admin_findings[0].last_seen == (
+        "2026-07-16T09:07:00+00:00"
+    )
+
+    assert shell_findings[0].first_seen == (
+        "2026-07-16T08:00:00+00:00"
+    )
+    assert shell_findings[0].last_seen == (
+        "2026-07-16T08:00:00+00:00"
+    )
+
+
+def test_web_attack_invalid_timestamps_are_not_invented():
+    for invalid_timestamp in (
+        "",
+        "invalid-timestamp",
+        "NaN",
+        "Infinity",
+    ):
+        event = create_http_event("/admin")
+        event.timestamp = invalid_timestamp
+
+        findings = detect_network_web_attacks([event])
+
+        assert len(findings) == 1
+        assert findings[0].first_seen is None
+        assert findings[0].last_seen is None
+
+    valid_event = create_http_event("/admin")
+    valid_event.timestamp = _packet_timestamp(9, 0)
+
+    invalid_event = create_http_event("/admin")
+    invalid_event.timestamp = "invalid-timestamp"
+
+    for events in (
+        [valid_event, invalid_event],
+        [invalid_event, valid_event],
+    ):
+        findings = detect_network_web_attacks(events)
+
+        assert len(findings) == 1
+        assert findings[0].first_seen is None
+        assert findings[0].last_seen is None

@@ -255,3 +255,262 @@ def test_events_on_different_hosts_are_not_correlated():
         "Physical Device Connection Followed by Policy Violation"
         not in titles
     )
+
+
+def test_physical_correlation_preserves_event_time_range():
+    connection = create_event(
+        "usb_insert",
+        device_type="USB",
+        device_id="USB-TIMELINE-001",
+    )
+
+    violation = create_event(
+        "device_policy_violation",
+        minutes=4,
+        device_type="USB",
+        device_id="USB-TIMELINE-001",
+    )
+
+    connection.timestamp = datetime.fromisoformat(
+        "2026-07-16T09:00:00+00:00"
+    )
+    violation.timestamp = datetime.fromisoformat(
+        "2026-07-16T09:04:00+00:00"
+    )
+
+    findings = correlate_physical_events([
+        violation,
+        connection,
+    ])
+
+    matching_findings = [
+        finding
+        for finding in findings
+        if finding.title == (
+            "Physical Device Connection Followed by Policy Violation"
+        )
+    ]
+
+    assert len(matching_findings) == 1
+
+    finding = matching_findings[0]
+
+    assert finding.first_seen == "2026-07-16T09:00:00+00:00"
+    assert finding.last_seen == "2026-07-16T09:04:00+00:00"
+
+
+def test_policy_violation_workstation_access_preserves_time_range():
+    violation = create_event(
+        "device_policy_violation",
+        device_type="USB",
+    )
+
+    workstation = create_event(
+        "workstation_unlock",
+        device_type="workstation",
+    )
+
+    violation.timestamp = datetime.fromisoformat(
+        "2026-07-16T09:00:00+00:00"
+    )
+    workstation.timestamp = datetime.fromisoformat(
+        "2026-07-16T09:05:00+00:00"
+    )
+
+    findings = correlate_physical_events([
+        workstation,
+        violation,
+    ])
+
+    matching_findings = [
+        finding
+        for finding in findings
+        if finding.title == (
+            "Device Policy Violation Followed by Workstation Access"
+        )
+    ]
+
+    assert len(matching_findings) == 1
+
+    finding = matching_findings[0]
+
+    assert finding.first_seen == "2026-07-16T09:00:00+00:00"
+    assert finding.last_seen == "2026-07-16T09:05:00+00:00"
+
+
+def test_workstation_hid_command_preserves_time_range():
+    workstation = create_event(
+        "workstation_unlock",
+        device_type="workstation",
+    )
+
+    command = create_event(
+        "hid_input",
+        command="powershell -enc AAAA",
+    )
+
+    workstation.timestamp = datetime.fromisoformat(
+        "2026-07-16T09:00:00+00:00"
+    )
+    command.timestamp = datetime.fromisoformat(
+        "2026-07-16T09:03:00+00:00"
+    )
+
+    findings = correlate_physical_events([
+        command,
+        workstation,
+    ])
+
+    matching_findings = [
+        finding
+        for finding in findings
+        if finding.title == (
+            "Workstation Access Followed by Suspicious HID Command"
+        )
+    ]
+
+    assert len(matching_findings) == 1
+
+    finding = matching_findings[0]
+
+    assert finding.first_seen == "2026-07-16T09:00:00+00:00"
+    assert finding.last_seen == "2026-07-16T09:03:00+00:00"
+
+
+def test_hid_command_storage_transfer_preserves_time_range():
+    command = create_event(
+        "hid_input",
+        command="powershell -enc AAAA",
+    )
+
+    storage = create_event(
+        "storage_copy",
+        device_type="external_storage",
+        bytes_transferred=250 * 1024 * 1024,
+    )
+
+    command.timestamp = datetime.fromisoformat(
+        "2026-07-16T09:00:00+00:00"
+    )
+    storage.timestamp = datetime.fromisoformat(
+        "2026-07-16T09:06:00+00:00"
+    )
+
+    findings = correlate_physical_events([
+        storage,
+        command,
+    ])
+
+    matching_findings = [
+        finding
+        for finding in findings
+        if finding.title == (
+            "Suspicious HID Command Followed by "
+            "Large Storage Transfer"
+        )
+    ]
+
+    assert len(matching_findings) == 1
+
+    finding = matching_findings[0]
+
+    assert finding.first_seen == "2026-07-16T09:00:00+00:00"
+    assert finding.last_seen == "2026-07-16T09:06:00+00:00"
+
+
+def test_storage_bluetooth_transfer_preserves_time_range():
+    storage = create_event(
+        "storage_copy",
+        device_type="external_storage",
+        bytes_transferred=250 * 1024 * 1024,
+    )
+
+    bluetooth = create_event(
+        "bluetooth_file_transfer",
+        device_type="bluetooth",
+        action="file_transfer",
+    )
+
+    storage.timestamp = datetime.fromisoformat(
+        "2026-07-16T09:00:00+00:00"
+    )
+    bluetooth.timestamp = datetime.fromisoformat(
+        "2026-07-16T09:08:00+00:00"
+    )
+
+    findings = correlate_physical_events([
+        bluetooth,
+        storage,
+    ])
+
+    matching_findings = [
+        finding
+        for finding in findings
+        if finding.title == (
+            "Large Storage Transfer Followed by Bluetooth Transfer"
+        )
+    ]
+
+    assert len(matching_findings) == 1
+
+    finding = matching_findings[0]
+
+    assert finding.first_seen == "2026-07-16T09:00:00+00:00"
+    assert finding.last_seen == "2026-07-16T09:08:00+00:00"
+
+
+def test_complete_attack_chain_preserves_time_range():
+    events = [
+        create_event(
+            "hid_connect",
+            device_name="USB Rubber Ducky",
+            device_id="HID-001",
+        ),
+        create_event(
+            "device_policy_violation",
+            device_name="USB Rubber Ducky",
+            device_id="HID-001",
+        ),
+        create_event(
+            "workstation_unlock",
+            device_type="workstation",
+        ),
+        create_event(
+            "hid_input",
+            command="powershell -enc AAAA",
+        ),
+        create_event(
+            "storage_copy",
+            device_type="external_storage",
+            bytes_transferred=500 * 1024 * 1024,
+        ),
+        create_event(
+            "bluetooth_file_transfer",
+            device_type="bluetooth",
+            action="file_transfer",
+        ),
+    ]
+
+    start = datetime.fromisoformat(
+        "2026-07-16T09:00:00+00:00"
+    )
+
+    for event, minute in zip(events, (0, 1, 2, 3, 5, 7)):
+        event.timestamp = start + timedelta(minutes=minute)
+
+    findings = correlate_physical_events(
+        list(reversed(events))
+    )
+
+    matching_findings = [
+        finding
+        for finding in findings
+        if finding.title == "Multi-Stage Physical Attack Chain Detected"
+    ]
+
+    assert len(matching_findings) == 1
+
+    finding = matching_findings[0]
+
+    assert finding.first_seen == "2026-07-16T09:00:00+00:00"
+    assert finding.last_seen == "2026-07-16T09:07:00+00:00"

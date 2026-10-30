@@ -129,3 +129,120 @@ def test_usb_removal_is_not_flagged_as_connection():
     findings = detect_usb_devices([event])
 
     assert findings == []
+
+
+def test_unknown_usb_finding_preserves_event_timestamp():
+    event = create_usb_event("USB-TIMESTAMP-001")
+    event.timestamp = datetime.fromisoformat(
+        "2026-07-16T10:00:00+00:00"
+    )
+
+    findings = detect_usb_devices([event])
+
+    assert len(findings) == 1
+    assert findings[0].title == "Unknown USB Device Connected"
+    assert findings[0].first_seen == "2026-07-16T10:00:00+00:00"
+    assert findings[0].last_seen == "2026-07-16T10:00:00+00:00"
+
+
+def test_other_usb_findings_preserve_event_timestamp():
+    expected_time = "2026-07-16T10:00:00+00:00"
+
+    event = create_usb_event(
+        "USB-TIMESTAMP-002",
+        action="storage_mount",
+    )
+    event.timestamp = datetime.fromisoformat(expected_time)
+
+    findings = detect_usb_devices(
+        [event],
+        trusted_devices={"USB-TIMESTAMP-002"},
+    )
+
+    assert len(findings) == 2
+
+    for finding in findings:
+        assert finding.first_seen == expected_time
+        assert finding.last_seen == expected_time
+
+    blocked_event = create_usb_event("USB-BLOCKED-TIMESTAMP")
+    blocked_event.timestamp = datetime.fromisoformat(expected_time)
+
+    blocked_findings = detect_usb_devices(
+        [blocked_event],
+        blocked_devices={"USB-BLOCKED-TIMESTAMP"},
+    )
+
+    assert len(blocked_findings) == 1
+    assert blocked_findings[0].first_seen == expected_time
+    assert blocked_findings[0].last_seen == expected_time
+
+
+def test_repeated_usb_connections_preserve_time_range():
+    events = [
+        create_usb_event("USB-A"),
+        create_usb_event("USB-A"),
+        create_usb_event("USB-B"),
+        create_usb_event("USB-A"),
+    ]
+
+    timestamps = [
+        "2026-07-16T12:00:00+00:00",
+        "2026-07-16T09:00:00+00:00",
+        "2026-07-16T07:00:00+00:00",
+        "2026-07-16T10:00:00+00:00",
+    ]
+
+    for event, timestamp in zip(events, timestamps):
+        event.timestamp = datetime.fromisoformat(timestamp)
+
+    findings = detect_usb_devices(
+        events,
+        repeated_connection_threshold=3,
+    )
+
+    repeated_findings = [
+        finding
+        for finding in findings
+        if finding.title == "Repeated USB Device Connections"
+    ]
+
+    assert len(repeated_findings) == 1
+
+    finding = repeated_findings[0]
+
+    assert finding.first_seen == "2026-07-16T09:00:00+00:00"
+    assert finding.last_seen == "2026-07-16T12:00:00+00:00"
+
+
+def test_repeated_usb_connections_with_unknown_timezone():
+    events = [
+        create_usb_event("USB-MIXED"),
+        create_usb_event("USB-MIXED"),
+        create_usb_event("USB-MIXED"),
+    ]
+
+    events[0].timestamp = datetime.fromisoformat(
+        "2026-07-16T09:00:00+00:00"
+    )
+    events[1].timestamp = datetime.fromisoformat(
+        "2026-07-16T10:00:00"
+    )
+    events[2].timestamp = datetime.fromisoformat(
+        "2026-07-16T12:00:00+00:00"
+    )
+
+    findings = detect_usb_devices(
+        events,
+        repeated_connection_threshold=3,
+    )
+
+    repeated_findings = [
+        finding
+        for finding in findings
+        if finding.title == "Repeated USB Device Connections"
+    ]
+
+    assert len(repeated_findings) == 1
+    assert repeated_findings[0].first_seen is None
+    assert repeated_findings[0].last_seen is None

@@ -16,6 +16,9 @@ class SecurityEvent:
     hostname: str = ""
     username: str = ""
     raw_event: str = ""
+    observation_start: str | None = None
+    observation_end: str | None = None
+    observation_scope: str | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)

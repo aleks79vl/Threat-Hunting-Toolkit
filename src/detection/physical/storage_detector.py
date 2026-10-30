@@ -1,4 +1,5 @@
-from collections import Counter
+from collections import Counter, defaultdict
+from datetime import timezone
 
 from src.models.physical_event import PhysicalEvent
 from src.models.threat_finding import ThreatFinding
@@ -29,6 +30,35 @@ STORAGE_DEVICE_TYPES = {
 }
 
 
+def _storage_time_range(
+    events: list[PhysicalEvent],
+) -> tuple[str | None, str | None]:
+
+    if not events:
+        return None, None
+
+    timestamps = []
+
+    for event in events:
+        timestamp = event.timestamp
+
+        if (
+            timestamp is None
+            or timestamp.tzinfo is None
+            or timestamp.utcoffset() is None
+        ):
+            return None, None
+
+        timestamps.append(
+            timestamp.astimezone(timezone.utc)
+        )
+
+    return (
+        min(timestamps).isoformat(),
+        max(timestamps).isoformat(),
+    )
+
+
 def detect_storage_activity(
     events: list[PhysicalEvent],
     trusted_devices: set[str] | None = None,
@@ -57,6 +87,7 @@ def detect_storage_activity(
 
     findings: list[ThreatFinding] = []
     connected_device_ids: list[str] = []
+    connection_events_by_device = defaultdict(list)
 
     connection_event_types = {
         "storage_connect",
@@ -80,12 +111,17 @@ def detect_storage_activity(
 
         if event.event_type in connection_event_types:
             connected_device_ids.append(event.device_id)
+            connection_events_by_device[event.device_id].append(event)
+
+        first_seen, last_seen = _storage_time_range([event])
 
         if event.device_id in blocked_devices:
             findings.append(
                 ThreatFinding(
                     title="Blocked External Storage Device Connected",
                     severity="critical",
+                    first_seen=first_seen,
+                    last_seen=last_seen,
                     description=(
                         f"Blocked storage device '{event.device_name}' "
                         f"with ID '{event.device_id}' was connected."
@@ -106,6 +142,8 @@ def detect_storage_activity(
                     ThreatFinding(
                         title="Trusted External Storage Device Connected",
                         severity="low",
+                        first_seen=first_seen,
+                        last_seen=last_seen,
                         description=(
                             f"Trusted storage device '{event.device_name}' "
                             f"with ID '{event.device_id}' was connected."
@@ -123,6 +161,8 @@ def detect_storage_activity(
                     ThreatFinding(
                         title="Unknown External Storage Device Connected",
                         severity="high",
+                        first_seen=first_seen,
+                        last_seen=last_seen,
                         description=(
                             f"Unknown storage device '{event.device_name}' "
                             f"with ID '{event.device_id}' was connected."
@@ -141,6 +181,8 @@ def detect_storage_activity(
                     ThreatFinding(
                         title="External Storage Device Without Serial Number",
                         severity="medium",
+                        first_seen=first_seen,
+                        last_seen=last_seen,
                         description=(
                             f"Storage device '{event.device_name}' was connected "
                             "without an available serial number."
@@ -159,6 +201,8 @@ def detect_storage_activity(
                 ThreatFinding(
                     title="External Storage Device Mounted",
                     severity="medium",
+                    first_seen=first_seen,
+                    last_seen=last_seen,
                     description=(
                         f"External storage device '{event.device_name}' "
                         f"was mounted on host '{event.hostname or 'unknown'}'."
@@ -180,6 +224,8 @@ def detect_storage_activity(
                 ThreatFinding(
                     title="Large Data Transfer to External Storage",
                     severity="high",
+                    first_seen=first_seen,
+                    last_seen=last_seen,
                     description=(
                         f"{event.bytes_transferred} bytes were transferred "
                         f"using storage device '{event.device_name}'."
@@ -201,6 +247,8 @@ def detect_storage_activity(
                 ThreatFinding(
                     title="Large Number of Files Copied to External Storage",
                     severity="high",
+                    first_seen=first_seen,
+                    last_seen=last_seen,
                     description=(
                         f"{event.file_count} files were copied using storage "
                         f"device '{event.device_name}'."
@@ -230,6 +278,8 @@ def detect_storage_activity(
                     ThreatFinding(
                         title="Sensitive Path Accessed by External Storage",
                         severity="critical",
+                        first_seen=first_seen,
+                        last_seen=last_seen,
                         description=(
                             f"External storage activity involved sensitive "
                             f"path '{path}'."
@@ -250,6 +300,10 @@ def detect_storage_activity(
         if count < repeated_connection_threshold:
             continue
 
+        first_seen, last_seen = _storage_time_range(
+            connection_events_by_device[device_id]
+        )
+
         findings.append(
             ThreatFinding(
                 title="Repeated External Storage Connections",
@@ -263,6 +317,8 @@ def detect_storage_activity(
                     "Review whether repeated reconnections indicate policy "
                     "bypass, device testing or suspicious activity."
                 ),
+                first_seen=first_seen,
+                last_seen=last_seen,
             )
         )
 

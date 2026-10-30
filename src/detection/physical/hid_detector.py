@@ -1,4 +1,5 @@
-from collections import Counter
+from collections import Counter, defaultdict
+from datetime import timezone
 
 from src.models.physical_event import PhysicalEvent
 from src.models.threat_finding import ThreatFinding
@@ -28,6 +29,34 @@ SUSPICIOUS_DEVICE_MARKERS = (
 )
 
 
+def _hid_time_range(
+    events: list[PhysicalEvent],
+) -> tuple[str | None, str | None]:
+    if not events:
+        return None, None
+
+    timestamps = []
+
+    for event in events:
+        timestamp = event.timestamp
+
+        if (
+            timestamp is None
+            or timestamp.tzinfo is None
+            or timestamp.utcoffset() is None
+        ):
+            return None, None
+
+        timestamps.append(
+            timestamp.astimezone(timezone.utc)
+        )
+
+    return (
+        min(timestamps).isoformat(),
+        max(timestamps).isoformat(),
+    )
+
+
 def detect_hid_attacks(
     events: list[PhysicalEvent],
     trusted_devices: set[str] | None = None,
@@ -42,6 +71,7 @@ def detect_hid_attacks(
 
     findings: list[ThreatFinding] = []
     connected_device_ids: list[str] = []
+    connection_events_by_device = defaultdict(list)
 
     connection_event_types = {
         "hid_connect",
@@ -61,6 +91,9 @@ def detect_hid_attacks(
 
         if event.event_type in connection_event_types:
             connected_device_ids.append(event.device_id)
+            connection_events_by_device[event.device_id].append(event)
+
+        first_seen, last_seen = _hid_time_range([event])
 
         device_name_lower = event.device_name.lower()
         command_lower = (event.command or "").lower()
@@ -80,6 +113,8 @@ def detect_hid_attacks(
                         "Disconnect the device immediately and investigate "
                         "the user and workstation."
                     ),
+                    first_seen=first_seen,
+                    last_seen=last_seen,
                 )
             )
             continue
@@ -103,6 +138,8 @@ def detect_hid_attacks(
                         "Isolate the workstation, disconnect the device and "
                         "review command execution and process activity."
                     ),
+                    first_seen=first_seen,
+                    last_seen=last_seen,
                 )
             )
 
@@ -125,6 +162,8 @@ def detect_hid_attacks(
                         "Verify whether the device is authorized and review "
                         "subsequent user and process activity."
                     ),
+                    first_seen=first_seen,
+                    last_seen=last_seen,
                 )
             )
 
@@ -146,6 +185,8 @@ def detect_hid_attacks(
                         "Review the input sequence for automated keystroke "
                         "injection or scripted execution."
                     ),
+                    first_seen=first_seen,
+                    last_seen=last_seen,
                 )
             )
 
@@ -167,6 +208,8 @@ def detect_hid_attacks(
                         "Investigate command execution, isolate the endpoint "
                         "and review related PowerShell or shell activity."
                     ),
+                    first_seen=first_seen,
+                    last_seen=last_seen,
                 )
             )
 
@@ -175,6 +218,10 @@ def detect_hid_attacks(
     for device_id, count in connection_counts.items():
         if count < repeated_connection_threshold:
             continue
+
+        first_seen, last_seen = _hid_time_range(
+            connection_events_by_device[device_id]
+        )
 
         findings.append(
             ThreatFinding(
@@ -189,6 +236,8 @@ def detect_hid_attacks(
                     "Review whether repeated reconnections indicate device "
                     "testing, policy bypass or suspicious activity."
                 ),
+                first_seen=first_seen,
+                last_seen=last_seen,
             )
         )
 

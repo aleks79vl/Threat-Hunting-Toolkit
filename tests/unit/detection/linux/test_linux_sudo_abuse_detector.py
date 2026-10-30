@@ -107,3 +107,82 @@ def test_deduplicate_identical_sudo_events():
     findings = detect_sudo_abuse(events)
 
     assert len(findings) == 1
+
+
+def test_sudo_finding_preserves_normalized_utc_time():
+    event = create_sudo_event(
+        "alex : USER=root ; COMMAND=/usr/sbin/useradd attacker"
+    )
+    event.timestamp_utc = "2026-07-07T06:15:01.123456789+00:00"
+
+    findings = detect_sudo_abuse([event])
+
+    assert len(findings) == 1
+
+    finding = findings[0]
+
+    assert finding.first_seen == (
+        "2026-07-07T06:15:01.123456789+00:00"
+    )
+    assert finding.last_seen == (
+        "2026-07-07T06:15:01.123456789+00:00"
+    )
+
+    assert event.timestamp == "Jul  7 09:15:01"
+
+
+def test_sudo_deduplicated_finding_preserves_time_range():
+    message = (
+        "alex : USER=root ; COMMAND=/usr/sbin/useradd attacker"
+    )
+
+    later_event = create_sudo_event(message)
+    later_event.timestamp_utc = (
+        "2026-07-07T06:15:01.100000001+00:00"
+    )
+
+    earlier_event = create_sudo_event(message)
+    earlier_event.timestamp_utc = (
+        "2026-07-07T06:15:01.1+00:00"
+    )
+
+    # Events deliberately arrive out of chronological order.
+    findings = detect_sudo_abuse(
+        [later_event, earlier_event]
+    )
+
+    assert len(findings) == 1
+
+    finding = findings[0]
+
+    assert finding.first_seen == (
+        "2026-07-07T06:15:01.1+00:00"
+    )
+    assert finding.last_seen == (
+        "2026-07-07T06:15:01.100000001+00:00"
+    )
+
+
+def test_sudo_deduplicated_finding_rejects_incomplete_time():
+    message = (
+        "alex : USER=root ; COMMAND=/usr/sbin/useradd attacker"
+    )
+
+    valid_event = create_sudo_event(message)
+    valid_event.timestamp_utc = (
+        "2026-07-07T06:15:01+00:00"
+    )
+
+    unknown_event = create_sudo_event(message)
+    unknown_event.timestamp_utc = None
+
+    findings = detect_sudo_abuse(
+        [valid_event, unknown_event]
+    )
+
+    assert len(findings) == 1
+
+    finding = findings[0]
+
+    assert finding.first_seen is None
+    assert finding.last_seen is None

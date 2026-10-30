@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 
 from src.detection.nmap.network_critical_port_detector import (
     detect_network_critical_ports,
@@ -151,3 +152,184 @@ def test_invalid_port_values_are_ignored(tmp_path):
     )
 
     assert findings == []
+
+
+def _critical_epoch(
+    hour: int,
+    minute: int,
+    fraction: str = "000000000",
+) -> str:
+    dt = datetime(
+        2026, 7, 16, hour, minute,
+        tzinfo=timezone.utc,
+    )
+    return f"{int(dt.timestamp())}.{fraction}"
+
+
+def test_critical_port_preserves_independent_time_ranges(
+    tmp_path,
+):
+    config = tmp_path / "critical_ports.json"
+    config.write_text(
+        json.dumps({"critical_ports": [3389]}),
+        encoding="utf-8",
+    )
+
+    first = create_network_event(
+        dst_ip="10.0.0.20",
+        dst_port="3389",
+    )
+    first.timestamp = _critical_epoch(
+        9, 0, "123456789"
+    )
+
+    middle = create_network_event(
+        dst_ip="10.0.0.20",
+        dst_port="3389",
+    )
+    middle.timestamp = _critical_epoch(9, 3)
+
+    last = create_network_event(
+        dst_ip="10.0.0.20",
+        dst_port="3389",
+    )
+    last.timestamp = _critical_epoch(
+        9, 7, "987654321"
+    )
+
+    unrelated = create_network_event(
+        dst_ip="10.0.0.30",
+        dst_port="3389",
+    )
+    unrelated.timestamp = _critical_epoch(6, 0)
+
+    findings = detect_network_critical_ports(
+        [last, unrelated, middle, first],
+        str(config),
+    )
+
+    assert len(findings) == 2
+
+    by_ip = {
+        finding.ip: finding
+        for finding in findings
+    }
+
+    assert by_ip["10.0.0.20"].first_seen == (
+        "2026-07-16T09:00:00.123456789+00:00"
+    )
+    assert by_ip["10.0.0.20"].last_seen == (
+        "2026-07-16T09:07:00.987654321+00:00"
+    )
+
+    assert by_ip["10.0.0.30"].first_seen == (
+        "2026-07-16T06:00:00+00:00"
+    )
+    assert by_ip["10.0.0.30"].last_seen == (
+        "2026-07-16T06:00:00+00:00"
+    )
+
+
+def test_critical_port_combines_source_and_destination_matches(
+    tmp_path,
+):
+    config = tmp_path / "critical_ports.json"
+    config.write_text(
+        json.dumps({"critical_ports": [3389]}),
+        encoding="utf-8",
+    )
+
+    source_match = create_network_event(
+        src_port="3389",
+        dst_port="443",
+    )
+    source_match.timestamp = _critical_epoch(9, 0)
+
+    destination_match = create_network_event(
+        src_port="51514",
+        dst_port="3389",
+    )
+    destination_match.timestamp = _critical_epoch(9, 5)
+
+    findings = detect_network_critical_ports(
+        [destination_match, source_match],
+        str(config),
+    )
+
+    assert len(findings) == 1
+    assert findings[0].port == 3389
+    assert findings[0].first_seen == (
+        "2026-07-16T09:00:00+00:00"
+    )
+    assert findings[0].last_seen == (
+        "2026-07-16T09:05:00+00:00"
+    )
+
+
+def test_critical_port_preserves_nanosecond_order(
+    tmp_path,
+):
+    config = tmp_path / "critical_ports.json"
+    config.write_text(
+        json.dumps({"critical_ports": [3389]}),
+        encoding="utf-8",
+    )
+
+    earlier = create_network_event(dst_port="3389")
+    earlier.timestamp = _critical_epoch(
+        9, 0, "123456788"
+    )
+
+    later = create_network_event(dst_port="3389")
+    later.timestamp = _critical_epoch(
+        9, 0, "123456789"
+    )
+
+    findings = detect_network_critical_ports(
+        [later, earlier],
+        str(config),
+    )
+
+    assert len(findings) == 1
+
+    assert findings[0].first_seen == (
+        "2026-07-16T09:00:00.123456788+00:00"
+    )
+    assert findings[0].last_seen == (
+        "2026-07-16T09:00:00.123456789+00:00"
+    )
+
+
+def test_critical_port_invalid_timestamp_is_not_invented(
+    tmp_path,
+):
+    config = tmp_path / "critical_ports.json"
+    config.write_text(
+        json.dumps({"critical_ports": [3389]}),
+        encoding="utf-8",
+    )
+
+    for invalid_timestamp in (
+        "",
+        "invalid-timestamp",
+        "NaN",
+        "Infinity",
+    ):
+        valid = create_network_event(dst_port="3389")
+        valid.timestamp = _critical_epoch(9, 0)
+
+        invalid = create_network_event(dst_port="3389")
+        invalid.timestamp = invalid_timestamp
+
+        for events in (
+            [valid, invalid],
+            [invalid, valid],
+        ):
+            findings = detect_network_critical_ports(
+                events,
+                str(config),
+            )
+
+            assert len(findings) == 1
+            assert findings[0].first_seen is None
+            assert findings[0].last_seen is None

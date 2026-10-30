@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, timezone
 
 from src.models.physical_event import PhysicalEvent
 from src.models.threat_finding import ThreatFinding
@@ -110,6 +110,27 @@ def _is_large_storage_activity(event: PhysicalEvent) -> bool:
     return large_transfer or many_files
 
 
+def _correlation_time_range(
+    *events: PhysicalEvent,
+) -> tuple[str | None, str | None]:
+    if not events or any(
+        event.timestamp.tzinfo is None
+        or event.timestamp.utcoffset() is None
+        for event in events
+    ):
+        return None, None
+
+    timestamps = [
+        event.timestamp.astimezone(timezone.utc)
+        for event in events
+    ]
+
+    return (
+        min(timestamps).isoformat(),
+        max(timestamps).isoformat(),
+    )
+
+
 def correlate_physical_events(
     events: list[PhysicalEvent],
     correlation_window_minutes: int = (
@@ -195,6 +216,11 @@ def correlate_physical_events(
             if not _within_window(connection, violation, window):
                 continue
 
+            first_seen, last_seen = _correlation_time_range(
+                connection,
+                violation,
+            )
+
             findings.append(
                 ThreatFinding(
                     title=(
@@ -202,6 +228,8 @@ def correlate_physical_events(
                         "Policy Violation"
                     ),
                     severity="high",
+                    first_seen=first_seen,
+                    last_seen=last_seen,
                     description=(
                         f"Device '{connection.device_name}' was connected "
                         f"before policy violation "
@@ -230,12 +258,19 @@ def correlate_physical_events(
             ):
                 continue
 
+            first_seen, last_seen = _correlation_time_range(
+                violation,
+                workstation_event,
+            )
+
             findings.append(
                 ThreatFinding(
                     title=(
                         "Device Policy Violation Followed by "
                         "Workstation Access"
                     ),
+                    first_seen=first_seen,
+                    last_seen=last_seen,
                     severity="critical",
                     description=(
                         f"Policy violation '{violation.event_type}' was "
@@ -267,12 +302,19 @@ def correlate_physical_events(
             ):
                 continue
 
+            first_seen, last_seen = _correlation_time_range(
+                workstation_event,
+                command_event,
+            )
+
             findings.append(
                 ThreatFinding(
                     title=(
                         "Workstation Access Followed by "
                         "Suspicious HID Command"
                     ),
+                    first_seen=first_seen,
+                    last_seen=last_seen,
                     severity="critical",
                     description=(
                         f"Workstation event "
@@ -304,12 +346,19 @@ def correlate_physical_events(
             ):
                 continue
 
+            first_seen, last_seen = _correlation_time_range(
+                command_event,
+                storage_event,
+            )
+
             findings.append(
                 ThreatFinding(
                     title=(
                         "Suspicious HID Command Followed by "
                         "Large Storage Transfer"
                     ),
+                    first_seen=first_seen,
+                    last_seen=last_seen,
                     severity="critical",
                     description=(
                         "A suspicious HID-entered command was followed "
@@ -340,12 +389,19 @@ def correlate_physical_events(
             ):
                 continue
 
+            first_seen, last_seen = _correlation_time_range(
+                storage_event,
+                bluetooth_event,
+            )
+
             findings.append(
                 ThreatFinding(
                     title=(
                         "Large Storage Transfer Followed by "
                         "Bluetooth Transfer"
                     ),
+                    first_seen=first_seen,
+                    last_seen=last_seen,
                     severity="critical",
                     description=(
                         "Large external storage activity was followed "
@@ -439,10 +495,21 @@ def correlate_physical_events(
         if bluetooth_event is None:
             continue
 
+        first_seen, last_seen = _correlation_time_range(
+            connection,
+            violation,
+            workstation_event,
+            command_event,
+            storage_event,
+            bluetooth_event,
+        )
+
         findings.append(
             ThreatFinding(
                 title="Multi-Stage Physical Attack Chain Detected",
                 severity="critical",
+                first_seen=first_seen,
+                last_seen=last_seen,
                 description=(
                     "A physical device connection was followed by a "
                     "device-policy violation, workstation access, "

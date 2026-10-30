@@ -1,11 +1,19 @@
 import json
+from collections import defaultdict
 
 from src.models.network_event import NetworkEvent
 from src.models.threat_finding import ThreatFinding
+from src.utils.packet_time import normalize_packet_time
 
 
-def load_network_critical_ports(critical_ports_file: str) -> set[int]:
-    with open(critical_ports_file, "r", encoding="utf-8") as file:
+def load_network_critical_ports(
+    critical_ports_file: str,
+) -> set[int]:
+    with open(
+        critical_ports_file,
+        "r",
+        encoding="utf-8",
+    ) as file:
         data = json.load(file)
 
     raw_ports = []
@@ -43,18 +51,77 @@ def _safe_int(value) -> int | None:
         return None
 
 
-def detect_network_critical_ports(events: list[NetworkEvent],
-    critical_ports_file: str,) -> list[ThreatFinding]:
-    critical_ports = load_network_critical_ports(critical_ports_file)
+def _critical_port_time_range(
+    events: list[NetworkEvent],
+) -> tuple[str | None, str | None]:
+    """
+    Calculate the UTC time range of packets
+    matching a critical network port.
 
-    detected = set()
+    Preserve nanosecond precision.
+
+    Return unknown time bounds if any
+    contributing packet has an invalid timestamp.
+    """
+
+    if not events:
+        return None, None
+
+    earliest = None
+    latest = None
+
+    for event in events:
+        packet_time = normalize_packet_time(
+            event.timestamp
+        )
+
+        if packet_time is None:
+            return None, None
+
+        if (
+            earliest is None
+            or packet_time[0] < earliest[0]
+        ):
+            earliest = packet_time
+
+        if (
+            latest is None
+            or packet_time[0] > latest[0]
+        ):
+            latest = packet_time
+
+    return earliest[1], latest[1]
+
+
+def detect_network_critical_ports(
+    events: list[NetworkEvent],
+    critical_ports_file: str,
+) -> list[ThreatFinding]:
+    """
+    Detect network traffic involving critical ports.
+
+    Preserve source packet time ranges for each
+    unique connection and critical port.
+    """
+
+    critical_ports = load_network_critical_ports(
+        critical_ports_file
+    )
+
+    # Group matching packets by the same key
+    # used by the original detector.
+    events_by_connection = defaultdict(list)
 
     for event in events:
         src_port = _safe_int(event.src_port)
         dst_port = _safe_int(event.dst_port)
 
+        # Prevent a single packet from being counted
+        # twice when both ports match the same key.
+        matched_connections = set()
+
         if src_port in critical_ports:
-            detected.add(
+            matched_connections.add(
                 (
                     event.src_ip,
                     event.dst_ip,
@@ -64,7 +131,7 @@ def detect_network_critical_ports(events: list[NetworkEvent],
             )
 
         if dst_port in critical_ports:
-            detected.add(
+            matched_connections.add(
                 (
                     event.src_ip,
                     event.dst_ip,
@@ -73,9 +140,22 @@ def detect_network_critical_ports(events: list[NetworkEvent],
                 )
             )
 
+        for connection_key in matched_connections:
+            events_by_connection[connection_key].append(
+                event
+            )
+
     findings = []
 
-    for src_ip, dst_ip, port, protocol in sorted(detected):
+    for connection_key in sorted(events_by_connection):
+        src_ip, dst_ip, port, protocol = connection_key
+
+        first_seen, last_seen = (
+            _critical_port_time_range(
+                events_by_connection[connection_key]
+            )
+        )
+
         finding = ThreatFinding(
             title="Critical Network Port Detected",
             severity="high",
@@ -91,6 +171,8 @@ def detect_network_critical_ports(events: list[NetworkEvent],
                 "Review whether this critical service exposure or "
                 "communication is expected and authorized."
             ),
+            first_seen=first_seen,
+            last_seen=last_seen,
         )
 
         findings.append(finding)

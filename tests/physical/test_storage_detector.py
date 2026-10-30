@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from src.detection.physical.storage_detector import (
     detect_storage_activity,
@@ -168,3 +168,196 @@ def test_non_storage_event_is_ignored():
     )
 
     assert detect_storage_activity([event]) == []
+
+
+def test_storage_findings_preserve_utc_event_time():
+    timestamp = datetime(
+        2026, 7, 16, 12, 0,
+        tzinfo=timezone(timedelta(hours=3)),
+    )
+
+    cases = [
+        (
+            create_storage_event("ST-BLOCKED"),
+            {"blocked_devices": {"ST-BLOCKED"}},
+            "Blocked External Storage Device Connected",
+        ),
+        (
+            create_storage_event("ST-TRUSTED"),
+            {"trusted_devices": {"ST-TRUSTED"}},
+            "Trusted External Storage Device Connected",
+        ),
+        (
+            create_storage_event("ST-UNKNOWN"),
+            {},
+            "Unknown External Storage Device Connected",
+        ),
+        (
+            create_storage_event(
+                "ST-NO-SERIAL",
+                serial_number=None,
+            ),
+            {},
+            "External Storage Device Without Serial Number",
+        ),
+        (
+            create_storage_event(
+                "ST-MOUNT",
+                event_type="storage_mount",
+            ),
+            {},
+            "External Storage Device Mounted",
+        ),
+        (
+            create_storage_event(
+                "ST-TRANSFER",
+                event_type="storage_copy",
+                bytes_transferred=250 * 1024 * 1024,
+            ),
+            {},
+            "Large Data Transfer to External Storage",
+        ),
+        (
+            create_storage_event(
+                "ST-FILES",
+                event_type="storage_copy",
+                file_count=1000,
+            ),
+            {},
+            "Large Number of Files Copied to External Storage",
+        ),
+        (
+            create_storage_event(
+                "ST-SENSITIVE",
+                event_type="storage_access",
+                source_path="/home/analyst/documents",
+            ),
+            {},
+            "Sensitive Path Accessed by External Storage",
+        ),
+    ]
+
+    for event, options, expected_title in cases:
+        event.timestamp = timestamp
+
+        findings = detect_storage_activity(
+            [event],
+            **options,
+        )
+
+        matching = [
+            finding
+            for finding in findings
+            if finding.title == expected_title
+        ]
+
+        assert len(matching) == 1
+
+        assert (
+            matching[0].first_seen
+            == "2026-07-16T09:00:00+00:00"
+        )
+        assert (
+            matching[0].last_seen
+            == "2026-07-16T09:00:00+00:00"
+        )
+
+
+def test_repeated_storage_connections_preserve_time_range():
+    start = datetime(
+        2026, 7, 16, 9, 0,
+        tzinfo=timezone.utc,
+    )
+
+    events = [
+        create_storage_event("ST-REPEAT")
+        for _ in range(3)
+    ]
+
+    for event, minute in zip(events, (0, 2, 5)):
+        event.timestamp = start + timedelta(minutes=minute)
+
+    unrelated = create_storage_event("ST-OTHER")
+    unrelated.timestamp = start - timedelta(minutes=30)
+
+    copy_event = create_storage_event(
+        "ST-REPEAT",
+        event_type="storage_copy",
+        bytes_transferred=250 * 1024 * 1024,
+    )
+    copy_event.timestamp = start + timedelta(minutes=30)
+
+    findings = detect_storage_activity([
+        copy_event,
+        events[2],
+        unrelated,
+        events[1],
+        events[0],
+    ])
+
+    matching = [
+        finding
+        for finding in findings
+        if finding.title == "Repeated External Storage Connections"
+    ]
+
+    assert len(matching) == 1
+
+    finding = matching[0]
+
+    assert finding.first_seen == "2026-07-16T09:00:00+00:00"
+    assert finding.last_seen == "2026-07-16T09:05:00+00:00"
+
+
+def test_storage_unknown_timezone_is_not_invented():
+    event = create_storage_event("ST-NAIVE")
+
+    event.timestamp = datetime(
+        2026, 7, 16, 9, 0
+    )
+
+    findings = detect_storage_activity([event])
+
+    matching = [
+        finding
+        for finding in findings
+        if finding.title == "Unknown External Storage Device Connected"
+    ]
+
+    assert len(matching) == 1
+    assert matching[0].first_seen is None
+    assert matching[0].last_seen is None
+
+    # Mixed timezone awareness in aggregated connections
+    # must not produce a misleading time range.
+
+    events = [
+        create_storage_event("ST-MIXED")
+        for _ in range(3)
+    ]
+
+    events[0].timestamp = datetime(
+        2026, 7, 16, 9, 0,
+        tzinfo=timezone.utc,
+    )
+
+    events[1].timestamp = datetime(
+        2026, 7, 16, 9, 2
+    )
+
+    events[2].timestamp = datetime(
+        2026, 7, 16, 9, 5,
+        tzinfo=timezone.utc,
+    )
+
+    findings = detect_storage_activity(events)
+
+    repeated = [
+        finding
+        for finding in findings
+        if finding.title == "Repeated External Storage Connections"
+    ]
+
+    assert len(repeated) == 1
+    assert repeated[0].first_seen is None
+    assert repeated[0].last_seen is None

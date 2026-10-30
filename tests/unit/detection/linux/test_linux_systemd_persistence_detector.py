@@ -131,3 +131,71 @@ def test_ignore_empty_executions():
     findings = detect_linux_systemd_persistence([])
 
     assert findings == []
+
+
+def test_systemd_persistence_finding_preserves_utc_time():
+    execution = create_execution(
+        command="systemctl enable backdoor.service"
+    )
+    execution.timestamp_utc = (
+        "2026-07-07T07:00:01.123456789+00:00"
+    )
+
+    original_timestamp = execution.timestamp
+
+    findings = detect_linux_systemd_persistence(
+        [execution]
+    )
+
+    assert len(findings) == 1
+
+    finding = findings[0]
+
+    assert finding.title == (
+        "Linux Systemd Persistence Activity Detected"
+    )
+    assert finding.severity == "high"
+    assert finding.first_seen == (
+        "2026-07-07T07:00:01.123456789+00:00"
+    )
+    assert finding.last_seen == (
+        "2026-07-07T07:00:01.123456789+00:00"
+    )
+
+    # Preserve original Linux syslog timestamp.
+    assert execution.timestamp == original_timestamp
+    assert execution.timestamp == "Jul 7 10:00:01"
+
+
+def test_systemd_persistence_does_not_invent_unknown_time():
+    execution = create_execution(
+        command=(
+            "echo 'ExecStart=/tmp/payload' "
+            "> /etc/systemd/system/backdoor.service"
+        )
+    )
+
+    assert execution.timestamp_utc is None
+
+    findings = detect_linux_systemd_persistence(
+        [execution]
+    )
+
+    assert len(findings) == 1
+    assert findings[0].first_seen is None
+    assert findings[0].last_seen is None
+
+
+def test_systemd_persistence_rejects_invalid_utc_time():
+    execution = create_execution(
+        command="systemctl link /tmp/backdoor.service"
+    )
+    execution.timestamp_utc = "invalid timestamp"
+
+    findings = detect_linux_systemd_persistence(
+        [execution]
+    )
+
+    assert len(findings) == 1
+    assert findings[0].first_seen is None
+    assert findings[0].last_seen is None

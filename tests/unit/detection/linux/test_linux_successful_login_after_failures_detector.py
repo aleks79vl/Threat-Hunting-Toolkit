@@ -96,3 +96,111 @@ def test_ignore_non_ssh_authentication_events():
     findings = detect_successful_login_after_failures(events)
 
     assert findings == []
+
+
+def _ssh_event_with_utc(
+    status: str,
+    timestamp_utc: str | None,
+    source_ip: str = "203.0.113.50",
+) -> LinuxEvent:
+    event = create_ssh_event(
+        status=status,
+        source_ip=source_ip,
+    )
+    event.timestamp_utc = timestamp_utc
+    return event
+
+
+def test_success_after_failures_uses_chronological_utc_order():
+    events = [
+        # Success is first in the input but last in time.
+        _ssh_event_with_utc(
+            "success",
+            "2026-07-07T07:05:00+00:00",
+        ),
+        _ssh_event_with_utc(
+            "failed",
+            "2026-07-07T07:03:00+00:00",
+        ),
+        _ssh_event_with_utc(
+            "failed",
+            "2026-07-07T07:00:00.100000001+00:00",
+        ),
+        _ssh_event_with_utc(
+            "failed",
+            "2026-07-07T07:00:00.1+00:00",
+        ),
+        # Unrelated source must not affect the range.
+        _ssh_event_with_utc(
+            "failed",
+            "2026-07-07T05:00:00+00:00",
+            source_ip="198.51.100.25",
+        ),
+    ]
+
+    findings = detect_successful_login_after_failures(events)
+
+    assert len(findings) == 1
+
+    finding = findings[0]
+
+    assert finding.ip == "203.0.113.50"
+    assert finding.first_seen == (
+        "2026-07-07T07:00:00.1+00:00"
+    )
+    assert finding.last_seen == (
+        "2026-07-07T07:05:00+00:00"
+    )
+
+
+def test_success_before_failures_is_not_detected_as_attack_chain():
+    events = [
+        _ssh_event_with_utc(
+            "failed",
+            "2026-07-07T07:02:00+00:00",
+        ),
+        _ssh_event_with_utc(
+            "failed",
+            "2026-07-07T07:03:00+00:00",
+        ),
+        _ssh_event_with_utc(
+            "failed",
+            "2026-07-07T07:04:00+00:00",
+        ),
+        # Success is last in the input but occurred first.
+        _ssh_event_with_utc(
+            "success",
+            "2026-07-07T07:01:00+00:00",
+        ),
+    ]
+
+    findings = detect_successful_login_after_failures(events)
+
+    assert findings == []
+
+
+def test_success_after_failures_does_not_invent_incomplete_time_range():
+    events = [
+        _ssh_event_with_utc(
+            "failed",
+            "2026-07-07T07:00:00+00:00",
+        ),
+        _ssh_event_with_utc(
+            "failed",
+            None,
+        ),
+        _ssh_event_with_utc(
+            "failed",
+            "2026-07-07T07:02:00+00:00",
+        ),
+        _ssh_event_with_utc(
+            "success",
+            "2026-07-07T07:03:00+00:00",
+        ),
+    ]
+
+    findings = detect_successful_login_after_failures(events)
+
+    assert len(findings) == 1
+    assert findings[0].first_seen is None
+    assert findings[0].last_seen is None

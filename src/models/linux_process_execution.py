@@ -13,6 +13,7 @@ class LinuxProcessExecution:
     hostname: str = ""
     timestamp: str = ""
     raw_text: str = ""
+    timestamp_utc: str | None = None
 
     @classmethod
     def from_context(
@@ -30,10 +31,11 @@ class LinuxProcessExecution:
             hostname=cls._normalize(
                 getattr(context.event, "hostname", "")
             ),
-            timestamp=cls._normalize(
-                getattr(context.event, "timestamp", "")
-            ),
+            timestamp=getattr(context.event, "timestamp", ""),
             raw_text=context.combined_text(),
+            timestamp_utc=getattr(
+                context.event, "timestamp_utc", None
+            ),
         )
 
     @staticmethod

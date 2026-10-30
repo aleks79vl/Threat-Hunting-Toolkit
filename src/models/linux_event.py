@@ -15,3 +15,4 @@ class LinuxEvent:
     action: str = ""
     status: str = ""
     raw_log: str = ""
+    timestamp_utc: str | None = None

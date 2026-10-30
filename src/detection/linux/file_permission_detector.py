@@ -1,5 +1,6 @@
 from src.models.linux_process_execution import LinuxProcessExecution
 from src.models.threat_finding import ThreatFinding
+from src.utils.event_time import normalize_event_time
 
 
 SUSPICIOUS_PERMISSION_PATTERNS = {
@@ -77,6 +78,10 @@ def detect_suspicious_file_permissions(
             | sensitive_path_matches
         )
 
+        event_time_utc = normalize_event_time(
+            execution.timestamp_utc
+        )
+
         findings.append(
             ThreatFinding(
                 title="Suspicious Linux File Permission Change Detected",
@@ -91,6 +96,8 @@ def detect_suspicious_file_permissions(
                 source="Linux Host Detection",
                 ip=execution.source_ip,
                 hostname=execution.hostname,
+                first_seen=event_time_utc,
+                last_seen=event_time_utc,
                 recommendation=(
                     "Review the affected file permissions and ownership, "
                     "verify whether the change was authorized, inspect for "

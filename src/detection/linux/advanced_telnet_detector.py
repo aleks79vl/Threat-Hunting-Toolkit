@@ -1,5 +1,6 @@
 from src.models.linux_process_execution import LinuxProcessExecution
 from src.models.threat_finding import ThreatFinding
+from src.utils.event_time import normalize_event_time
 
 
 TELNET_PATTERNS = {
@@ -29,6 +30,10 @@ def detect_advanced_telnet_activity(
         if not matched_patterns:
             continue
 
+        event_time_utc = normalize_event_time(
+            execution.timestamp_utc
+        )
+
         severity = "high" if execution.source_ip else "medium"
 
         findings.append(
@@ -42,6 +47,8 @@ def detect_advanced_telnet_activity(
                     f"Command: {execution.command}"
                 ),
                 source="Linux Host Detection",
+                first_seen=event_time_utc,
+                last_seen=event_time_utc,
                 ip=execution.source_ip,
                 hostname=execution.hostname,
                 port=23,

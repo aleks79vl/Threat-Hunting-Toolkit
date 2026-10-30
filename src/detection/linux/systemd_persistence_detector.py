@@ -1,5 +1,6 @@
 from src.models.linux_process_execution import LinuxProcessExecution
 from src.models.threat_finding import ThreatFinding
+from src.utils.event_time import normalize_event_time
 
 
 SYSTEMD_PERSISTENCE_PATTERNS = {
@@ -50,7 +51,15 @@ def detect_linux_systemd_persistence(
         if not direct_persistence and not suspicious_reload:
             continue
 
-        matched_patterns = (persistence_matches | reload_matches | service_file_matches)
+        matched_patterns = (
+            persistence_matches
+            | reload_matches
+            | service_file_matches
+        )
+
+        event_time_utc = normalize_event_time(
+            execution.timestamp_utc
+        )
 
         findings.append(
             ThreatFinding(
@@ -65,6 +74,8 @@ def detect_linux_systemd_persistence(
                 source="Linux Host Detection",
                 ip=execution.source_ip,
                 hostname=execution.hostname,
+                first_seen=event_time_utc,
+                last_seen=event_time_utc,
                 recommendation=(
                     "Review the referenced systemd unit, inspect its ExecStart "
                     "command and file origin, verify whether the unit was "

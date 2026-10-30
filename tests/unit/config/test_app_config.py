@@ -33,3 +33,39 @@ def test_app_config_supports_isolated_report_output_overrides():
     assert test_config.html_output_file == "temporary/report.html"
     assert default_config.json_output_file == "reports/threat_report.json"
     assert default_config.html_output_file == "reports/threat_report.html"
+
+
+def test_default_windows_source_timezone_is_unknown():
+    config = default_app_config()
+
+    assert config.windows_source_timezone is None
+
+
+def test_app_config_supports_windows_timezone_override():
+    default_config = default_app_config()
+
+    test_config = replace(
+        default_config,
+        windows_source_timezone="Asia/Jerusalem",
+    )
+
+    assert test_config.windows_source_timezone == "Asia/Jerusalem"
+    assert default_config.windows_source_timezone is None
+
+
+def test_default_firewall_source_timezone_is_unknown():
+    config = default_app_config()
+
+    assert config.firewall_source_timezone is None
+
+
+def test_app_config_supports_firewall_timezone_override():
+    default_config = default_app_config()
+
+    test_config = replace(
+        default_config,
+        firewall_source_timezone="Asia/Jerusalem",
+    )
+
+    assert test_config.firewall_source_timezone == "Asia/Jerusalem"
+    assert default_config.firewall_source_timezone is None

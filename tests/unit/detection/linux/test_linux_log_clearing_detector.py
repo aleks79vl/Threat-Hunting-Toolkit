@@ -132,3 +132,68 @@ def test_ignore_empty_executions():
     findings = detect_linux_log_clearing([])
 
     assert findings == []
+
+
+def test_log_clearing_finding_preserves_utc_time():
+    execution = create_execution(
+        command="rm -f /var/log/auth.log"
+    )
+    execution.timestamp_utc = (
+        "2026-07-07T07:00:01.123456789+00:00"
+    )
+
+    original_timestamp = execution.timestamp
+
+    findings = detect_linux_log_clearing(
+        [execution]
+    )
+
+    assert len(findings) == 1
+
+    finding = findings[0]
+
+    assert finding.title == (
+        "Linux Log Clearing Activity Detected"
+    )
+    assert finding.severity == "critical"
+    assert finding.first_seen == (
+        "2026-07-07T07:00:01.123456789+00:00"
+    )
+    assert finding.last_seen == (
+        "2026-07-07T07:00:01.123456789+00:00"
+    )
+
+    # Original Linux syslog timestamp must be preserved.
+    assert execution.timestamp == original_timestamp
+    assert execution.timestamp == "Jul 7 10:00:01"
+
+
+def test_log_clearing_does_not_invent_unknown_time():
+    execution = create_execution(
+        command="history -c"
+    )
+
+    assert execution.timestamp_utc is None
+
+    findings = detect_linux_log_clearing(
+        [execution]
+    )
+
+    assert len(findings) == 1
+    assert findings[0].first_seen is None
+    assert findings[0].last_seen is None
+
+
+def test_log_clearing_rejects_invalid_utc_time():
+    execution = create_execution(
+        command="journalctl --vacuum-time=1s"
+    )
+    execution.timestamp_utc = "invalid timestamp"
+
+    findings = detect_linux_log_clearing(
+        [execution]
+    )
+
+    assert len(findings) == 1
+    assert findings[0].first_seen is None
+    assert findings[0].last_seen is None

@@ -1,5 +1,6 @@
 from src.models.linux_process_execution import LinuxProcessExecution
 from src.models.threat_finding import ThreatFinding
+from src.utils.event_time import normalize_event_time
 
 
 AUDIT_TAMPERING_PATTERNS = {
@@ -38,6 +39,10 @@ def detect_linux_audit_tampering(
         if not matched_patterns:
             continue
 
+        event_time_utc = normalize_event_time(
+            execution.timestamp_utc
+        )
+
         findings.append(
             ThreatFinding(
                 title="Linux Audit Tampering Activity Detected",
@@ -51,6 +56,8 @@ def detect_linux_audit_tampering(
                 source="Linux Host Detection",
                 ip=execution.source_ip,
                 hostname=execution.hostname,
+                first_seen=event_time_utc,
+                last_seen=event_time_utc,
                 recommendation=(
                     "Investigate the audit configuration immediately. "
                     "Verify auditd service state, inspect audit rules for "

@@ -1,5 +1,6 @@
 from src.models.linux_process_execution import LinuxProcessExecution
 from src.models.threat_finding import ThreatFinding
+from src.utils.event_time import normalize_event_time
 
 
 CRON_PERSISTENCE_LOCATIONS = {
@@ -88,8 +89,16 @@ def detect_linux_cron_persistence(
         if (not direct_cron_modification and not suspicious_scheduled_payload):
             continue
 
-        matched_patterns = (location_matches | management_matches
-            | schedule_matches | payload_matches)
+        matched_patterns = (
+            location_matches
+            | management_matches
+            | schedule_matches
+            | payload_matches
+        )
+
+        event_time_utc = normalize_event_time(
+            execution.timestamp_utc
+        )
 
         findings.append(
             ThreatFinding(
@@ -102,6 +111,8 @@ def detect_linux_cron_persistence(
                     f"Command: {execution.command}"
                 ),
                 source="Linux Host Detection",
+                first_seen=event_time_utc,
+                last_seen=event_time_utc,
                 ip=execution.source_ip,
                 hostname=execution.hostname,
                 recommendation=(

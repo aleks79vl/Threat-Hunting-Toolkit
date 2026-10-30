@@ -1,5 +1,6 @@
 from src.detection.linux.detection_context import (LinuxDetectionContext,)
 from src.models.linux_process_execution import (LinuxProcessExecution,)
+from src.models.linux_event import LinuxEvent
 
 
 class FakeLinuxEvent:
@@ -62,7 +63,7 @@ def test_linux_process_execution_from_context():
     assert execution.user == "root"
     assert execution.source_ip == "203.0.113.50"
     assert execution.hostname == "ubuntu-server"
-    assert execution.timestamp == "jul 7 10:00:01"
+    assert execution.timestamp == " Jul 7 10:00:01 "
 
 
 def test_linux_process_execution_extracts_python_executable():
@@ -104,3 +105,21 @@ def test_linux_process_execution_searchable_text():
     assert "root" in searchable_text
     assert "203.0.113.50" in searchable_text
     assert "ubuntu-server" in searchable_text
+
+
+def test_linux_process_execution_preserves_original_timestamp():
+    original_timestamp = "Jun 29 09:00:15"
+
+    event = LinuxEvent(
+        timestamp=original_timestamp,
+        hostname="server01",
+        process="sshd",
+        service="ssh",
+        message="Failed password for admin",
+    )
+
+    context = LinuxDetectionContext.from_event(event)
+    execution = LinuxProcessExecution.from_context(context)
+
+    assert execution.timestamp == original_timestamp
+    assert event.timestamp == original_timestamp

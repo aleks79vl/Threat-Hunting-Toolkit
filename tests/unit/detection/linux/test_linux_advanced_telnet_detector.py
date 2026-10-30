@@ -103,3 +103,67 @@ def test_ignore_empty_executions():
     findings = detect_advanced_telnet_activity([])
 
     assert findings == []
+
+
+def test_process_execution_preserves_normalized_utc():
+    event = FakeLinuxEvent(
+        command="telnet 10.0.0.5 23",
+        timestamp="Jul 7 10:00:01",
+    )
+    event.timestamp_utc = (
+        "2026-07-07T07:00:01.123456789+00:00"
+    )
+
+    context = LinuxDetectionContext.from_event(event)
+    execution = LinuxProcessExecution.from_context(context)
+
+    assert execution.timestamp == "Jul 7 10:00:01"
+    assert execution.timestamp_utc == (
+        "2026-07-07T07:00:01.123456789+00:00"
+    )
+    assert event.timestamp == "Jul 7 10:00:01"
+
+
+def test_advanced_telnet_finding_preserves_normalized_utc():
+    event = FakeLinuxEvent(
+        command="/usr/bin/telnet 10.0.0.5",
+        timestamp="Jul 7 10:00:01",
+    )
+    event.timestamp_utc = (
+        "2026-07-07T07:00:01.123456789+00:00"
+    )
+
+    context = LinuxDetectionContext.from_event(event)
+    execution = LinuxProcessExecution.from_context(context)
+
+    findings = detect_advanced_telnet_activity(
+        [execution]
+    )
+
+    assert len(findings) == 1
+
+    finding = findings[0]
+
+    assert finding.title == (
+        "Advanced Telnet Activity Detected"
+    )
+    assert finding.first_seen == (
+        "2026-07-07T07:00:01.123456789+00:00"
+    )
+    assert finding.last_seen == (
+        "2026-07-07T07:00:01.123456789+00:00"
+    )
+
+
+def test_advanced_telnet_finding_does_not_invent_unknown_time():
+    execution = create_execution(
+        command="telnet 10.0.0.5 23"
+    )
+
+    findings = detect_advanced_telnet_activity(
+        [execution]
+    )
+
+    assert len(findings) == 1
+    assert findings[0].first_seen is None
+    assert findings[0].last_seen is None

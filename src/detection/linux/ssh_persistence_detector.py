@@ -1,5 +1,6 @@
 from src.models.linux_process_execution import LinuxProcessExecution
 from src.models.threat_finding import ThreatFinding
+from src.utils.event_time import normalize_event_time
 
 
 SSH_PERSISTENCE_PATTERNS = {
@@ -30,6 +31,10 @@ def detect_linux_ssh_persistence(
         if not matched_patterns:
             continue
 
+        event_time_utc = normalize_event_time(
+            execution.timestamp_utc
+        )
+
         findings.append(
             ThreatFinding(
                 title="Linux SSH Persistence Activity Detected",
@@ -41,6 +46,8 @@ def detect_linux_ssh_persistence(
                     f"Command: {execution.command}"
                 ),
                 source="Linux Host Detection",
+                first_seen=event_time_utc,
+                last_seen=event_time_utc,
                 ip=execution.source_ip,
                 hostname=execution.hostname,
                 recommendation=(

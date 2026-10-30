@@ -1,5 +1,6 @@
 from src.models.linux_process_execution import LinuxProcessExecution
 from src.models.threat_finding import ThreatFinding
+from src.utils.event_time import normalize_event_time
 
 
 LOG_CLEARING_PATTERNS = {
@@ -40,6 +41,10 @@ def detect_linux_log_clearing(
         if not matched_patterns:
             continue
 
+        event_time_utc = normalize_event_time(
+            execution.timestamp_utc
+        )
+
         findings.append(
             ThreatFinding(
                 title="Linux Log Clearing Activity Detected",
@@ -51,6 +56,8 @@ def detect_linux_log_clearing(
                     f"Command: {execution.command}"
                 ),
                 source="Linux Host Detection",
+                first_seen=event_time_utc,
+                last_seen=event_time_utc,
                 ip=execution.source_ip,
                 hostname=execution.hostname,
                 recommendation=(

@@ -63,11 +63,16 @@ from src.reporting.linux_execution_statistics import (
     generate_linux_execution_statistics,
 )
 from src.reporting.linux_statistics import generate_linux_statistics
+from src.utils.event_time import normalize_linux_syslog_time
 
 
 def run_linux_detection_pipeline(
     linux_auth_file: str,
     linux_syslog_file: str,
+    linux_auth_source_year: int | None = None,
+    linux_auth_source_timezone: str | None = None,
+    linux_syslog_source_year: int | None = None,
+    linux_syslog_source_timezone: str | None = None,
 ) -> DomainPipelineResult:
     linux_auth_events = []
     linux_syslog_events = []
@@ -75,8 +80,22 @@ def run_linux_detection_pipeline(
     if Path(linux_auth_file).exists():
         linux_auth_events = parse_auth_log(linux_auth_file)
 
+        for event in linux_auth_events:
+            event.timestamp_utc = normalize_linux_syslog_time(
+                event.timestamp,
+                source_year=linux_auth_source_year,
+                source_timezone=linux_auth_source_timezone,
+            )
+
     if Path(linux_syslog_file).exists():
         linux_syslog_events = parse_syslog(linux_syslog_file)
+
+        for event in linux_syslog_events:
+            event.timestamp_utc = normalize_linux_syslog_time(
+                event.timestamp,
+                source_year=linux_syslog_source_year,
+                source_timezone=linux_syslog_source_timezone,
+            )
 
     linux_events = linux_auth_events + linux_syslog_events
     linux_findings = []

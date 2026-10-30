@@ -1,10 +1,10 @@
 from datetime import datetime
+from src.models.physical_event import PhysicalEvent
 
 from src.detection.physical.device_policy_detector import (
     DevicePolicy,
     detect_device_policy_violations,
 )
-from src.models.physical_event import PhysicalEvent
 
 
 def create_event(
