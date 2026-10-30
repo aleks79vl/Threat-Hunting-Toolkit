@@ -18,7 +18,7 @@ def calculate_risk_score(
     title_score = risk_config.get(finding.title)
 
     if title_score is not None:
-        finding.risk_score = title_score
+        finding.risk_score = max(0, min(100, title_score))
         return finding
 
     severity_scores = risk_config["severity_scores"]
@@ -44,6 +44,6 @@ def calculate_risk_score(
     if finding.port == 22:
         score += bonus_scores.get("ssh_exposed", 0)
 
-    finding.risk_score = score
+    finding.risk_score = max(0, min(100, score))
 
     return finding
