@@ -6,10 +6,29 @@ from src.models.threat_report import ThreatReport
 from src.reporting.executive_summary import generate_executive_summary
 from src.reporting.mitre_statistics import generate_mitre_statistics
 from src.security.redaction import redact_for_export
+from src.utils.event_time import normalize_event_time
+
 
 def _escape_redacted(value) -> str:
     redacted = redact_for_export({"value": value})["value"]
     return escape(str(redacted))
+
+def _format_finding_time(value: str | None) -> str:
+    """
+    Format a finding timestamp for safe HTML output.
+
+    Normalize valid timestamps to UTC while preserving
+    fractional precision up to nanoseconds.
+
+    Missing or invalid timestamps are shown as Unknown.
+    """
+    normalized = normalize_event_time(value)
+
+    if normalized is None:
+        return _escape_redacted("Unknown")
+
+    return _escape_redacted(normalized)
+
 
 def _generate_physical_security_section(
     report: ThreatReport,
@@ -288,6 +307,8 @@ def generate_html_report(
             <td>{_escape_redacted(str(finding.severity).upper())}</td>
             <td>{_escape_redacted(str(finding.ip))}</td>
             <td>{_escape_redacted(finding.hostname)}</td>
+            <td>{_format_finding_time(finding.first_seen)}</td>
+            <td>{_format_finding_time(finding.last_seen)}</td>
             <td>{_escape_redacted(str(finding.port))}</td>
             <td>{_escape_redacted(str(finding.risk_score))}</td>
             <td>{escape(str(redact_for_export({"recommendation": finding.recommendation})["recommendation"]))}</td>
@@ -522,6 +543,8 @@ def generate_html_report(
             <th>Severity</th>
             <th>IP</th>
             <th>Hostname</th>
+            <th>First Seen (UTC)</th>
+            <th>Last Seen (UTC)</th>
             <th>Port</th>
             <th>Risk Score</th>
             <th>Recommendation</th>

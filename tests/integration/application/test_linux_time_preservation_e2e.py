@@ -1,5 +1,6 @@
 import json
 import pytest
+import re
 
 from dataclasses import replace
 
@@ -8,6 +9,35 @@ from src.detection.linux.linux_pipeline import (
     run_linux_detection_pipeline,
 )
 from src.main import main
+
+
+def _find_html_threat_row(
+    html: str,
+    *,
+    title: str,
+    hostname: str,
+) -> str:
+    section = (
+        html.split("<h2>Detected Threats</h2>", 1)[1]
+        .split("<h2>Threat Timeline</h2>", 1)[0]
+    )
+
+    rows = re.findall(
+        r"<tr\b[^>]*>.*?</tr>",
+        section,
+        flags=re.DOTALL,
+    )
+
+    matching_rows = [
+        row
+        for row in rows
+        if f"<b>{title}</b>" in row
+        and f"<td>{hostname}</td>" in row
+    ]
+
+    assert len(matching_rows) == 1
+
+    return matching_rows[0]
 
 
 def test_linux_time_preserved_through_application_and_json_report(
@@ -268,6 +298,15 @@ def test_linux_syslog_time_range_reaches_json_and_html(
     assert expected_title in html_report
     assert expected_first in html_report
 
+    threat_row = _find_html_threat_row(
+        html_report,
+        title=expected_title,
+        hostname="syslog-e2e-host",
+    )
+
+    assert f"<td>{expected_first}</td>" in threat_row
+    assert f"<td>{expected_last}</td>" in threat_row
+
 
 @pytest.mark.parametrize(
     ("source_year", "source_timezone"),
@@ -334,3 +373,15 @@ def test_linux_syslog_incomplete_time_context_does_not_invent_utc(
 
     assert len(matching_timeline) == 1
     assert matching_timeline[0]["time"] is None
+
+    html_report = (
+        tmp_path / "report.html"
+    ).read_text(encoding="utf-8")
+
+    threat_row = _find_html_threat_row(
+        html_report,
+        title=title,
+        hostname="syslog-unknown-time",
+    )
+
+    assert threat_row.count("<td>Unknown</td>") == 2
