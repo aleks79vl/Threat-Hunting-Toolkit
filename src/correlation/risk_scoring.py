@@ -8,6 +8,36 @@ def load_risk_scores(config_path: str) -> dict:
         return json.load(file)
 
 
+def _apply_base_risk_score(
+    finding: ThreatFinding,
+    calculated_score: int,
+) -> ThreatFinding:
+    existing_base = (
+        finding.risk_score_base
+        if finding.risk_score_base is not None
+        else 0
+    )
+
+    base_score = max(existing_base, calculated_score)
+
+    finding.risk_score_base = max(
+        0,
+        min(100, base_score),
+    )
+
+    total_score = (
+        finding.risk_score_base
+        + sum(finding.risk_factors.values())
+    )
+
+    finding.risk_score = max(
+        0,
+        min(100, total_score),
+    )
+
+    return finding
+
+
 def calculate_risk_score(
     finding: ThreatFinding,
     config_path: str
@@ -18,8 +48,10 @@ def calculate_risk_score(
     title_score = risk_config.get(finding.title)
 
     if title_score is not None:
-        finding.risk_score = max(0, min(100, title_score))
-        return finding
+        return _apply_base_risk_score(
+            finding,
+            title_score,
+        )
 
     severity_scores = risk_config["severity_scores"]
     bonus_scores = risk_config["bonus_scores"]
@@ -44,6 +76,7 @@ def calculate_risk_score(
     if finding.port == 22:
         score += bonus_scores.get("ssh_exposed", 0)
 
-    finding.risk_score = max(0, min(100, score))
-
-    return finding
+    return _apply_base_risk_score(
+        finding,
+        score,
+        )

@@ -175,10 +175,13 @@ def run_linux_detection_pipeline(
             )
 
             for finding in execution_findings:
-                finding.risk_score = calculate_advanced_linux_risk_score(
+                advanced_score = calculate_advanced_linux_risk_score(
                     finding,
                     execution,
                 )
+
+                finding.risk_score_base = advanced_score
+                finding.risk_score = advanced_score
 
                 techniques = get_linux_mitre_techniques(finding)
 
