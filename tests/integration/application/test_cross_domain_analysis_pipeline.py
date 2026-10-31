@@ -53,6 +53,7 @@ def test_cross_domain_preserves_advanced_linux_risk_score():
         source="Linux Host Detection",
         risk_score=95,
         risk_score_base=95,
+        risk_base_sources={"linux_advanced": 95},
     )
 
     result = run_cross_domain_analysis_pipeline(
@@ -83,6 +84,7 @@ def test_cross_domain_preserves_linux_score_with_repeated_ioc_enrichment(
         source="Linux Host Detection",
         risk_score=65,
         risk_score_base=65,
+        risk_base_sources={"linux_advanced": 65},
     )
 
     def simulate_ioc_match(finding: ThreatFinding) -> ThreatFinding:

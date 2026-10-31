@@ -1,4 +1,6 @@
 import json
+import re
+
 from dataclasses import replace
 
 from src.config.app_config import default_app_config
@@ -51,6 +53,20 @@ def test_linux_reverse_shell_risk_survives_full_pipeline(
             and finding.hostname == "linux-risk-e2e"
         ]
 
+        observed["reverse_shell_versions"] = [
+            finding.scoring_version
+            for finding in result.findings
+            if finding.title == "Linux Reverse Shell Detected"
+            and finding.hostname == "linux-risk-e2e"
+        ]
+
+        observed["reverse_shell_sources"] = [
+            finding.risk_base_sources.copy()
+            for finding in result.findings
+            if finding.title == "Linux Reverse Shell Detected"
+            and finding.hostname == "linux-risk-e2e"
+        ]
+
         return result
 
     monkeypatch.setattr(
@@ -62,8 +78,12 @@ def test_linux_reverse_shell_risk_survives_full_pipeline(
     # and report generation.
     main(config)
 
+    assert observed["reverse_shell_versions"] == ["1.0"]
     assert observed["reverse_shell_scores"] == [
         (100, 100)
+    ]
+    assert observed["reverse_shell_sources"] == [
+        {"linux_advanced": 100}
     ]
 
     assert json_output.is_file()
@@ -84,8 +104,17 @@ def test_linux_reverse_shell_risk_survives_full_pipeline(
 
     finding = reverse_shell_findings[0]
 
+    assert re.fullmatch(
+        r"[0-9a-f]{64}",
+        finding["scoring_policy_hash"],
+    )
+
+    assert finding["risk_base_sources"]["linux_advanced"] == 100
+    assert "global_policy" in finding["risk_base_sources"]
+
     assert finding["risk_score_base"] == 100
     assert finding["risk_score"] == 100
+    assert finding["scoring_version"] == "1.0"
 
     assert isinstance(finding["risk_factors"], dict)
 

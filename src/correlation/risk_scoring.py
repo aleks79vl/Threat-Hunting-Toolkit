@@ -1,6 +1,13 @@
 import json
+import hashlib
 
 from src.models.threat_finding import ThreatFinding
+from src.models.risk_scoring_contract import (
+    RISK_SCORING_VERSION,
+    validate_risk_factors,
+    validate_risk_base_sources,
+    validate_risk_scoring_policy,
+)
 
 
 def load_risk_scores(config_path: str) -> dict:
@@ -8,32 +15,53 @@ def load_risk_scores(config_path: str) -> dict:
         return json.load(file)
 
 
+def calculate_policy_fingerprint(risk_config: dict) -> str:
+    canonical_json = json.dumps(
+        risk_config,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    )
+
+    return hashlib.sha256(
+        canonical_json.encode("utf-8")
+    ).hexdigest()
+
+
 def _apply_base_risk_score(
     finding: ThreatFinding,
     calculated_score: int,
+    policy_hash: str,
 ) -> ThreatFinding:
-    existing_base = (
-        finding.risk_score_base
-        if finding.risk_score_base is not None
-        else 0
+    validate_risk_factors(finding.risk_factors)
+    validate_risk_base_sources(finding.risk_base_sources)
+
+    finding.risk_base_sources.pop(
+        "legacy_unattributed",
+        None,
     )
 
-    base_score = max(existing_base, calculated_score)
+    finding.risk_base_sources["global_policy"] = max(
+        0,
+        min(100, calculated_score),
+    )
 
     finding.risk_score_base = max(
-        0,
-        min(100, base_score),
-    )
-
-    total_score = (
-        finding.risk_score_base
-        + sum(finding.risk_factors.values())
+        finding.risk_base_sources.values()
     )
 
     finding.risk_score = max(
         0,
-        min(100, total_score),
+        min(
+            100,
+            finding.risk_score_base
+            + sum(finding.risk_factors.values()),
+        ),
     )
+
+    finding.scoring_version = RISK_SCORING_VERSION
+    finding.scoring_policy_hash = policy_hash
 
     return finding
 
@@ -42,15 +70,18 @@ def calculate_risk_score(
     finding: ThreatFinding,
     config_path: str
 ) -> ThreatFinding:
-
     risk_config = load_risk_scores(config_path)
 
+    validate_risk_scoring_policy(risk_config)
+
+    policy_hash = calculate_policy_fingerprint(risk_config)
     title_score = risk_config.get(finding.title)
 
     if title_score is not None:
         return _apply_base_risk_score(
             finding,
             title_score,
+            policy_hash,
         )
 
     severity_scores = risk_config["severity_scores"]
@@ -79,4 +110,5 @@ def calculate_risk_score(
     return _apply_base_risk_score(
         finding,
         score,
+        policy_hash,
         )
