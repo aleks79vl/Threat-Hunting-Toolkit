@@ -1,4 +1,4 @@
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 import json
 
 
@@ -14,11 +14,22 @@ class ThreatFinding:
     technique: str = ""
     recommendation: str = ""
     risk_score: int = 0
-
-    technique: str = ""
+    risk_score_base: int | None = None
+    risk_factors: dict[str, int] = field(default_factory=dict)
     technique_name: str = ""
     tactic: str = ""
-
+    risk_base_sources: dict[str, int] = field(
+        default_factory=dict,
+        kw_only=True,
+    )
+    scoring_version: str | None = field(
+        default=None,
+        kw_only=True,
+    )
+    scoring_policy_hash: str | None = field(
+        default=None,
+        kw_only=True,
+    )
     ioc_match: bool = False
     ioc_type: str = ""
     ioc_value: str = ""

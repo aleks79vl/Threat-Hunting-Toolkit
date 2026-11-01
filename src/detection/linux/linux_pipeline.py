@@ -2,6 +2,7 @@ from pathlib import Path
 
 from src.parsers.linux_auth_parser import parse_auth_log
 from src.parsers.linux_syslog_parser import parse_syslog
+from src.models.risk_scoring_contract import RISK_SCORING_VERSION
 
 from src.detection.linux.advanced_risk_scoring import (
     calculate_advanced_linux_risk_score,
@@ -175,10 +176,15 @@ def run_linux_detection_pipeline(
             )
 
             for finding in execution_findings:
-                finding.risk_score = calculate_advanced_linux_risk_score(
+                advanced_score = calculate_advanced_linux_risk_score(
                     finding,
                     execution,
                 )
+
+                finding.risk_base_sources["linux_advanced"] = advanced_score
+                finding.risk_score_base = advanced_score
+                finding.risk_score = advanced_score
+                finding.scoring_version = RISK_SCORING_VERSION
 
                 techniques = get_linux_mitre_techniques(finding)
 
