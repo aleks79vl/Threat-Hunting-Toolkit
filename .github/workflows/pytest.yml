@@ -1,4 +1,3 @@
-uses: actions/setup-python@v7
 name: Threat Hunting Toolkit CI
 
 on:
