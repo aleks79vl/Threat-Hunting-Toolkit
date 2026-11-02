@@ -1,6 +1,6 @@
-from datetime import datetime, timezone
-
 import pytest
+
+from datetime import datetime, timezone
 
 from src.application.traditional_detection_pipeline import (
     run_traditional_detection_pipeline,
@@ -8,6 +8,7 @@ from src.application.traditional_detection_pipeline import (
 from src.config.app_config import default_app_config
 from src.models.threat_finding import ThreatFinding
 from src.utils.event_utils import SecurityEvent
+from src.parsers.parser_diagnostics import ParserDiagnostics
 
 
 def test_traditional_detection_pipeline_runs_default_sources():
@@ -261,6 +262,68 @@ def test_traditional_pipeline_preserves_nmap_observation_provenance(
     assert finding.observation_end == expected_end
     assert finding.observation_scope == expected_scope
 
-    # Scan observations are not exact event timestamps.
     assert finding.first_seen is None
     assert finding.last_seen is None
+
+
+def test_traditional_pipeline_exposes_firewall_diagnostics(
+    tmp_path,
+):
+    config = default_app_config()
+
+    firewall_log = tmp_path / "firewall_mixed.log"
+
+    firewall_log.write_text(
+        "\n".join([
+            "2026-07-16 13:00:00 DENY TCP "
+            "203.0.113.15 192.168.1.77 22",
+
+            "",
+
+            "2026-07-16 13:00:01 DENY TCP "
+            "203.0.113.20",
+
+            "2026-07-16 13:00:02 DENY TCP "
+            "203.0.113.16 192.168.1.77 3389",
+        ]) + "\n",
+        encoding="utf-8",
+    )
+
+    diagnostics = ParserDiagnostics(source="firewall")
+
+    result = run_traditional_detection_pipeline(
+        nmap_file=config.nmap_file,
+        windows_events_file=config.windows_events_file,
+        firewall_file=str(firewall_log),
+        web_log_file=config.web_log_file,
+        whitelist_file=config.whitelist_file,
+        critical_ports_file=config.critical_ports_file,
+        firewall_diagnostics=diagnostics,
+    )
+
+    assert len(result.firewall_events) == 2
+    assert [
+        event.dst_port
+        for event in result.firewall_events
+    ] == [22, 3389]
+
+    assert diagnostics.read == 3
+    assert diagnostics.accepted == 2
+    assert diagnostics.rejected == 1
+
+    assert len(diagnostics.issues) == 1
+    assert diagnostics.issues[0].line_number == 3
+    assert diagnostics.issues[0].reason == (
+        "too_few_fields"
+    )
+
+    assert diagnostics.read == (
+        diagnostics.accepted + diagnostics.rejected
+    )
+
+    assert any(
+        finding.title
+        == "Firewall Blocked Critical Port Access"
+        and finding.ip == "203.0.113.15"
+        for finding in result.firewall_findings
+    )

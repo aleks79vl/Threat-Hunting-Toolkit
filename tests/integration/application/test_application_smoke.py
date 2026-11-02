@@ -172,3 +172,57 @@ def test_main_forwards_independent_linux_time_contexts(
     assert captured_arguments["linux_syslog_file"] == (
         config.linux_syslog_file
     )
+
+
+def test_main_warns_about_rejected_firewall_records(
+    tmp_path,
+    capsys,
+):
+    firewall_log = tmp_path / "firewall_mixed.log"
+
+    firewall_log.write_text(
+        "\n".join([
+            "2026-07-16 13:00:00 DENY TCP "
+            "203.0.113.15 192.168.1.77 22",
+
+            "2026-07-16 13:00:01 DENY TCP "
+            "password=do_not_echo",
+
+            "2026-07-16 13:00:02 DENY TCP "
+            "203.0.113.16 192.168.1.77 3389",
+        ]) + "\n",
+        encoding="utf-8",
+    )
+
+    config = replace(
+        default_app_config(),
+        firewall_file=str(firewall_log),
+        json_output_file=str(
+            tmp_path / "threat_report.json"
+        ),
+        html_output_file=str(
+            tmp_path / "threat_report.html"
+        ),
+    )
+
+    main(config)
+
+    output = capsys.readouterr().out
+
+    assert "WARNING: Firewall input incomplete" in output
+
+    assert "read=3" in output
+    assert "accepted=2" in output
+    assert "rejected=1" in output
+
+    assert "too_few_fields" in output
+
+    assert "password=do_not_echo" not in output
+
+    assert (
+        tmp_path / "threat_report.json"
+    ).is_file()
+
+    assert (
+        tmp_path / "threat_report.html"
+    ).is_file()

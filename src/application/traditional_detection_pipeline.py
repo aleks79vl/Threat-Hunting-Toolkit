@@ -18,6 +18,7 @@ from src.parsers.nmap_parser import parse_nmap_xml
 from src.parsers.web_log_parser import parse_web_log
 from src.parsers.windows_event_parser import parse_windows_events
 from src.utils.event_utils import SecurityEvent
+from src.parsers.parser_diagnostics import ParserDiagnostics
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,6 +39,8 @@ def run_traditional_detection_pipeline(
     critical_ports_file: str,
     windows_source_timezone: str | None = None,
     firewall_source_timezone: str | None = None,
+    *,
+    firewall_diagnostics: ParserDiagnostics | None = None,
 ) -> TraditionalDetectionResult:
     nmap_events = parse_nmap_xml(nmap_file)
 
@@ -61,7 +64,10 @@ def run_traditional_detection_pipeline(
         source_timezone=windows_source_timezone,
     )
 
-    firewall_events = parse_firewall_log(firewall_file)
+    firewall_events = parse_firewall_log(
+        firewall_file,
+        diagnostics=firewall_diagnostics,
+    )
 
     firewall_findings = detect_firewall_events(
     firewall_events,
