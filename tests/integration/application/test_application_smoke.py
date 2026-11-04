@@ -226,3 +226,56 @@ def test_main_warns_about_rejected_firewall_records(
     assert (
         tmp_path / "threat_report.html"
     ).is_file()
+
+
+def test_main_warns_about_rejected_nginx_records(
+    tmp_path,
+    capsys,
+):
+    nginx_log = tmp_path / "nginx_mixed.jsonl"
+
+    nginx_log.write_text(
+        "\n".join([
+            '{"time":"2026-10-21T10:00:00Z",'
+            '"remote_addr":"192.0.2.10",'
+            '"request_method":"GET",'
+            '"request_uri":"/first",'
+            '"status":200}',
+
+            '["secret=do_not_echo"]',
+
+            '{"time":"2026-10-21T10:00:02Z",'
+            '"remote_addr":"192.0.2.20",'
+            '"request_method":"GET",'
+            '"request_uri":"/second",'
+            '"status":200}',
+        ]) + "\n",
+        encoding="utf-8",
+    )
+
+    config = replace(
+        default_app_config(),
+        nginx_access_log_file=str(nginx_log),
+        json_output_file=str(
+            tmp_path / "threat_report.json"
+        ),
+        html_output_file=str(
+            tmp_path / "threat_report.html"
+        ),
+    )
+
+    main(config)
+
+    output = capsys.readouterr().out
+
+    assert "WARNING: Nginx input incomplete" in output
+    assert "nginx read=3 accepted=2 rejected=1" in output
+    assert "invalid_root_type" in output
+    assert "secret=do_not_echo" not in output
+    assert "WARNING: Firewall input incomplete" not in output
+    assert (
+        tmp_path / "threat_report.json"
+    ).is_file()
+    assert (
+        tmp_path / "threat_report.html"
+    ).is_file()

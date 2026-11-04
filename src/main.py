@@ -84,6 +84,10 @@ def main(
     firewall_findings = traditional_result.firewall_findings
     web_findings = traditional_result.web_findings
 
+    nginx_diagnostics = ParserDiagnostics(
+        source="nginx",
+    )
+
     web_infrastructure_result = (
         run_web_infrastructure_application_pipeline(
             apache_access_log_file=web_log_file,
@@ -97,6 +101,7 @@ def main(
             web_security_baseline_file=(
                 web_security_baseline_file
             ),
+            nginx_diagnostics=nginx_diagnostics,
         )
     )
 
@@ -237,6 +242,34 @@ def main(
             print(
                 "Firewall diagnostics omitted: "
                 f"{firewall_diagnostics.issues_dropped}"
+            )
+
+
+    if nginx_diagnostics.rejected > 0:
+        print()
+        print("WARNING: Nginx input incomplete")
+
+        print(
+            f"nginx read={nginx_diagnostics.read} "
+            f"accepted={nginx_diagnostics.accepted} "
+            f"rejected={nginx_diagnostics.rejected}"
+        )
+
+        reason_codes = sorted({
+            issue.reason
+            for issue in nginx_diagnostics.issues
+        })
+
+        if reason_codes:
+            print(
+                "Nginx rejection reasons (retained): "
+                + ", ".join(reason_codes)
+            )
+
+        if nginx_diagnostics.issues_dropped > 0:
+            print(
+                "Nginx diagnostics omitted: "
+                f"{nginx_diagnostics.issues_dropped}"
             )
 
 
