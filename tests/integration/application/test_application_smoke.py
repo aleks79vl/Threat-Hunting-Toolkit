@@ -279,3 +279,92 @@ def test_main_warns_about_rejected_nginx_records(
     assert (
         tmp_path / "threat_report.html"
     ).is_file()
+
+
+def test_main_warns_about_rejected_waf_records(
+    tmp_path,
+    capsys,
+):
+    waf_log = tmp_path / "waf_mixed.jsonl"
+
+    waf_log.write_text(
+        "\n".join([
+            '{"timestamp":"2026-10-21T10:00:00Z",'
+            '"client_ip":"192.0.2.10",'
+            '"method":"GET",'
+            '"path":"/first",'
+            '"status_code":200,'
+            '"host":"api.example.com",'
+            '"action":"allow"}',
+
+            '["secret=do_not_echo"]',
+
+            '{"timestamp":"2026-10-21T10:00:02Z",'
+            '"client_ip":"192.0.2.20",'
+            '"method":"GET",'
+            '"path":"/second",'
+            '"status_code":403,'
+            '"host":"api.example.com",'
+            '"action":"block"}',
+        ]) + "\n",
+        encoding="utf-8",
+    )
+
+    nginx_log = tmp_path / "nginx_clean.jsonl"
+
+    nginx_log.write_text(
+        '{"time":"2026-10-21T10:00:00Z",'
+        '"remote_addr":"192.0.2.40",'
+        '"request_method":"GET",'
+        '"request_uri":"/health",'
+        '"status":200}\n',
+        encoding="utf-8",
+    )
+
+    config = replace(
+        default_app_config(),
+        waf_cdn_log_file=str(waf_log),
+        nginx_access_log_file=str(nginx_log),
+        json_output_file=str(
+            tmp_path / "threat_report.json"
+        ),
+        html_output_file=str(
+            tmp_path / "threat_report.html"
+        ),
+    )
+
+    main(config)
+
+    output = capsys.readouterr().out
+
+    assert "WARNING: WAF input incomplete" in output
+
+    assert (
+        "waf_cdn read=3 accepted=2 rejected=1"
+        in output
+    )
+
+    assert (
+        "WAF rejection reasons (retained): "
+        "invalid_root_type"
+    ) in output
+
+    assert "secret=do_not_echo" not in output
+
+    assert (
+        "WARNING: Firewall input incomplete"
+        not in output
+    )
+
+    assert (
+        "WARNING: Nginx input incomplete"
+        not in output
+    )
+
+    assert (
+        tmp_path / "threat_report.json"
+    ).is_file()
+
+    assert (
+        tmp_path / "threat_report.html"
+    ).is_file()

@@ -3,25 +3,120 @@ import json
 from src.models.web_infrastructure_event import (
     WebInfrastructureEvent,
 )
-
-
-def _as_int(value, default: int = 0) -> int:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return default
+from src.parsers.parser_diagnostics import ParserDiagnostics
 
 
 def parse_waf_cdn_log(
     file_path: str,
+    *,
+    diagnostics: ParserDiagnostics | None = None,
 ) -> list[WebInfrastructureEvent]:
     events = []
 
+
     with open(file_path, "r", encoding="utf-8") as file:
-        for line in file:
+        for line_number, line in enumerate(file, start=1):
+
+            if not line.strip():
+                continue
+
             try:
                 data = json.loads(line)
+
             except json.JSONDecodeError:
+                if diagnostics is not None:
+                    diagnostics.reject(
+                        line_number=line_number,
+                        reason="invalid_json",
+                    )
+                continue
+
+            if not isinstance(data, dict):
+                if diagnostics is not None:
+                    diagnostics.reject(
+                        line_number=line_number,
+                        reason="invalid_root_type",
+                    )
+                continue
+
+            status_value = data.get("status_code", 0)
+
+            if type(status_value) is int:
+                status_code = status_value
+
+            elif (
+                isinstance(status_value, str)
+                and status_value.isascii()
+                and status_value.isdecimal()
+            ):
+                try:
+                    status_code = int(status_value)
+                except ValueError:
+                    status_code = None
+
+            else:
+                status_code = None
+
+            if status_code is None or status_code < 0:
+                if diagnostics is not None:
+                    diagnostics.reject(
+                        line_number=line_number,
+                        reason="invalid_status_code",
+                    )
+                continue
+
+            string_fields = (
+                "timestamp",
+                "client_ip",
+                "method",
+                "path",
+                "protocol",
+                "host",
+                "request_id",
+                "trace_id",
+                "user_agent",
+                "tls_version",
+                "sni",
+                "provider",
+                "action",
+                "rule_name",
+                "rule_category",
+            )
+
+            invalid_field_type = any(
+                field_name in data
+                and not isinstance(data[field_name], str)
+                for field_name in string_fields
+            )
+
+            if invalid_field_type:
+                if diagnostics is not None:
+                    diagnostics.reject(
+                        line_number=line_number,
+                        reason="invalid_field_type",
+                    )
+                continue
+
+            raw_rule_id = data.get("rule_id")
+
+            if raw_rule_id is None:
+                rule_id = ""
+
+            elif isinstance(raw_rule_id, str):
+                rule_id = raw_rule_id
+
+            elif (
+                type(raw_rule_id) is int
+                and raw_rule_id >= 0
+            ):
+                rule_id = str(raw_rule_id)
+
+            else:
+                if diagnostics is not None:
+                    diagnostics.reject(
+                        line_number=line_number,
+                        reason="invalid_rule_id",
+                    )
                 continue
 
             events.append(
@@ -31,9 +126,7 @@ def parse_waf_cdn_log(
                     client_ip=data.get("client_ip", ""),
                     method=data.get("method", ""),
                     path=data.get("path", ""),
-                    status_code=_as_int(
-                        data.get("status_code")
-                    ),
+                    status_code=status_code,
                     protocol=data.get(
                         "protocol",
                         "HTTP/1.1",
@@ -66,7 +159,7 @@ def parse_waf_cdn_log(
                     metadata={
                         "provider": data.get("provider", ""),
                         "waf_action": data.get("action", ""),
-                        "waf_rule_id": data.get("rule_id", ""),
+                        "waf_rule_id": rule_id,
                         "waf_rule_name": data.get(
                             "rule_name",
                             "",
@@ -78,5 +171,8 @@ def parse_waf_cdn_log(
                     },
                 )
             )
+
+            if diagnostics is not None:
+                diagnostics.accept()
 
     return events

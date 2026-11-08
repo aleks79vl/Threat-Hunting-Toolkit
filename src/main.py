@@ -88,6 +88,10 @@ def main(
         source="nginx",
     )
 
+    waf_diagnostics = ParserDiagnostics(
+        source="waf_cdn",
+    )
+
     web_infrastructure_result = (
         run_web_infrastructure_application_pipeline(
             apache_access_log_file=web_log_file,
@@ -102,6 +106,7 @@ def main(
                 web_security_baseline_file
             ),
             nginx_diagnostics=nginx_diagnostics,
+            waf_diagnostics=waf_diagnostics,
         )
     )
 
@@ -271,6 +276,35 @@ def main(
                 "Nginx diagnostics omitted: "
                 f"{nginx_diagnostics.issues_dropped}"
             )
+
+
+    if waf_diagnostics.rejected > 0:
+        print()
+        print("WARNING: WAF input incomplete")
+
+        print(
+            f"waf_cdn read={waf_diagnostics.read} "
+            f"accepted={waf_diagnostics.accepted} "
+            f"rejected={waf_diagnostics.rejected}"
+        )
+
+        reason_codes = sorted({
+            issue.reason
+            for issue in waf_diagnostics.issues
+        })
+
+        if reason_codes:
+            print(
+                "WAF rejection reasons (retained): "
+                + ", ".join(reason_codes)
+            )
+
+        if waf_diagnostics.issues_dropped > 0:
+            print(
+                "WAF diagnostics omitted: "
+                f"{waf_diagnostics.issues_dropped}"
+            )
+
 
 
 if __name__ == "__main__":

@@ -102,3 +102,107 @@ def test_web_infrastructure_pipeline_exposes_nginx_diagnostics(
         "nginx_error": 3,
         "waf_cdn": 3,
     }
+
+
+def test_web_infrastructure_pipeline_exposes_waf_diagnostics(
+    tmp_path,
+    monkeypatch,
+):
+    import json
+
+    import src.application.web_infrastructure_application_pipeline as pipeline
+    from src.parsers.parser_diagnostics import ParserDiagnostics
+
+    log_file = tmp_path / "waf_pipeline_diagnostics.jsonl"
+
+    valid_record = {
+        "timestamp": "2026-10-21T10:00:00Z",
+        "client_ip": "192.0.2.10",
+        "method": "GET",
+        "path": "/first",
+        "status_code": 200,
+        "host": "api.example.com",
+        "action": "allow",
+    }
+
+    last_record = {
+        **valid_record,
+        "path": "/last",
+        "status_code": 403,
+        "action": "block",
+    }
+
+    log_file.write_text(
+        "\n".join([
+            json.dumps(valid_record),
+            "null",
+            '{"timestamp":',
+            json.dumps(last_record),
+        ]) + "\n",
+        encoding="utf-8",
+    )
+
+    other_parsers = (
+        "parse_apache_access_log",
+        "parse_apache_vhost_access_log",
+        "parse_apache_error_log",
+        "parse_nginx_json_log",
+        "parse_nginx_error_log",
+        "parse_api_gateway_log",
+        "parse_haproxy_http_log",
+    )
+
+    for parser_name in other_parsers:
+        monkeypatch.setattr(
+            pipeline,
+            parser_name,
+            lambda _path, **_kwargs: [],
+        )
+
+    monkeypatch.setattr(
+        pipeline,
+        "load_web_security_baseline",
+        lambda _path: None,
+    )
+
+    monkeypatch.setattr(
+        pipeline,
+        "run_web_infrastructure_detection_pipeline",
+        lambda events, *, web_security_baseline: events,
+    )
+
+    diagnostics = ParserDiagnostics(source="waf_cdn")
+
+    events = pipeline.run_web_infrastructure_application_pipeline(
+        apache_access_log_file="unused",
+        apache_vhost_log_file="unused",
+        apache_error_log_file="unused",
+        nginx_access_log_file="unused",
+        nginx_error_log_file="unused",
+        api_gateway_log_file="unused",
+        haproxy_log_file="unused",
+        waf_cdn_log_file=str(log_file),
+        web_security_baseline_file="unused",
+        waf_diagnostics=diagnostics,
+    )
+
+    assert [event.path for event in events] == [
+        "/first",
+        "/last",
+    ]
+
+    assert diagnostics.read == 4
+    assert diagnostics.accepted == 2
+    assert diagnostics.rejected == 2
+
+    assert [
+        (issue.line_number, issue.reason)
+        for issue in diagnostics.issues
+    ] == [
+        (2, "invalid_root_type"),
+        (3, "invalid_json"),
+    ]
+
+    assert diagnostics.read == (
+        diagnostics.accepted + diagnostics.rejected
+    )

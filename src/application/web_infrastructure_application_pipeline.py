@@ -40,6 +40,7 @@ def run_web_infrastructure_application_pipeline(
     web_security_baseline_file: str,
     *,
     nginx_diagnostics: ParserDiagnostics | None = None,
+    waf_diagnostics: ParserDiagnostics | None = None,
 ) -> WebInfrastructurePipelineResult:
     web_infrastructure_events = (
         parse_apache_access_log(apache_access_log_file)
@@ -52,7 +53,10 @@ def run_web_infrastructure_application_pipeline(
         + parse_nginx_error_log(nginx_error_log_file)
         + parse_api_gateway_log(api_gateway_log_file)
         + parse_haproxy_http_log(haproxy_log_file)
-        + parse_waf_cdn_log(waf_cdn_log_file)
+        + parse_waf_cdn_log(
+            waf_cdn_log_file,
+            diagnostics=waf_diagnostics,
+        )
     )
 
     web_security_baseline = load_web_security_baseline(
