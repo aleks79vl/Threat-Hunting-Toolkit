@@ -92,6 +92,14 @@ def main(
         source="waf_cdn",
     )
 
+    apache_access_diagnostics = ParserDiagnostics(
+        source="apache_access",
+    )
+
+    apache_vhost_diagnostics = ParserDiagnostics(
+        source="apache_vhost",
+    )
+
     web_infrastructure_result = (
         run_web_infrastructure_application_pipeline(
             apache_access_log_file=web_log_file,
@@ -107,6 +115,8 @@ def main(
             ),
             nginx_diagnostics=nginx_diagnostics,
             waf_diagnostics=waf_diagnostics,
+            apache_access_diagnostics=apache_access_diagnostics,
+            apache_vhost_diagnostics=apache_vhost_diagnostics,
         )
     )
 
@@ -305,6 +315,59 @@ def main(
                 f"{waf_diagnostics.issues_dropped}"
             )
 
+    if apache_access_diagnostics.rejected > 0:
+        print()
+        print("WARNING: Apache Access input incomplete")
+
+        print(
+            f"apache_access read={apache_access_diagnostics.read} "
+            f"accepted={apache_access_diagnostics.accepted} "
+            f"rejected={apache_access_diagnostics.rejected}"
+        )
+
+        reason_codes = sorted({
+            issue.reason
+            for issue in apache_access_diagnostics.issues
+        })
+
+        if reason_codes:
+            print(
+                "Apache Access rejection reasons (retained): "
+                + ", ".join(reason_codes)
+            )
+
+        if apache_access_diagnostics.issues_dropped > 0:
+            print(
+                "Apache Access diagnostics omitted: "
+                f"{apache_access_diagnostics.issues_dropped}"
+            )
+
+    if apache_vhost_diagnostics.rejected > 0:
+        print()
+        print("WARNING: Apache VHost input incomplete")
+
+        print(
+            f"apache_vhost read={apache_vhost_diagnostics.read} "
+            f"accepted={apache_vhost_diagnostics.accepted} "
+            f"rejected={apache_vhost_diagnostics.rejected}"
+        )
+
+        reason_codes = sorted({
+            issue.reason
+            for issue in apache_vhost_diagnostics.issues
+        })
+
+        if reason_codes:
+            print(
+                "Apache VHost rejection reasons (retained): "
+                + ", ".join(reason_codes)
+            )
+
+        if apache_vhost_diagnostics.issues_dropped > 0:
+            print(
+                "Apache VHost diagnostics omitted: "
+                f"{apache_vhost_diagnostics.issues_dropped}"
+            )
 
 
 if __name__ == "__main__":

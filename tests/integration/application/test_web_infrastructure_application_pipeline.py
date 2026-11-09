@@ -206,3 +206,140 @@ def test_web_infrastructure_pipeline_exposes_waf_diagnostics(
     assert diagnostics.read == (
         diagnostics.accepted + diagnostics.rejected
     )
+
+
+def test_web_infrastructure_pipeline_exposes_apache_diagnostics(
+    tmp_path,
+    monkeypatch,
+):
+    import src.application.web_infrastructure_application_pipeline as pipeline
+    from src.parsers.parser_diagnostics import ParserDiagnostics
+
+    apache_log = tmp_path / "apache_mixed.log"
+    vhost_log = tmp_path / "apache_vhost_mixed.log"
+
+    apache_log.write_text(
+        "\n".join([
+            '192.0.2.10 - - '
+            '[21/Oct/2026:10:00:00 +0000] '
+            '"GET /apache-first HTTP/1.1" 200 1024 '
+            '"-" "pytest"',
+
+            "",
+
+            "invalid apache record secret=do_not_echo",
+
+            '192.0.2.10 - - '
+            '[21/Oct/2026:10:00:01 +0000] '
+            '"GET /apache-last HTTP/1.1" 204 - '
+            '"-" "pytest"',
+        ]) + "\n",
+        encoding="utf-8",
+    )
+
+    vhost_log.write_text(
+        "\n".join([
+            'api.example.com 192.0.2.20 - - '
+            '[21/Oct/2026:10:00:02 +0000] '
+            '"GET /vhost-first HTTP/1.1" 204 - '
+            '"-" "pytest"',
+
+            "invalid vhost record secret=do_not_echo",
+        ]) + "\n",
+        encoding="utf-8",
+    )
+
+    other_parsers = (
+        "parse_apache_error_log",
+        "parse_nginx_json_log",
+        "parse_nginx_error_log",
+        "parse_api_gateway_log",
+        "parse_haproxy_http_log",
+        "parse_waf_cdn_log",
+    )
+
+    for parser_name in other_parsers:
+        monkeypatch.setattr(
+            pipeline,
+            parser_name,
+            lambda _path, **_kwargs: [],
+        )
+
+    monkeypatch.setattr(
+        pipeline,
+        "load_web_security_baseline",
+        lambda _path: None,
+    )
+
+    monkeypatch.setattr(
+        pipeline,
+        "run_web_infrastructure_detection_pipeline",
+        lambda events, *, web_security_baseline: events,
+    )
+
+    access_diagnostics = ParserDiagnostics(
+        source="apache_access",
+    )
+    vhost_diagnostics = ParserDiagnostics(
+        source="apache_vhost",
+    )
+
+    events = pipeline.run_web_infrastructure_application_pipeline(
+        apache_access_log_file=str(apache_log),
+        apache_vhost_log_file=str(vhost_log),
+        apache_error_log_file="unused",
+        nginx_access_log_file="unused",
+        nginx_error_log_file="unused",
+        api_gateway_log_file="unused",
+        haproxy_log_file="unused",
+        waf_cdn_log_file="unused",
+        web_security_baseline_file="unused",
+        apache_access_diagnostics=access_diagnostics,
+        apache_vhost_diagnostics=vhost_diagnostics,
+    )
+
+    assert [event.path for event in events] == [
+        "/apache-first",
+        "/apache-last",
+        "/vhost-first",
+    ]
+
+    assert [event.response_size for event in events] == [
+        1024,
+        0,
+        0,
+    ]
+
+    assert access_diagnostics.read == 3
+    assert access_diagnostics.accepted == 2
+    assert access_diagnostics.rejected == 1
+
+    assert [
+        (issue.line_number, issue.reason)
+        for issue in access_diagnostics.issues
+    ] == [
+        (3, "invalid_log_format"),
+    ]
+
+    assert vhost_diagnostics.read == 2
+    assert vhost_diagnostics.accepted == 1
+    assert vhost_diagnostics.rejected == 1
+
+    assert [
+        (issue.line_number, issue.reason)
+        for issue in vhost_diagnostics.issues
+    ] == [
+        (2, "invalid_log_format"),
+    ]
+
+    for diagnostics in (
+        access_diagnostics,
+        vhost_diagnostics,
+    ):
+        assert diagnostics.read == (
+            diagnostics.accepted + diagnostics.rejected
+        )
+
+        assert "secret=do_not_echo" not in repr(
+            diagnostics.issues
+        )

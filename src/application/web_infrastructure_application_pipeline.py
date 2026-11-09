@@ -41,10 +41,18 @@ def run_web_infrastructure_application_pipeline(
     *,
     nginx_diagnostics: ParserDiagnostics | None = None,
     waf_diagnostics: ParserDiagnostics | None = None,
+    apache_access_diagnostics: ParserDiagnostics | None = None,
+    apache_vhost_diagnostics: ParserDiagnostics | None = None,
 ) -> WebInfrastructurePipelineResult:
     web_infrastructure_events = (
-        parse_apache_access_log(apache_access_log_file)
-        + parse_apache_vhost_access_log(apache_vhost_log_file)
+        parse_apache_access_log(
+            apache_access_log_file,
+            diagnostics=apache_access_diagnostics,
+        )
+        + parse_apache_vhost_access_log(
+            apache_vhost_log_file,
+            diagnostics=apache_vhost_diagnostics,
+        )
         + parse_apache_error_log(apache_error_log_file)
         + parse_nginx_json_log(
             nginx_access_log_file,

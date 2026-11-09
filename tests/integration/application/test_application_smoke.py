@@ -109,8 +109,6 @@ def test_main_forwards_independent_linux_time_contexts(
         linux_syslog_source_timezone="America/New_York",
     )
 
-    # Isolate the Linux pipeline invocation from
-    # unrelated application pipelines.
     monkeypatch.setattr(
         "src.main.run_traditional_detection_pipeline",
         lambda **kwargs: SimpleNamespace(
@@ -358,6 +356,169 @@ def test_main_warns_about_rejected_waf_records(
 
     assert (
         "WARNING: Nginx input incomplete"
+        not in output
+    )
+
+    assert (
+        tmp_path / "threat_report.json"
+    ).is_file()
+
+    assert (
+        tmp_path / "threat_report.html"
+    ).is_file()
+
+
+@pytest.mark.parametrize(
+    (
+        "invalid_source",
+        "expected_warning",
+        "unexpected_warning",
+        "source_name",
+        "reason_label",
+    ),
+    [
+        (
+            "access",
+            "WARNING: Apache Access input incomplete",
+            "WARNING: Apache VHost input incomplete",
+            "apache_access",
+            "Apache Access",
+        ),
+        (
+            "vhost",
+            "WARNING: Apache VHost input incomplete",
+            "WARNING: Apache Access input incomplete",
+            "apache_vhost",
+            "Apache VHost",
+        ),
+    ],
+    ids=["apache_access", "apache_vhost"],
+)
+def test_main_warns_about_rejected_apache_records(
+    tmp_path,
+    capsys,
+    invalid_source,
+    expected_warning,
+    unexpected_warning,
+    source_name,
+    reason_label,
+):
+    access_log = tmp_path / "apache_mixed.log"
+    vhost_log = tmp_path / "apache_vhost_mixed.log"
+    nginx_log = tmp_path / "nginx_clean.jsonl"
+
+    first_record = (
+        '192.0.2.10 - - '
+        '[21/Oct/2026:10:00:00 +0000] '
+        '"GET /first HTTP/1.1" 200 1024 '
+        '"-" "pytest"'
+    )
+
+    last_record = (
+        '192.0.2.20 - - '
+        '[21/Oct/2026:10:00:01 +0000] '
+        '"GET /last HTTP/1.1" 204 - '
+        '"-" "pytest"'
+    )
+
+    malformed = (
+        "invalid apache record secret=do_not_echo"
+    )
+
+    access_records = [first_record]
+    vhost_records = [
+        f"api.example.com {first_record}"
+    ]
+
+    if invalid_source == "access":
+        access_records.extend([
+            malformed,
+            last_record,
+        ])
+    else:
+        vhost_records.extend([
+            malformed,
+            f"api.example.com {last_record}",
+        ])
+
+    access_log.write_text(
+        "\n".join(access_records) + "\n",
+        encoding="utf-8",
+    )
+
+    vhost_log.write_text(
+        "\n".join(vhost_records) + "\n",
+        encoding="utf-8",
+    )
+
+    nginx_log.write_text(
+        '{"time":"2026-10-21T10:00:00Z",'
+        '"remote_addr":"192.0.2.40",'
+        '"request_method":"GET",'
+        '"request_uri":"/health",'
+        '"status":200}\n',
+        encoding="utf-8",
+    )
+
+    waf_log = tmp_path / "waf_clean.jsonl"
+
+    waf_log.write_text(
+        '{"timestamp":"2026-10-21T10:00:00Z",'
+        '"client_ip":"192.0.2.50",'
+        '"method":"GET",'
+        '"path":"/health",'
+        '"status_code":200,'
+        '"host":"api.example.com",'
+        '"provider":"cloudflare",'
+        '"action":"allow"}\n',
+        encoding="utf-8",
+    )
+
+
+    config = replace(
+        default_app_config(),
+        web_log_file=str(access_log),
+        apache_vhost_log_file=str(vhost_log),
+        nginx_access_log_file=str(nginx_log),
+        waf_cdn_log_file=str(waf_log),
+        json_output_file=str(
+            tmp_path / "threat_report.json"
+        ),
+        html_output_file=str(
+            tmp_path / "threat_report.html"
+        ),
+    )
+
+    main(config)
+
+    output = capsys.readouterr().out
+
+    assert expected_warning in output
+
+    assert (
+        f"{source_name} read=3 accepted=2 rejected=1"
+        in output
+    )
+
+    assert (
+        f"{reason_label} rejection reasons (retained): "
+        "invalid_log_format"
+    ) in output
+
+    assert unexpected_warning not in output
+
+    assert "secret=do_not_echo" not in output
+
+    assert (
+        "WARNING: Firewall input incomplete"
+        not in output
+    )
+    assert (
+        "WARNING: Nginx input incomplete"
+        not in output
+    )
+    assert (
+        "WARNING: WAF input incomplete"
         not in output
     )
 
