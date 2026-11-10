@@ -13,6 +13,7 @@ from src.application.cross_domain_analysis_pipeline import (
 from src.application.threat_report_builder import (
     build_threat_report,
 )
+from src.application.source_failure import SourceFailure
 
 from src.detection.network.network_pipeline import (
     run_network_detection_pipeline,
@@ -35,7 +36,6 @@ def main(
 ) -> None:
     if config is None:
         config = default_app_config()
-
 
     nmap_file = config.nmap_file
     windows_events_file = config.windows_events_file
@@ -66,6 +66,8 @@ def main(
         source="firewall",
     )
 
+    source_failures: list[SourceFailure] = []
+
     traditional_result = run_traditional_detection_pipeline(
         nmap_file=nmap_file,
         windows_events_file=windows_events_file,
@@ -76,6 +78,7 @@ def main(
         windows_source_timezone=config.windows_source_timezone,
         firewall_source_timezone=config.firewall_source_timezone,
         firewall_diagnostics=firewall_diagnostics,
+        source_failures=source_failures,
     )
 
     nmap_findings = traditional_result.nmap_findings
@@ -117,13 +120,13 @@ def main(
             waf_diagnostics=waf_diagnostics,
             apache_access_diagnostics=apache_access_diagnostics,
             apache_vhost_diagnostics=apache_vhost_diagnostics,
+            source_failures=source_failures,
         )
     )
 
     web_infrastructure_findings = (
         web_infrastructure_result.findings
     )
-
 
     network_result = run_network_detection_pipeline(
         pcap_file=pcap_file,
@@ -134,7 +137,6 @@ def main(
 
     network_events = network_result.events
     network_findings = network_result.findings
-
 
     linux_result = run_linux_detection_pipeline(
         linux_auth_file=linux_auth_file,
@@ -185,6 +187,19 @@ def main(
         cross_domain_analysis_result.findings
     )
 
+    input_integrity = None
+
+    if source_failures:
+        input_integrity = {
+            "status": "incomplete",
+            "source_failures": [
+                {
+                    "source": failure.source,
+                    "reason": failure.reason,
+                }
+                for failure in source_failures
+            ],
+        }
 
     report = build_threat_report(
         findings=enriched_findings,
@@ -198,8 +213,8 @@ def main(
         ),
         physical_statistics=physical_result.statistics,
         physical_risk_score=physical_result.risk_score,
+        input_integrity=input_integrity,
     )
-
 
     generate_json_report(
         report,
@@ -210,7 +225,6 @@ def main(
         report,
         html_output_file,
     )
-
 
     print_console_summary(
         report,
@@ -230,7 +244,6 @@ def main(
         ),
         physical_risk_score=physical_result.risk_score,
     )
-
 
     if firewall_diagnostics.rejected > 0:
         print()
@@ -259,7 +272,6 @@ def main(
                 f"{firewall_diagnostics.issues_dropped}"
             )
 
-
     if nginx_diagnostics.rejected > 0:
         print()
         print("WARNING: Nginx input incomplete")
@@ -286,7 +298,6 @@ def main(
                 "Nginx diagnostics omitted: "
                 f"{nginx_diagnostics.issues_dropped}"
             )
-
 
     if waf_diagnostics.rejected > 0:
         print()
@@ -367,6 +378,16 @@ def main(
             print(
                 "Apache VHost diagnostics omitted: "
                 f"{apache_vhost_diagnostics.issues_dropped}"
+            )
+
+    if source_failures:
+        print()
+        print("WARNING: Web source unavailable")
+
+        for failure in source_failures:
+            print(
+                f"source={failure.source} "
+                f"reason={failure.reason}"
             )
 
 

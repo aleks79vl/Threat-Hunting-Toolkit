@@ -13,6 +13,7 @@ def _escape_redacted(value) -> str:
     redacted = redact_for_export({"value": value})["value"]
     return escape(str(redacted))
 
+
 def _format_finding_time(value: str | None) -> str:
     """
     Format a finding timestamp for safe HTML output.
@@ -191,6 +192,66 @@ def _generate_physical_security_section(
     </section>
     """
 
+
+def _generate_input_integrity_section(
+    report: ThreatReport,
+) -> str:
+    """Render safe metadata about incomplete telemetry."""
+
+    integrity = report.input_integrity
+
+    if not integrity:
+        return ""
+
+    if integrity.get("status") != "incomplete":
+        return ""
+
+    failure_rows = "".join(
+        (
+            "<tr>"
+            f"<td>{_escape_redacted(failure['source'])}</td>"
+            f"<td>{_escape_redacted(failure['reason'])}</td>"
+            "</tr>"
+        )
+        for failure in integrity.get("source_failures", [])
+    )
+
+    if not failure_rows:
+        failure_rows = (
+            "<tr>"
+            '<td colspan="2">'
+            "Incomplete telemetry; no source failure details"
+            "</td>"
+            "</tr>"
+        )
+
+    return f"""
+    <section class="report-section input-integrity-section"
+             role="alert">
+        <h2>Input Integrity — Incomplete</h2>
+
+        <p>
+            Some telemetry sources were unavailable or incomplete.
+            Findings may not represent the complete security picture.
+        </p>
+
+        <h3>Unavailable Sources</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Source</th>
+                    <th>Reason</th>
+                </tr>
+            </thead>
+            <tbody>
+                {failure_rows}
+            </tbody>
+        </table>
+    </section>
+    """
+
+
 def generate_html_report(
     report: ThreatReport,
     output_path: str = "reports/threat_report.html"
@@ -203,6 +264,9 @@ def generate_html_report(
     summary = report.summary()
     mitre_stats = generate_mitre_statistics(report.findings)
     physical_security_section = (_generate_physical_security_section(report))
+    input_integrity_section = _generate_input_integrity_section(
+        report,
+    )
 
     network_statistics = {
         "total_network_events": 0,
@@ -406,6 +470,8 @@ def generate_html_report(
 
     <h2>Executive Summary</h2>
     <pre>{_escape_redacted(executive_summary)}</pre>
+
+    {input_integrity_section}
 
     <h2>MITRE ATT&CK Statistics</h2>
     <ul>

@@ -16,6 +16,7 @@ def build_threat_report(
     physical_risk_score: int,
     title: str = "Threat Hunting Report",
     generated_at: str | None = None,
+    input_integrity: dict | None = None,
 ) -> ThreatReport:
     if generated_at is None:
         generated_at = datetime.now().strftime(
@@ -27,6 +28,7 @@ def build_threat_report(
         generated_at=generated_at,
         findings=findings,
         timeline=generate_timeline(findings),
+        input_integrity=input_integrity,
         network_statistics=network_statistics,
         linux_statistics=linux_statistics,
         linux_execution_statistics=(

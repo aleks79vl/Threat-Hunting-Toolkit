@@ -529,3 +529,203 @@ def test_main_warns_about_rejected_apache_records(
     assert (
         tmp_path / "threat_report.html"
     ).is_file()
+
+
+def test_main_reports_unavailable_nginx_source(
+    tmp_path,
+    capsys,
+):
+    missing_nginx_log = (
+        tmp_path / "nginx_secret=do_not_echo.jsonl"
+    )
+
+    assert not missing_nginx_log.exists()
+
+    json_report = tmp_path / "source_failure_report.json"
+    html_report = tmp_path / "source_failure_report.html"
+
+    config = replace(
+        default_app_config(),
+        nginx_access_log_file=str(missing_nginx_log),
+        json_output_file=str(json_report),
+        html_output_file=str(html_report),
+    )
+
+    main(config)
+
+    output = capsys.readouterr().out
+
+    assert "WARNING: Web source unavailable" in output
+
+    assert (
+        "source=nginx reason=file_not_found"
+        in output
+    )
+
+    assert str(missing_nginx_log) not in output
+    assert "secret=do_not_echo" not in output
+
+    assert json_report.is_file()
+    assert html_report.is_file()
+
+def test_main_reports_multiple_unavailable_web_sources(
+    tmp_path,
+    capsys,
+):
+    missing_vhost = (
+        tmp_path / "vhost_secret=do_not_echo.log"
+    )
+
+    missing_nginx = (
+        tmp_path / "nginx_secret=do_not_echo.jsonl"
+    )
+
+    assert not missing_vhost.exists()
+    assert not missing_nginx.exists()
+
+    json_report = tmp_path / "multiple_failures.json"
+    html_report = tmp_path / "multiple_failures.html"
+
+    config = replace(
+        default_app_config(),
+        apache_vhost_log_file=str(missing_vhost),
+        nginx_access_log_file=str(missing_nginx),
+        json_output_file=str(json_report),
+        html_output_file=str(html_report),
+    )
+
+    main(config)
+
+    output = capsys.readouterr().out
+
+    assert "WARNING: Web source unavailable" in output
+
+    assert output.count(
+        "source=apache_vhost reason=file_not_found"
+    ) == 1
+
+    assert output.count(
+        "source=nginx reason=file_not_found"
+    ) == 1
+
+    assert str(missing_vhost) not in output
+    assert str(missing_nginx) not in output
+    assert "secret=do_not_echo" not in output
+
+    assert json_report.is_file()
+    assert html_report.is_file()
+
+
+def test_main_reports_failures_from_both_application_pipelines(
+    tmp_path,
+    monkeypatch,
+    capsys,
+):
+    import src.application.traditional_detection_pipeline as traditional
+
+    def failed_windows(_path):
+        raise FileNotFoundError(
+            "windows_secret=do_not_echo "
+            "/private/internal/windows.json"
+        )
+
+    monkeypatch.setattr(
+        traditional,
+        "parse_windows_events",
+        failed_windows,
+    )
+
+    missing_waf = (
+        tmp_path / "waf_secret=do_not_echo.jsonl"
+    )
+
+    assert not missing_waf.exists()
+
+    json_report = tmp_path / "combined_failures.json"
+    html_report = tmp_path / "combined_failures.html"
+
+    config = replace(
+        default_app_config(),
+        waf_cdn_log_file=str(missing_waf),
+        json_output_file=str(json_report),
+        html_output_file=str(html_report),
+    )
+
+    main(config)
+
+    output = capsys.readouterr().out
+
+    assert output.count(
+        "source=windows_events reason=file_not_found"
+    ) == 1
+
+    assert output.count(
+        "source=waf_cdn reason=file_not_found"
+    ) == 1
+
+    assert "windows_secret=do_not_echo" not in output
+    assert "waf_secret=do_not_echo" not in output
+    assert "/private/internal/windows.json" not in output
+    assert str(missing_waf) not in output
+
+    assert json_report.is_file()
+    assert html_report.is_file()
+
+    for report_file in (json_report, html_report):
+        report_content = report_file.read_text(
+            encoding="utf-8"
+        )
+
+        assert (
+            "windows_secret=do_not_echo"
+            not in report_content
+        )
+
+        assert (
+            "waf_secret=do_not_echo"
+            not in report_content
+        )
+
+    import json
+
+    report = json.loads(
+        json_report.read_text(encoding="utf-8")
+    )
+
+    integrity = report["input_integrity"]
+
+    assert integrity["status"] == "incomplete"
+
+    failures = integrity["source_failures"]
+
+    assert {
+        "source": "windows_events",
+        "reason": "file_not_found",
+    } in failures
+
+    assert {
+        "source": "waf_cdn",
+        "reason": "file_not_found",
+    } in failures
+
+    for failure in failures:
+        assert "path" not in failure
+        assert "exception" not in failure
+        assert "message" not in failure
+        assert "raw_event" not in failure
+
+
+    html_content = html_report.read_text(
+        encoding="utf-8",
+    )
+
+    assert "Input Integrity" in html_content
+    assert "Incomplete" in html_content
+
+    assert "windows_events" in html_content
+    assert "waf_cdn" in html_content
+    assert "file_not_found" in html_content
+
+    assert "windows_secret=do_not_echo" not in html_content
+    assert "waf_secret=do_not_echo" not in html_content
+    assert "/private/internal/windows.json" not in html_content

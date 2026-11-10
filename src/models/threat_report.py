@@ -18,6 +18,7 @@ class ThreatReport:
     )
     physical_statistics: dict = field(default_factory=dict)
     physical_risk_score: int = 0
+    input_integrity: dict | None = None
 
     def total_findings(self) -> int:
         return len(self.findings)
@@ -38,7 +39,7 @@ class ThreatReport:
         }
 
     def to_dict(self) -> dict:
-        return {
+        report_data = {
             "title": self.title,
             "generated_at": self.generated_at,
             "summary": self.summary(),
@@ -51,6 +52,14 @@ class ThreatReport:
                 self.web_infrastructure_statistics
             ),
         }
+
+        if self.input_integrity is not None:
+            report_data["input_integrity"] = (
+                self.input_integrity
+            )
+
+        return report_data
+
 
     def to_json(self) -> str:
         return json.dumps(self.to_dict(), indent=4)
