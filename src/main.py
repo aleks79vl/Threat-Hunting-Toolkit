@@ -14,6 +14,9 @@ from src.application.threat_report_builder import (
     build_threat_report,
 )
 from src.application.source_failure import SourceFailure
+from src.application.input_integrity import (
+    build_input_integrity,
+)
 
 from src.detection.network.network_pipeline import (
     run_network_detection_pipeline,
@@ -187,19 +190,16 @@ def main(
         cross_domain_analysis_result.findings
     )
 
-    input_integrity = None
-
-    if source_failures:
-        input_integrity = {
-            "status": "incomplete",
-            "source_failures": [
-                {
-                    "source": failure.source,
-                    "reason": failure.reason,
-                }
-                for failure in source_failures
-            ],
-        }
+    input_integrity = build_input_integrity(
+        source_failures=source_failures,
+        parser_diagnostics=[
+            firewall_diagnostics,
+            nginx_diagnostics,
+            waf_diagnostics,
+            apache_access_diagnostics,
+            apache_vhost_diagnostics,
+        ],
+    )
 
     report = build_threat_report(
         findings=enriched_findings,

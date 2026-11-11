@@ -120,3 +120,143 @@ def test_input_integrity_section_handles_missing_failure_details():
         in html
     )
 
+
+def test_input_integrity_html_shows_partial_parser_without_false_unavailable_source():
+    report = make_report({
+        "status": "incomplete",
+        "source_failures": [],
+        "parser_diagnostics": [
+            {
+                "source": "firewall",
+                "read": 4,
+                "accepted": 2,
+                "rejected": 2,
+                "reason_codes": [
+                    "invalid_record",
+                    "malformed_row",
+                ],
+                "issues_dropped": 1,
+            },
+        ],
+    })
+
+    html = _generate_input_integrity_section(report)
+
+    assert "Input Integrity" in html
+    assert "Parser Diagnostics" in html
+    assert "firewall" in html
+    assert "invalid_record" in html
+    assert "malformed_row" in html
+
+    assert "<td>4</td>" in html
+    assert "<td>2</td>" in html
+    assert "<td>1</td>" in html
+
+    assert "Unavailable Sources" not in html
+    assert (
+        "Incomplete telemetry; no source failure details"
+        not in html
+    )
+
+
+def test_input_integrity_html_combines_source_failure_and_parser_rejection():
+    report = make_report({
+        "status": "incomplete",
+        "source_failures": [
+            {
+                "source": "windows_events",
+                "reason": "file_not_found",
+            },
+        ],
+        "parser_diagnostics": [
+            {
+                "source": "nginx",
+                "read": 3,
+                "accepted": 2,
+                "rejected": 1,
+                "reason_codes": ["invalid_json"],
+                "issues_dropped": 0,
+            },
+        ],
+    })
+
+    html = _generate_input_integrity_section(report)
+
+    assert "Unavailable Sources" in html
+    assert "windows_events" in html
+    assert "file_not_found" in html
+
+    assert "Parser Diagnostics" in html
+    assert "nginx" in html
+    assert "invalid_json" in html
+
+
+def test_input_integrity_html_escapes_parser_diagnostics():
+    malicious_source = '<script>alert("x")</script>'
+    malicious_reason = '<img src=x onerror=alert(1)>'
+
+    report = make_report({
+        "status": "incomplete",
+        "source_failures": [],
+        "parser_diagnostics": [
+            {
+                "source": malicious_source,
+                "read": 1,
+                "accepted": 0,
+                "rejected": 1,
+                "reason_codes": [malicious_reason],
+                "issues_dropped": 0,
+                "raw_event": "PRIVATE_RAW_TELEMETRY",
+                "path": "/private/internal/secret.log",
+            },
+        ],
+    })
+
+    html = _generate_input_integrity_section(report)
+
+    assert escape(malicious_source) in html
+    assert escape(malicious_reason) in html
+
+    assert malicious_source not in html
+    assert malicious_reason not in html
+
+    assert "<script" not in html
+    assert "<img" not in html
+    assert "PRIVATE_RAW_TELEMETRY" not in html
+    assert "/private/internal/secret.log" not in html
+
+
+def test_input_integrity_html_handles_zero_retained_issues():
+    report = make_report({
+        "status": "incomplete",
+        "source_failures": [],
+        "parser_diagnostics": [
+            {
+                "source": "firewall",
+                "read": 3,
+                "accepted": 1,
+                "rejected": 2,
+                "reason_codes": [],
+                "issues_dropped": 2,
+            },
+        ],
+    })
+
+    html = _generate_input_integrity_section(report)
+
+    expected_row = (
+        "<tr>"
+        "<td>firewall</td>"
+        "<td>3</td>"
+        "<td>1</td>"
+        "<td>2</td>"
+        "<td>Not available</td>"
+        "<td>2</td>"
+        "</tr>"
+    )
+
+    assert expected_row in html
+    assert "Parser Diagnostics" in html
+    assert "Unavailable Sources" not in html
+    assert "Reason codes describe retained" in html
+

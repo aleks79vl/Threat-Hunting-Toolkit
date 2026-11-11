@@ -193,10 +193,11 @@ def _generate_physical_security_section(
     """
 
 
+
 def _generate_input_integrity_section(
     report: ThreatReport,
 ) -> str:
-    """Render safe metadata about incomplete telemetry."""
+    """Render safe evidence of incomplete telemetry."""
 
     integrity = report.input_integrity
 
@@ -206,35 +207,27 @@ def _generate_input_integrity_section(
     if integrity.get("status") != "incomplete":
         return ""
 
-    failure_rows = "".join(
-        (
-            "<tr>"
-            f"<td>{_escape_redacted(failure['source'])}</td>"
-            f"<td>{_escape_redacted(failure['reason'])}</td>"
-            "</tr>"
-        )
-        for failure in integrity.get("source_failures", [])
+    source_failures = (
+        integrity.get("source_failures") or []
+    )
+    parser_diagnostics = (
+        integrity.get("parser_diagnostics") or []
     )
 
-    if not failure_rows:
-        failure_rows = (
-            "<tr>"
-            '<td colspan="2">'
-            "Incomplete telemetry; no source failure details"
-            "</td>"
-            "</tr>"
+    unavailable_section = ""
+
+    if source_failures:
+        failure_rows = "".join(
+            (
+                "<tr>"
+                f"<td>{_escape_redacted(failure['source'])}</td>"
+                f"<td>{_escape_redacted(failure['reason'])}</td>"
+                "</tr>"
+            )
+            for failure in source_failures
         )
 
-    return f"""
-    <section class="report-section input-integrity-section"
-             role="alert">
-        <h2>Input Integrity — Incomplete</h2>
-
-        <p>
-            Some telemetry sources were unavailable or incomplete.
-            Findings may not represent the complete security picture.
-        </p>
-
+        unavailable_section = f"""
         <h3>Unavailable Sources</h3>
 
         <table>
@@ -248,6 +241,92 @@ def _generate_input_integrity_section(
                 {failure_rows}
             </tbody>
         </table>
+        """
+
+    diagnostics_section = ""
+
+    if parser_diagnostics:
+        diagnostics_rows = []
+
+        for diagnostics in parser_diagnostics:
+            reason_codes = ", ".join(
+                _escape_redacted(reason)
+                for reason in diagnostics.get(
+                    "reason_codes", []
+                )
+            )
+
+            if not reason_codes:
+                reason_codes = "Not available"
+
+            diagnostics_rows.append(
+                "<tr>"
+                f"<td>{_escape_redacted(diagnostics['source'])}</td>"
+                f"<td>{_escape_redacted(diagnostics['read'])}</td>"
+                f"<td>{_escape_redacted(diagnostics['accepted'])}</td>"
+                f"<td>{_escape_redacted(diagnostics['rejected'])}</td>"
+                f"<td>{reason_codes}</td>"
+                f"<td>{_escape_redacted(diagnostics['issues_dropped'])}</td>"
+                "</tr>"
+            )
+
+        diagnostics_section = f"""
+        <h3>Parser Diagnostics</h3>
+
+        <p>
+            Accepted records were processed.
+            Rejected records were excluded from analysis.
+        </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Source</th>
+                    <th>Read</th>
+                    <th>Accepted</th>
+                    <th>Rejected</th>
+                    <th>Reason Codes</th>
+                    <th>Issues Dropped</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(diagnostics_rows)}
+            </tbody>
+        </table>
+
+        <p>
+            Reason codes describe retained diagnostic issues only.
+            Issues Dropped counts diagnostic entries not retained
+            because of the configured limit.
+            These are not additional rejected records.
+        </p>
+        """
+
+    missing_details = ""
+
+    if not source_failures and not parser_diagnostics:
+        missing_details = (
+            "<p>"
+            "Incomplete telemetry; no source failure details"
+            "</p>"
+        )
+
+    return f"""
+    <section class="report-section input-integrity-section"
+             role="alert">
+        <h2>Input Integrity — Incomplete</h2>
+
+        <p>
+            Some telemetry was unavailable or input records
+            were rejected. Findings may not represent the
+            complete security picture.
+        </p>
+
+        {unavailable_section}
+
+        {diagnostics_section}
+
+        {missing_details}
     </section>
     """
 

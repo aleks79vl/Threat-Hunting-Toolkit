@@ -729,3 +729,212 @@ def test_main_reports_failures_from_both_application_pipelines(
     assert "windows_secret=do_not_echo" not in html_content
     assert "waf_secret=do_not_echo" not in html_content
     assert "/private/internal/windows.json" not in html_content
+
+
+def test_main_exports_partial_firewall_input_integrity(
+    tmp_path,
+):
+    import json
+    from pathlib import Path
+
+    config = default_app_config()
+
+    original_data = Path(
+        config.firewall_file
+    ).read_text(encoding="utf-8")
+
+    assert original_data.strip()
+
+    malformed_marker = (
+        "RAW_PRIVATE_INCOMPLETE_FIREWALL_RECORD"
+    )
+
+    mixed_firewall = tmp_path / "mixed_firewall.log"
+
+    mixed_firewall.write_text(
+        original_data.rstrip("\n")
+        + "\n"
+        + malformed_marker
+        + "\n",
+        encoding="utf-8",
+    )
+
+    json_report = tmp_path / "partial_firewall.json"
+    html_report = tmp_path / "partial_firewall.html"
+
+    test_config = replace(
+        config,
+        firewall_file=str(mixed_firewall),
+        json_output_file=str(json_report),
+        html_output_file=str(html_report),
+    )
+
+    main(test_config)
+
+    report = json.loads(
+        json_report.read_text(encoding="utf-8")
+    )
+
+    integrity = report["input_integrity"]
+
+    assert integrity["status"] == "incomplete"
+
+    firewall_records = [
+        item
+        for item in integrity["parser_diagnostics"]
+        if item["source"] == "firewall"
+    ]
+
+    assert len(firewall_records) == 1
+
+    firewall = firewall_records[0]
+
+    assert firewall["accepted"] >= 1
+    assert firewall["rejected"] >= 1
+
+    assert firewall["read"] == (
+        firewall["accepted"] + firewall["rejected"]
+    )
+
+    assert firewall["reason_codes"]
+    assert firewall["issues_dropped"] >= 0
+
+    assert malformed_marker not in json_report.read_text(
+        encoding="utf-8"
+    )
+
+    assert malformed_marker not in html_report.read_text(
+        encoding="utf-8"
+    )
+
+    html_content = html_report.read_text(
+        encoding="utf-8",
+    )
+
+    assert "Input Integrity" in html_content
+    assert "Incomplete" in html_content
+    assert "Parser Diagnostics" in html_content
+
+    expected_firewall_row = (
+        "<tr>"
+        "<td>firewall</td>"
+        f"<td>{firewall['read']}</td>"
+        f"<td>{firewall['accepted']}</td>"
+        f"<td>{firewall['rejected']}</td>"
+        f"<td>{', '.join(firewall['reason_codes'])}</td>"
+        f"<td>{firewall['issues_dropped']}</td>"
+        "</tr>"
+    )
+
+    assert expected_firewall_row in html_content
+
+    if not integrity["source_failures"]:
+        assert "Unavailable Sources" not in html_content
+
+    assert malformed_marker not in html_content
+
+
+def test_main_preserves_firewall_rejection_counts_when_issue_limit_exceeded(
+    tmp_path,
+):
+    import json
+    from pathlib import Path
+
+    config = default_app_config()
+
+    original_data = Path(
+        config.firewall_file
+    ).read_text(encoding="utf-8")
+
+    assert original_data.strip()
+
+    malformed_marker = (
+        "PRIVATE_FIREWALL_RECORD_DO_NOT_EXPORT"
+    )
+
+    malformed_count = 105
+
+    firewall_file = tmp_path / "firewall_issue_limit.log"
+
+    firewall_file.write_text(
+        original_data.rstrip("\n")
+        + "\n"
+        + (malformed_marker + "\n") * malformed_count,
+        encoding="utf-8",
+    )
+
+    json_report = tmp_path / "firewall_limit.json"
+    html_report = tmp_path / "firewall_limit.html"
+
+    test_config = replace(
+        config,
+        firewall_file=str(firewall_file),
+        json_output_file=str(json_report),
+        html_output_file=str(html_report),
+    )
+
+    main(test_config)
+
+    report = json.loads(
+        json_report.read_text(encoding="utf-8")
+    )
+
+    integrity = report["input_integrity"]
+
+    assert integrity["status"] == "incomplete"
+
+    firewall_records = [
+        item
+        for item in integrity["parser_diagnostics"]
+        if item["source"] == "firewall"
+    ]
+
+    assert len(firewall_records) == 1
+
+    firewall = firewall_records[0]
+
+    assert firewall["rejected"] >= malformed_count
+
+    assert firewall["accepted"] >= 1
+
+    assert firewall["read"] == (
+        firewall["accepted"] + firewall["rejected"]
+    )
+
+    assert firewall["issues_dropped"] == (
+        firewall["rejected"] - 100
+    )
+
+    assert firewall["issues_dropped"] >= 5
+
+    assert set(firewall) == {
+        "source",
+        "read",
+        "accepted",
+        "rejected",
+        "reason_codes",
+        "issues_dropped",
+    }
+
+    json_content = json_report.read_text(
+        encoding="utf-8"
+    )
+
+    html_content = html_report.read_text(
+        encoding="utf-8"
+    )
+
+    assert malformed_marker not in json_content
+    assert malformed_marker not in html_content
+
+    assert "Parser Diagnostics" in html_content
+
+    assert (
+        f"<td>{firewall['issues_dropped']}</td>"
+        in html_content
+    )
+
+    assert (
+        "Reason codes describe retained diagnostic issues only."
+        in html_content
+    )
