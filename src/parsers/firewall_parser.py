@@ -1,24 +1,62 @@
+"""Firewall log parser with record-level error handling."""
+
 from src.utils.event_utils import SecurityEvent
+from src.parsers.parser_diagnostics import ParserDiagnostics
 
 
-def parse_firewall_log(file_path: str) -> list[SecurityEvent]:
-    events = []
+def parse_firewall_log(
+    file_path: str,
+    *,
+    diagnostics: ParserDiagnostics | None = None,
+) -> list[SecurityEvent]:
+    """Parse firewall records without aborting on malformed lines."""
+
+    events: list[SecurityEvent] = []
 
     with open(file_path, "r", encoding="utf-8") as file:
-        for line in file:
-            line = line.strip()
+        for line_number, raw_line in enumerate(file, start=1):
+            raw_record = raw_line.rstrip("\r\n")
+            line = raw_record.strip()
 
             if not line:
                 continue
 
             parts = line.split()
 
+            if len(parts) < 7:
+                if diagnostics is not None:
+                    diagnostics.reject(
+                        line_number=line_number,
+                        reason="too_few_fields",
+                        raw_record=raw_record,
+                    )
+                continue
+
             timestamp = f"{parts[0]} {parts[1]}"
             action = parts[2]
             protocol = parts[3]
             src_ip = parts[4]
             dst_ip = parts[5]
-            dst_port = int(parts[6])
+
+            try:
+                dst_port = int(parts[6])
+            except ValueError:
+                if diagnostics is not None:
+                    diagnostics.reject(
+                    line_number=line_number,
+                    reason="invalid_port",
+                    raw_record=raw_record,
+                    )
+                continue
+
+            if not 0 <= dst_port <= 65535:
+                if diagnostics is not None:
+                    diagnostics.reject(
+                    line_number=line_number,
+                    reason="invalid_port_range",
+                    raw_record=raw_record,
+                    )
+                continue
 
             event = SecurityEvent(
                 timestamp=timestamp,
@@ -36,5 +74,8 @@ def parse_firewall_log(file_path: str) -> list[SecurityEvent]:
             )
 
             events.append(event)
+
+            if diagnostics is not None:
+                diagnostics.accept()
 
     return events

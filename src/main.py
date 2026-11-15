@@ -13,6 +13,11 @@ from src.application.cross_domain_analysis_pipeline import (
 from src.application.threat_report_builder import (
     build_threat_report,
 )
+from src.application.source_failure import SourceFailure
+from src.application.input_integrity import (
+    build_input_integrity,
+)
+
 from src.detection.network.network_pipeline import (
     run_network_detection_pipeline,
 )
@@ -23,7 +28,11 @@ from src.detection.linux.linux_pipeline import (
 from src.reporting.json_report_generator import generate_json_report
 from src.reporting.html_report_generator import generate_html_report
 from src.reporting.console_summary import print_console_summary
+
 from src.config.app_config import AppConfig, default_app_config
+
+from src.parsers.parser_diagnostics import ParserDiagnostics
+from src.parsers.quarantine_buffer import QuarantineBuffer
 
 
 def main(
@@ -31,8 +40,6 @@ def main(
 ) -> None:
     if config is None:
         config = default_app_config()
-
-    # Input files
 
     nmap_file = config.nmap_file
     windows_events_file = config.windows_events_file
@@ -51,7 +58,6 @@ def main(
     linux_syslog_file = config.linux_syslog_file
     physical_events_file = config.physical_events_file
 
-    # Configuration files
 
     whitelist_file = config.whitelist_file
     critical_ports_file = config.critical_ports_file
@@ -60,7 +66,15 @@ def main(
     json_output_file = config.json_output_file
     html_output_file = config.html_output_file
 
-    # Traditional log sources
+    firewall_diagnostics = ParserDiagnostics(
+        source="firewall",
+        quarantine=QuarantineBuffer(
+            max_records=100,
+            max_record_bytes=4096,
+        ),
+    )
+
+    source_failures: list[SourceFailure] = []
 
     traditional_result = run_traditional_detection_pipeline(
         nmap_file=nmap_file,
@@ -71,6 +85,8 @@ def main(
         critical_ports_file=critical_ports_file,
         windows_source_timezone=config.windows_source_timezone,
         firewall_source_timezone=config.firewall_source_timezone,
+        firewall_diagnostics=firewall_diagnostics,
+        source_failures=source_failures,
     )
 
     nmap_findings = traditional_result.nmap_findings
@@ -78,6 +94,37 @@ def main(
     firewall_events = traditional_result.firewall_events
     firewall_findings = traditional_result.firewall_findings
     web_findings = traditional_result.web_findings
+
+    nginx_diagnostics = ParserDiagnostics(
+        source="nginx",quarantine=QuarantineBuffer(
+            max_records=100,
+            max_record_bytes=4096,
+        ),
+    )
+
+    waf_diagnostics = ParserDiagnostics(
+        source="waf_cdn",
+        quarantine=QuarantineBuffer(
+            max_records=100,
+            max_record_bytes=4096,
+        ),
+    )
+
+    apache_access_diagnostics = ParserDiagnostics(
+        source="apache_access",
+        quarantine=QuarantineBuffer(
+            max_records=100,
+            max_record_bytes=4096,
+        ),
+    )
+
+    apache_vhost_diagnostics = ParserDiagnostics(
+        source="apache_vhost",
+        quarantine=QuarantineBuffer(
+            max_records=100,
+            max_record_bytes=4096,
+        ),
+    )
 
     web_infrastructure_result = (
         run_web_infrastructure_application_pipeline(
@@ -92,14 +139,17 @@ def main(
             web_security_baseline_file=(
                 web_security_baseline_file
             ),
+            nginx_diagnostics=nginx_diagnostics,
+            waf_diagnostics=waf_diagnostics,
+            apache_access_diagnostics=apache_access_diagnostics,
+            apache_vhost_diagnostics=apache_vhost_diagnostics,
+            source_failures=source_failures,
         )
     )
 
     web_infrastructure_findings = (
         web_infrastructure_result.findings
     )
-
-    # PCAP / Wireshark pipeline
 
     network_result = run_network_detection_pipeline(
         pcap_file=pcap_file,
@@ -110,9 +160,6 @@ def main(
 
     network_events = network_result.events
     network_findings = network_result.findings
-
-
-    # Linux Log Pipeline
 
     linux_result = run_linux_detection_pipeline(
         linux_auth_file=linux_auth_file,
@@ -132,7 +179,6 @@ def main(
         "linux_execution_statistics"
     ]
 
-    # Physical Security Pipeline
 
     physical_result = (
         run_physical_security_application_pipeline(
@@ -164,7 +210,16 @@ def main(
         cross_domain_analysis_result.findings
     )
 
-    # Reporting data
+    input_integrity = build_input_integrity(
+        source_failures=source_failures,
+        parser_diagnostics=[
+            firewall_diagnostics,
+            nginx_diagnostics,
+            waf_diagnostics,
+            apache_access_diagnostics,
+            apache_vhost_diagnostics,
+        ],
+    )
 
     report = build_threat_report(
         findings=enriched_findings,
@@ -178,9 +233,8 @@ def main(
         ),
         physical_statistics=physical_result.statistics,
         physical_risk_score=physical_result.risk_score,
+        input_integrity=input_integrity,
     )
-
-    # Report generation
 
     generate_json_report(
         report,
@@ -191,8 +245,6 @@ def main(
         report,
         html_output_file,
     )
-
-    # Console summary
 
     print_console_summary(
         report,
@@ -212,6 +264,151 @@ def main(
         ),
         physical_risk_score=physical_result.risk_score,
     )
+
+    if firewall_diagnostics.rejected > 0:
+        print()
+        print("WARNING: Firewall input incomplete")
+
+        print(
+            f"read={firewall_diagnostics.read} "
+            f"accepted={firewall_diagnostics.accepted} "
+            f"rejected={firewall_diagnostics.rejected}"
+        )
+
+        reason_codes = sorted({
+            issue.reason
+            for issue in firewall_diagnostics.issues
+        })
+
+        if reason_codes:
+            print(
+                "Firewall rejection reasons (retained): "
+                + ", ".join(reason_codes)
+            )
+
+        if firewall_diagnostics.issues_dropped > 0:
+            print(
+                "Firewall diagnostics omitted: "
+                f"{firewall_diagnostics.issues_dropped}"
+            )
+
+    if nginx_diagnostics.rejected > 0:
+        print()
+        print("WARNING: Nginx input incomplete")
+
+        print(
+            f"nginx read={nginx_diagnostics.read} "
+            f"accepted={nginx_diagnostics.accepted} "
+            f"rejected={nginx_diagnostics.rejected}"
+        )
+
+        reason_codes = sorted({
+            issue.reason
+            for issue in nginx_diagnostics.issues
+        })
+
+        if reason_codes:
+            print(
+                "Nginx rejection reasons (retained): "
+                + ", ".join(reason_codes)
+            )
+
+        if nginx_diagnostics.issues_dropped > 0:
+            print(
+                "Nginx diagnostics omitted: "
+                f"{nginx_diagnostics.issues_dropped}"
+            )
+
+    if waf_diagnostics.rejected > 0:
+        print()
+        print("WARNING: WAF input incomplete")
+
+        print(
+            f"waf_cdn read={waf_diagnostics.read} "
+            f"accepted={waf_diagnostics.accepted} "
+            f"rejected={waf_diagnostics.rejected}"
+        )
+
+        reason_codes = sorted({
+            issue.reason
+            for issue in waf_diagnostics.issues
+        })
+
+        if reason_codes:
+            print(
+                "WAF rejection reasons (retained): "
+                + ", ".join(reason_codes)
+            )
+
+        if waf_diagnostics.issues_dropped > 0:
+            print(
+                "WAF diagnostics omitted: "
+                f"{waf_diagnostics.issues_dropped}"
+            )
+
+    if apache_access_diagnostics.rejected > 0:
+        print()
+        print("WARNING: Apache Access input incomplete")
+
+        print(
+            f"apache_access read={apache_access_diagnostics.read} "
+            f"accepted={apache_access_diagnostics.accepted} "
+            f"rejected={apache_access_diagnostics.rejected}"
+        )
+
+        reason_codes = sorted({
+            issue.reason
+            for issue in apache_access_diagnostics.issues
+        })
+
+        if reason_codes:
+            print(
+                "Apache Access rejection reasons (retained): "
+                + ", ".join(reason_codes)
+            )
+
+        if apache_access_diagnostics.issues_dropped > 0:
+            print(
+                "Apache Access diagnostics omitted: "
+                f"{apache_access_diagnostics.issues_dropped}"
+            )
+
+    if apache_vhost_diagnostics.rejected > 0:
+        print()
+        print("WARNING: Apache VHost input incomplete")
+
+        print(
+            f"apache_vhost read={apache_vhost_diagnostics.read} "
+            f"accepted={apache_vhost_diagnostics.accepted} "
+            f"rejected={apache_vhost_diagnostics.rejected}"
+        )
+
+        reason_codes = sorted({
+            issue.reason
+            for issue in apache_vhost_diagnostics.issues
+        })
+
+        if reason_codes:
+            print(
+                "Apache VHost rejection reasons (retained): "
+                + ", ".join(reason_codes)
+            )
+
+        if apache_vhost_diagnostics.issues_dropped > 0:
+            print(
+                "Apache VHost diagnostics omitted: "
+                f"{apache_vhost_diagnostics.issues_dropped}"
+            )
+
+    if source_failures:
+        print()
+        print("WARNING: Web source unavailable")
+
+        for failure in source_failures:
+            print(
+                f"source={failure.source} "
+                f"reason={failure.reason}"
+            )
 
 
 if __name__ == "__main__":

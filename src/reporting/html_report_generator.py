@@ -13,6 +13,7 @@ def _escape_redacted(value) -> str:
     redacted = redact_for_export({"value": value})["value"]
     return escape(str(redacted))
 
+
 def _format_finding_time(value: str | None) -> str:
     """
     Format a finding timestamp for safe HTML output.
@@ -191,6 +192,164 @@ def _generate_physical_security_section(
     </section>
     """
 
+
+
+def _generate_input_integrity_section(
+    report: ThreatReport,
+) -> str:
+    """Render safe evidence of incomplete telemetry."""
+
+    integrity = report.input_integrity
+
+    if not integrity:
+        return ""
+
+    if integrity.get("status") != "incomplete":
+        return ""
+
+    source_failures = (
+        integrity.get("source_failures") or []
+    )
+    parser_diagnostics = (
+        integrity.get("parser_diagnostics") or []
+    )
+
+    unavailable_section = ""
+
+    if source_failures:
+        failure_rows = "".join(
+            (
+                "<tr>"
+                f"<td>{_escape_redacted(failure['source'])}</td>"
+                f"<td>{_escape_redacted(failure['reason'])}</td>"
+                "</tr>"
+            )
+            for failure in source_failures
+        )
+
+        unavailable_section = f"""
+        <h3>Unavailable Sources</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Source</th>
+                    <th>Reason</th>
+                </tr>
+            </thead>
+            <tbody>
+                {failure_rows}
+            </tbody>
+        </table>
+        """
+
+    diagnostics_section = ""
+
+    if parser_diagnostics:
+        diagnostics_rows = []
+
+        for diagnostics in parser_diagnostics:
+            reason_codes = ", ".join(
+                _escape_redacted(reason)
+                for reason in diagnostics.get(
+                    "reason_codes", []
+                )
+            )
+
+            if not reason_codes:
+                reason_codes = "Not available"
+
+            quarantine = diagnostics.get("quarantine")
+
+            if isinstance(quarantine, dict):
+                quarantine_retained = quarantine.get(
+                    "retained",
+                    "Not available",
+                )
+                quarantine_dropped = quarantine.get(
+                    "dropped",
+                    "Not available",
+                )
+            else:
+                quarantine_retained = "Not enabled"
+                quarantine_dropped = "Not enabled"
+
+            diagnostics_rows.append(
+                "<tr>"
+                f"<td>{_escape_redacted(diagnostics['source'])}</td>"
+                f"<td>{_escape_redacted(diagnostics['read'])}</td>"
+                f"<td>{_escape_redacted(diagnostics['accepted'])}</td>"
+                f"<td>{_escape_redacted(diagnostics['rejected'])}</td>"
+                f"<td>{reason_codes}</td>"
+                f"<td>{_escape_redacted(diagnostics['issues_dropped'])}</td>"
+                f"<td>{_escape_redacted(quarantine_retained)}</td>"
+                f"<td>{_escape_redacted(quarantine_dropped)}</td>"
+                "</tr>"
+            )
+
+        diagnostics_section = f"""
+        <h3>Parser Diagnostics</h3>
+
+        <p>
+            Accepted records were processed.
+            Rejected records were excluded from analysis.
+        </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Source</th>
+                    <th>Read</th>
+                    <th>Accepted</th>
+                    <th>Rejected</th>
+                    <th>Reason Codes</th>
+                    <th>Issues Dropped</th>
+                    <th>Quarantine Retained</th>
+                    <th>Quarantine Dropped</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(diagnostics_rows)}
+            </tbody>
+        </table>
+
+        <p>
+            Reason codes describe retained diagnostic issues only.
+            Issues Dropped counts diagnostic entries not retained
+            because of the configured limit.
+            These are not additional rejected records.
+        </p>
+        """
+
+    missing_details = ""
+
+    if not source_failures and not parser_diagnostics:
+        missing_details = (
+            "<p>"
+            "Incomplete telemetry; no source failure details"
+            "</p>"
+        )
+
+    return f"""
+    <section class="report-section input-integrity-section"
+             role="alert">
+        <h2>Input Integrity — Incomplete</h2>
+
+        <p>
+            Some telemetry was unavailable or input records
+            were rejected. Findings may not represent the
+            complete security picture.
+        </p>
+
+        {unavailable_section}
+
+        {diagnostics_section}
+
+        {missing_details}
+    </section>
+    """
+
+
 def generate_html_report(
     report: ThreatReport,
     output_path: str = "reports/threat_report.html"
@@ -203,6 +362,9 @@ def generate_html_report(
     summary = report.summary()
     mitre_stats = generate_mitre_statistics(report.findings)
     physical_security_section = (_generate_physical_security_section(report))
+    input_integrity_section = _generate_input_integrity_section(
+        report,
+    )
 
     network_statistics = {
         "total_network_events": 0,
@@ -406,6 +568,8 @@ def generate_html_report(
 
     <h2>Executive Summary</h2>
     <pre>{_escape_redacted(executive_summary)}</pre>
+
+    {input_integrity_section}
 
     <h2>MITRE ATT&CK Statistics</h2>
     <ul>
