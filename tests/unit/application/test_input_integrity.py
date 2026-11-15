@@ -4,7 +4,9 @@ from src.application.input_integrity import (
     build_input_integrity,
 )
 from src.application.source_failure import SourceFailure
+
 from src.parsers.parser_diagnostics import ParserDiagnostics
+from src.parsers.quarantine_buffer import QuarantineBuffer
 
 
 def test_input_integrity_does_not_claim_complete():
@@ -141,3 +143,58 @@ def test_input_integrity_preserves_rejections_with_zero_issue_limit():
         ],
     }
 
+
+def test_input_integrity_reports_quarantine_retention_separately():
+    quarantine = QuarantineBuffer(
+        max_records=1,
+        max_record_bytes=128,
+    )
+
+    diagnostics = ParserDiagnostics(
+        source="firewall",
+        max_issues=0,
+        quarantine=quarantine,
+    )
+
+    diagnostics.accept()
+
+    diagnostics.reject(
+        2,
+        "too_few_fields",
+        raw_record="PRIVATE_FIREWALL_RECORD_A",
+    )
+
+    diagnostics.reject(
+        3,
+        "invalid_port",
+        raw_record="PRIVATE_FIREWALL_RECORD_B",
+    )
+
+    result = build_input_integrity(
+        source_failures=[],
+        parser_diagnostics=[diagnostics],
+    )
+
+    assert result is not None
+    assert result["status"] == "incomplete"
+
+    assert result["parser_diagnostics"] == [
+        {
+            "source": "firewall",
+            "read": 3,
+            "accepted": 1,
+            "rejected": 2,
+            "reason_codes": [],
+            "issues_dropped": 2,
+            "quarantine": {
+                "retained": 1,
+                "dropped": 1,
+            },
+        },
+    ]
+
+    assert "PRIVATE_FIREWALL_RECORD_A" not in repr(result)
+    assert "PRIVATE_FIREWALL_RECORD_B" not in repr(result)
+
+    assert diagnostics.issues_dropped == 2
+    assert quarantine.dropped == 1

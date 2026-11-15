@@ -29,6 +29,8 @@ def parse_nginx_json_log(
             if not line.strip():
                 continue
 
+            raw_record = line.rstrip("\r\n")
+
             try:
                 data = json.loads(line)
             except json.JSONDecodeError:
@@ -36,6 +38,7 @@ def parse_nginx_json_log(
                     diagnostics.reject(
                         line_number=line_number,
                         reason="invalid_json",
+                        raw_record=raw_record,
                     )
                 continue
 
@@ -44,6 +47,7 @@ def parse_nginx_json_log(
                     diagnostics.reject(
                         line_number=line_number,
                         reason="invalid_root_type",
+                        raw_record=raw_record,
                     )
                 continue
 
@@ -81,6 +85,7 @@ def parse_nginx_json_log(
                     diagnostics.reject(
                         line_number=line_number,
                         reason="invalid_field_type",
+                        raw_record=raw_record,
                     )
                 continue
 
@@ -107,6 +112,7 @@ def parse_nginx_json_log(
                     diagnostics.reject(
                         line_number=line_number,
                         reason="invalid_status",
+                        raw_record=raw_record,
                     )
                 continue
 
@@ -136,6 +142,7 @@ def parse_nginx_json_log(
                     diagnostics.reject(
                         line_number=line_number,
                         reason="invalid_server_port",
+                        raw_record=raw_record,
                     )
                 continue
 
@@ -162,6 +169,7 @@ def parse_nginx_json_log(
                     diagnostics.reject(
                         line_number=line_number,
                         reason="invalid_response_size",
+                        raw_record=raw_record,
                     )
                 continue
 
@@ -198,6 +206,7 @@ def parse_nginx_json_log(
                         diagnostics.reject(
                             line_number=line_number,
                             reason="invalid_request_time",
+                            raw_record=raw_record,
                         )
                     continue
 
@@ -228,6 +237,7 @@ def parse_nginx_json_log(
                         diagnostics.reject(
                             line_number=line_number,
                             reason="invalid_upstream_status",
+                            raw_record=raw_record,
                         )
                     continue
 

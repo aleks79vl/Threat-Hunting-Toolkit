@@ -259,6 +259,21 @@ def _generate_input_integrity_section(
             if not reason_codes:
                 reason_codes = "Not available"
 
+            quarantine = diagnostics.get("quarantine")
+
+            if isinstance(quarantine, dict):
+                quarantine_retained = quarantine.get(
+                    "retained",
+                    "Not available",
+                )
+                quarantine_dropped = quarantine.get(
+                    "dropped",
+                    "Not available",
+                )
+            else:
+                quarantine_retained = "Not enabled"
+                quarantine_dropped = "Not enabled"
+
             diagnostics_rows.append(
                 "<tr>"
                 f"<td>{_escape_redacted(diagnostics['source'])}</td>"
@@ -267,6 +282,8 @@ def _generate_input_integrity_section(
                 f"<td>{_escape_redacted(diagnostics['rejected'])}</td>"
                 f"<td>{reason_codes}</td>"
                 f"<td>{_escape_redacted(diagnostics['issues_dropped'])}</td>"
+                f"<td>{_escape_redacted(quarantine_retained)}</td>"
+                f"<td>{_escape_redacted(quarantine_dropped)}</td>"
                 "</tr>"
             )
 
@@ -287,6 +304,8 @@ def _generate_input_integrity_section(
                     <th>Rejected</th>
                     <th>Reason Codes</th>
                     <th>Issues Dropped</th>
+                    <th>Quarantine Retained</th>
+                    <th>Quarantine Dropped</th>
                 </tr>
             </thead>
             <tbody>

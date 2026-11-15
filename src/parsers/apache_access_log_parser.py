@@ -38,15 +38,19 @@ def _parse_access_log(
             if not line.strip():
                 continue
 
-            match = pattern.fullmatch(line.rstrip("\r\n"))
+            raw_record = line.rstrip("\r\n")
+
+            match = pattern.fullmatch(raw_record)
 
             if not match:
                 if diagnostics is not None:
                     diagnostics.reject(
                         line_number=line_number,
                         reason="invalid_log_format",
+                        raw_record=raw_record,
                     )
                 continue
+
 
             data = match.groupdict()
 

@@ -823,6 +823,8 @@ def test_main_exports_partial_firewall_input_integrity(
         f"<td>{firewall['rejected']}</td>"
         f"<td>{', '.join(firewall['reason_codes'])}</td>"
         f"<td>{firewall['issues_dropped']}</td>"
+        f"<td>{firewall['quarantine']['retained']}</td>"
+        f"<td>{firewall['quarantine']['dropped']}</td>"
         "</tr>"
     )
 
@@ -834,11 +836,37 @@ def test_main_exports_partial_firewall_input_integrity(
     assert malformed_marker not in html_content
 
 
+
 def test_main_preserves_firewall_rejection_counts_when_issue_limit_exceeded(
     tmp_path,
+    monkeypatch,
 ):
+    import importlib
     import json
     from pathlib import Path
+
+    main_module = importlib.import_module("src.main")
+    original_build = main_module.build_input_integrity
+
+    captured_diagnostics = []
+
+    def capture_input_integrity(
+        *,
+        source_failures,
+        parser_diagnostics,
+    ):
+        captured_diagnostics.extend(parser_diagnostics)
+
+        return original_build(
+            source_failures=source_failures,
+            parser_diagnostics=parser_diagnostics,
+        )
+
+    monkeypatch.setattr(
+        main_module,
+        "build_input_integrity",
+        capture_input_integrity,
+    )
 
     config = default_app_config()
 
@@ -894,7 +922,6 @@ def test_main_preserves_firewall_rejection_counts_when_issue_limit_exceeded(
     firewall = firewall_records[0]
 
     assert firewall["rejected"] >= malformed_count
-
     assert firewall["accepted"] >= 1
 
     assert firewall["read"] == (
@@ -907,6 +934,56 @@ def test_main_preserves_firewall_rejection_counts_when_issue_limit_exceeded(
 
     assert firewall["issues_dropped"] >= 5
 
+
+    runtime_firewall = [
+        diagnostics
+        for diagnostics in captured_diagnostics
+        if diagnostics.source == "firewall"
+    ]
+
+    assert len(runtime_firewall) == 1
+
+    diagnostics = runtime_firewall[0]
+
+    assert diagnostics.read == firewall["read"]
+    assert diagnostics.accepted == firewall["accepted"]
+    assert diagnostics.rejected == firewall["rejected"]
+
+    assert (
+        diagnostics.issues_dropped
+        == firewall["issues_dropped"]
+    )
+
+
+    quarantine = diagnostics.quarantine
+
+    assert quarantine is not None
+
+    assert quarantine.max_records == 100
+    assert quarantine.max_record_bytes == 4096
+
+    assert 0 < len(quarantine.records) <= 100
+    assert quarantine.dropped >= 5
+
+    assert (
+        len(quarantine.records) + quarantine.dropped
+        == diagnostics.rejected
+    )
+
+    assert any(
+        record.raw_record == malformed_marker
+        for record in quarantine.records
+    )
+
+    assert all(
+        record.source == "firewall"
+        for record in quarantine.records
+    )
+
+    assert malformed_marker not in repr(quarantine)
+    assert malformed_marker not in repr(diagnostics)
+
+
     assert set(firewall) == {
         "source",
         "read",
@@ -914,7 +991,36 @@ def test_main_preserves_firewall_rejection_counts_when_issue_limit_exceeded(
         "rejected",
         "reason_codes",
         "issues_dropped",
+        "quarantine",
     }
+
+    quarantine_metrics = firewall["quarantine"]
+
+    assert set(quarantine_metrics) == {
+        "retained",
+        "dropped",
+    }
+
+    assert quarantine_metrics == {
+        "retained": len(quarantine.records),
+        "dropped": quarantine.dropped,
+    }
+
+    assert quarantine_metrics["retained"] == 100
+    assert quarantine_metrics["dropped"] == 5
+
+    assert (
+        quarantine_metrics["retained"]
+        + quarantine_metrics["dropped"]
+        == firewall["rejected"]
+    )
+
+    assert firewall["issues_dropped"] == 5
+    assert diagnostics.issues_dropped == 5
+    assert quarantine.dropped == 5
+
+    assert "raw_record" not in firewall
+    assert "records" not in quarantine_metrics
 
     json_content = json_report.read_text(
         encoding="utf-8"
@@ -927,6 +1033,10 @@ def test_main_preserves_firewall_rejection_counts_when_issue_limit_exceeded(
     assert malformed_marker not in json_content
     assert malformed_marker not in html_content
 
+    assert "PRIVATE_FIREWALL_RECORD" not in json_content
+    assert "PRIVATE_FIREWALL_RECORD" not in html_content
+
+    assert "Input Integrity" in html_content
     assert "Parser Diagnostics" in html_content
 
     assert (
@@ -938,3 +1048,221 @@ def test_main_preserves_firewall_rejection_counts_when_issue_limit_exceeded(
         "Reason codes describe retained diagnostic issues only."
         in html_content
     )
+
+    if not integrity["source_failures"]:
+        assert "Unavailable Sources" not in html_content
+
+
+def test_main_initializes_independent_quarantine_per_source(
+    tmp_path,
+    monkeypatch,
+):
+    import importlib
+
+    from src.parsers.quarantine_buffer import QuarantineBuffer
+
+    main_module = importlib.import_module("src.main")
+
+    original_build = main_module.build_input_integrity
+    captured_diagnostics = []
+
+    def capture_input_integrity(
+        *,
+        source_failures,
+        parser_diagnostics,
+    ):
+        captured_diagnostics.extend(parser_diagnostics)
+
+        return original_build(
+            source_failures=source_failures,
+            parser_diagnostics=parser_diagnostics,
+        )
+
+    monkeypatch.setattr(
+        main_module,
+        "build_input_integrity",
+        capture_input_integrity,
+    )
+
+    config = replace(
+        default_app_config(),
+        json_output_file=str(
+            tmp_path / "runtime_quarantine.json"
+        ),
+        html_output_file=str(
+            tmp_path / "runtime_quarantine.html"
+        ),
+    )
+
+    main(config)
+
+    assert len(captured_diagnostics) == 5
+
+    assert {
+        diagnostics.source
+        for diagnostics in captured_diagnostics
+    } == {
+        "firewall",
+        "nginx",
+        "waf_cdn",
+        "apache_access",
+        "apache_vhost",
+    }
+
+    quarantines = [
+        diagnostics.quarantine
+        for diagnostics in captured_diagnostics
+    ]
+
+    assert all(
+        isinstance(quarantine, QuarantineBuffer)
+        for quarantine in quarantines
+    )
+
+    assert len({
+        id(quarantine)
+        for quarantine in quarantines
+    }) == 5
+
+    assert all(
+        quarantine.max_records == 100
+        and quarantine.max_record_bytes == 4096
+        for quarantine in quarantines
+    )
+
+
+def test_main_quarantines_firewall_raw_record_without_exporting_it(
+    tmp_path,
+    monkeypatch,
+):
+    import importlib
+    import json
+
+    main_module = importlib.import_module("src.main")
+
+    original_build = main_module.build_input_integrity
+    captured_diagnostics = []
+
+    def capture_input_integrity(
+        *,
+        source_failures,
+        parser_diagnostics,
+    ):
+        captured_diagnostics.extend(parser_diagnostics)
+
+        return original_build(
+            source_failures=source_failures,
+            parser_diagnostics=parser_diagnostics,
+        )
+
+    monkeypatch.setattr(
+        main_module,
+        "build_input_integrity",
+        capture_input_integrity,
+    )
+
+    malformed_record = (
+        "PRIVATE_RUNTIME_QUARANTINE_TOKEN_password=do_not_export"
+    )
+
+    firewall_file = tmp_path / "runtime_firewall.log"
+
+    firewall_file.write_text(
+        "\n".join([
+            "2026-06-27 09:00:15 ALLOW TCP "
+            "192.168.1.10 192.168.1.77 3389",
+            malformed_record,
+            "2026-06-27 09:00:17 DENY UDP "
+            "192.168.1.30 192.168.1.80 53",
+        ]) + "\n",
+        encoding="utf-8",
+    )
+
+    json_report = tmp_path / "quarantine_e2e.json"
+    html_report = tmp_path / "quarantine_e2e.html"
+
+    config = replace(
+        default_app_config(),
+        firewall_file=str(firewall_file),
+        json_output_file=str(json_report),
+        html_output_file=str(html_report),
+    )
+
+    main(config)
+
+    firewall_diagnostics = [
+        diagnostics
+        for diagnostics in captured_diagnostics
+        if diagnostics.source == "firewall"
+    ]
+
+    assert len(firewall_diagnostics) == 1
+
+    diagnostics = firewall_diagnostics[0]
+
+    assert diagnostics.read == 3
+    assert diagnostics.accepted == 2
+    assert diagnostics.rejected == 1
+
+    assert [
+        (issue.line_number, issue.reason)
+        for issue in diagnostics.issues
+    ] == [
+        (2, "too_few_fields"),
+    ]
+
+    quarantine = diagnostics.quarantine
+
+    assert quarantine is not None
+    assert len(quarantine.records) == 1
+    assert quarantine.dropped == 0
+
+    retained = quarantine.records[0]
+
+    assert retained.source == "firewall"
+    assert retained.line_number == 2
+    assert retained.reason_code == "too_few_fields"
+    assert retained.raw_record == malformed_record
+
+    report = json.loads(
+        json_report.read_text(encoding="utf-8")
+    )
+
+    integrity = report["input_integrity"]
+
+    assert integrity["status"] == "incomplete"
+
+    firewall_records = [
+        item
+        for item in integrity["parser_diagnostics"]
+        if item["source"] == "firewall"
+    ]
+
+    assert len(firewall_records) == 1
+
+    assert firewall_records[0]["read"] == 3
+    assert firewall_records[0]["accepted"] == 2
+    assert firewall_records[0]["rejected"] == 1
+    assert firewall_records[0]["reason_codes"] == [
+        "too_few_fields",
+    ]
+
+    assert "raw_record" not in firewall_records[0]
+
+    json_content = json_report.read_text(
+        encoding="utf-8"
+    )
+    html_content = html_report.read_text(
+        encoding="utf-8"
+    )
+
+    assert "Parser Diagnostics" in html_content
+
+    assert malformed_record not in json_content
+    assert malformed_record not in html_content
+
+    assert "do_not_export" not in json_content
+    assert "do_not_export" not in html_content
+
+    assert malformed_record not in repr(diagnostics)
+    assert malformed_record not in repr(quarantine)

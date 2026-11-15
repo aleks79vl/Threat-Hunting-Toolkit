@@ -252,6 +252,8 @@ def test_input_integrity_html_handles_zero_retained_issues():
         "<td>2</td>"
         "<td>Not available</td>"
         "<td>2</td>"
+        "<td>Not enabled</td>"
+        "<td>Not enabled</td>"
         "</tr>"
     )
 
@@ -260,3 +262,75 @@ def test_input_integrity_html_handles_zero_retained_issues():
     assert "Unavailable Sources" not in html
     assert "Reason codes describe retained" in html
 
+
+def test_input_integrity_html_displays_safe_quarantine_metrics():
+    secret = "PRIVATE_QUARANTINE_RAW_DO_NOT_EXPORT"
+
+    report = make_report({
+        "status": "incomplete",
+        "source_failures": [],
+        "parser_diagnostics": [
+            {
+                "source": "firewall",
+                "read": 115,
+                "accepted": 10,
+                "rejected": 105,
+                "reason_codes": ["too_few_fields"],
+                "issues_dropped": 5,
+                "quarantine": {
+                    "retained": 100,
+                    "dropped": 5,
+                    "raw_record": secret,
+                },
+            },
+            {
+                "source": "nginx",
+                "read": 3,
+                "accepted": 2,
+                "rejected": 1,
+                "reason_codes": ["invalid_json"],
+                "issues_dropped": 0,
+            },
+        ],
+    })
+
+    html = _generate_input_integrity_section(report)
+
+    assert "Input Integrity" in html
+    assert "Parser Diagnostics" in html
+
+    assert "Quarantine Retained" in html
+    assert "Quarantine Dropped" in html
+
+    expected_firewall_row = (
+        "<tr>"
+        "<td>firewall</td>"
+        "<td>115</td>"
+        "<td>10</td>"
+        "<td>105</td>"
+        "<td>too_few_fields</td>"
+        "<td>5</td>"
+        "<td>100</td>"
+        "<td>5</td>"
+        "</tr>"
+    )
+
+    assert expected_firewall_row in html
+
+    expected_nginx_row = (
+        "<tr>"
+        "<td>nginx</td>"
+        "<td>3</td>"
+        "<td>2</td>"
+        "<td>1</td>"
+        "<td>invalid_json</td>"
+        "<td>0</td>"
+        "<td>Not enabled</td>"
+        "<td>Not enabled</td>"
+        "</tr>"
+    )
+
+    assert expected_nginx_row in html
+
+    assert secret not in html
+    assert "raw_record" not in html

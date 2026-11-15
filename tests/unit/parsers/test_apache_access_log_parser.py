@@ -5,6 +5,7 @@ from src.parsers.apache_access_log_parser import (
     parse_apache_vhost_access_log,
 )
 from src.parsers.parser_diagnostics import ParserDiagnostics
+from src.parsers.quarantine_buffer import QuarantineBuffer
 
 
 def test_parse_apache_access_log_returns_events():
@@ -314,3 +315,109 @@ def test_apache_parser_rejects_trailing_garbage(
         "secret=do_not_echo" not in event.raw_event
         for event in events
     )
+
+
+@pytest.mark.parametrize(
+    ("parser", "with_vhost", "source"),
+    [
+        (
+            parse_apache_access_log,
+            False,
+            "apache_access",
+        ),
+        (
+            parse_apache_vhost_access_log,
+            True,
+            "apache_vhost",
+        ),
+    ],
+    ids=["combined", "vhost_combined"],
+)
+def test_apache_parser_quarantines_invalid_record_and_continues(
+    tmp_path,
+    parser,
+    with_vhost,
+    source,
+):
+    log_file = tmp_path / "apache_quarantine.log"
+
+    valid_first = (
+        '192.0.2.10 - - '
+        '[21/Oct/2026:10:00:00 +0000] '
+        '"GET /before HTTP/1.1" 200 1024 '
+        '"-" "pytest"'
+    )
+
+    malformed_record = (
+        "INVALID_APACHE_RECORD_PRIVATE_DO_NOT_EXPORT"
+    )
+
+    valid_last = (
+        '192.0.2.20 - - '
+        '[21/Oct/2026:10:00:02 +0000] '
+        '"GET /after HTTP/1.1" 204 - '
+        '"-" "pytest"'
+    )
+
+    if with_vhost:
+        valid_first = f"api.example.com {valid_first}"
+        valid_last = f"api.example.com {valid_last}"
+
+    log_file.write_text(
+        "\n".join([
+            valid_first,
+            malformed_record,
+            valid_last,
+        ]) + "\n",
+        encoding="utf-8",
+    )
+
+    quarantine = QuarantineBuffer(
+        max_records=2,
+        max_record_bytes=1024,
+    )
+
+    diagnostics = ParserDiagnostics(
+        source=source,
+        quarantine=quarantine,
+    )
+
+    events = parser(
+        str(log_file),
+        diagnostics=diagnostics,
+    )
+
+    assert len(events) == 2
+    assert [event.path for event in events] == [
+        "/before",
+        "/after",
+    ]
+
+    assert [event.response_size for event in events] == [
+        1024,
+        0,
+    ]
+
+    assert diagnostics.read == 3
+    assert diagnostics.accepted == 2
+    assert diagnostics.rejected == 1
+
+    assert [
+        (issue.line_number, issue.reason)
+        for issue in diagnostics.issues
+    ] == [
+        (2, "invalid_log_format"),
+    ]
+
+    assert len(quarantine.records) == 1
+    assert quarantine.dropped == 0
+
+    record = quarantine.records[0]
+
+    assert record.source == source
+    assert record.line_number == 2
+    assert record.reason_code == "invalid_log_format"
+    assert record.raw_record == malformed_record
+
+    assert malformed_record not in repr(quarantine)
+    assert malformed_record not in repr(diagnostics)

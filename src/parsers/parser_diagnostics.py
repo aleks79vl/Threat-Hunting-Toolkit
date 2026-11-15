@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 
 import re
 
+from src.parsers.quarantine_buffer import QuarantineBuffer
+
 
 _REASON_CODE_PATTERN = re.compile(
     r"[a-z][a-z0-9_]{0,63}"
@@ -40,6 +42,12 @@ class ParserDiagnostics:
         init=False,
     )
 
+    quarantine: QuarantineBuffer | None = field(
+        default=None,
+        kw_only=True,
+        repr=False,
+    )
+
     def __post_init__(self) -> None:
         """Validate diagnostics configuration."""
 
@@ -54,13 +62,14 @@ class ParserDiagnostics:
         self.read += 1
         self.accepted += 1
 
-
     def reject(
         self,
         line_number: int,
         reason: str,
+        *,
+        raw_record: str | None = None,
     ) -> None:
-        """Record a rejected input with a safe reason code."""
+        """Record a rejection and optionally quarantine raw input."""
 
         if type(line_number) is not int or line_number <= 0:
             raise ValueError(
@@ -78,6 +87,14 @@ class ParserDiagnostics:
                 "with a maximum length of 64"
             )
 
+        quarantine = self.quarantine
+
+        if quarantine is not None:
+            if not isinstance(raw_record, str):
+                raise ValueError(
+                    "raw_record is required when quarantine is enabled"
+                )
+
         self.read += 1
         self.rejected += 1
 
@@ -90,3 +107,11 @@ class ParserDiagnostics:
             )
         else:
             self.issues_dropped += 1
+
+        if quarantine is not None:
+            quarantine.capture(
+                source=self.source,
+                line_number=line_number,
+                reason_code=reason,
+                raw_record=raw_record,
+            )

@@ -24,7 +24,7 @@ def build_input_integrity(
     if not source_failures and not rejected_sources:
         return None
 
-    return {
+    result = {
         "status": "incomplete",
         "source_failures": [
             {
@@ -48,3 +48,18 @@ def build_input_integrity(
             for diagnostics in rejected_sources
         ],
     }
+
+    for diagnostics, entry in zip(
+        rejected_sources,
+        result["parser_diagnostics"],
+        strict=True,
+    ):
+        quarantine = diagnostics.quarantine
+
+        if quarantine is not None:
+            entry["quarantine"] = {
+                "retained": len(quarantine.records),
+                "dropped": quarantine.dropped,
+            }
+
+    return result

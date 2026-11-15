@@ -5,6 +5,7 @@ from src.parsers.nginx_json_log_parser import (
     parse_nginx_json_log,
 )
 from src.parsers.parser_diagnostics import ParserDiagnostics
+from src.parsers.quarantine_buffer import QuarantineBuffer
 
 
 def test_parse_nginx_json_log_returns_valid_events():
@@ -1091,3 +1092,157 @@ def test_nginx_parser_rejects_multiple_upstream_statuses(
     assert diagnostics.read == (
         diagnostics.accepted + diagnostics.rejected
     )
+
+
+def test_nginx_parser_quarantines_invalid_root_type_and_continues(
+    tmp_path,
+):
+    log_file = _write_nginx_log_with_array(tmp_path)
+
+    records = log_file.read_text(
+        encoding="utf-8",
+    ).splitlines()
+
+    assert len(records) == 3
+
+    malformed_record = records[1]
+
+    quarantine = QuarantineBuffer(
+        max_records=2,
+        max_record_bytes=4096,
+    )
+
+    diagnostics = ParserDiagnostics(
+        source="nginx",
+        quarantine=quarantine,
+    )
+
+    events = parse_nginx_json_log(
+        str(log_file),
+        diagnostics=diagnostics,
+    )
+
+    assert len(events) == 2
+    assert [event.path for event in events] == [
+        "/first",
+        "/second",
+    ]
+
+    assert diagnostics.read == 3
+    assert diagnostics.accepted == 2
+    assert diagnostics.rejected == 1
+
+    assert [
+        (issue.line_number, issue.reason)
+        for issue in diagnostics.issues
+    ] == [
+        (2, "invalid_root_type"),
+    ]
+
+    assert len(quarantine.records) == 1
+    assert quarantine.dropped == 0
+
+    record = quarantine.records[0]
+
+    assert record.source == "nginx"
+    assert record.line_number == 2
+    assert record.reason_code == "invalid_root_type"
+    assert record.raw_record == malformed_record
+
+    assert malformed_record not in repr(quarantine)
+    assert malformed_record not in repr(diagnostics)
+
+
+@pytest.mark.parametrize(
+    ("malformed_record", "reason_code"),
+    [
+        (
+            '{"request_uri":',
+            "invalid_json",
+        ),
+        (
+            '{"request_uri":[]}',
+            "invalid_field_type",
+        ),
+        (
+            '{"status":true}',
+            "invalid_status",
+        ),
+        (
+            '{"server_port":65536}',
+            "invalid_server_port",
+        ),
+        (
+            '{"bytes_sent":-1}',
+            "invalid_response_size",
+        ),
+        (
+            '{"request_time":-1}',
+            "invalid_request_time",
+        ),
+        (
+            '{"upstream_status":[]}',
+            "invalid_upstream_status",
+        ),
+    ],
+)
+def test_nginx_quarantine_covers_all_other_rejection_reasons(
+    tmp_path,
+    malformed_record,
+    reason_code,
+):
+    log_file = tmp_path / "nginx_quarantine_reasons.jsonl"
+
+    log_file.write_text(
+        "\n".join([
+            '{"request_uri":"/before","status":200}',
+            malformed_record,
+            '{"request_uri":"/after","status":200}',
+        ]) + "\n",
+        encoding="utf-8",
+    )
+
+    quarantine = QuarantineBuffer(
+        max_records=2,
+        max_record_bytes=1024,
+    )
+
+    diagnostics = ParserDiagnostics(
+        source="nginx",
+        quarantine=quarantine,
+    )
+
+    events = parse_nginx_json_log(
+        str(log_file),
+        diagnostics=diagnostics,
+    )
+
+    assert len(events) == 2
+    assert [event.path for event in events] == [
+        "/before",
+        "/after",
+    ]
+
+    assert diagnostics.read == 3
+    assert diagnostics.accepted == 2
+    assert diagnostics.rejected == 1
+
+    assert [
+        (issue.line_number, issue.reason)
+        for issue in diagnostics.issues
+    ] == [
+        (2, reason_code),
+    ]
+
+    assert len(quarantine.records) == 1
+    assert quarantine.dropped == 0
+
+    retained = quarantine.records[0]
+
+    assert retained.source == "nginx"
+    assert retained.line_number == 2
+    assert retained.reason_code == reason_code
+    assert retained.raw_record == malformed_record
+
+    assert malformed_record not in repr(quarantine)
+    assert malformed_record not in repr(diagnostics)

@@ -15,7 +15,8 @@ def parse_firewall_log(
 
     with open(file_path, "r", encoding="utf-8") as file:
         for line_number, raw_line in enumerate(file, start=1):
-            line = raw_line.strip()
+            raw_record = raw_line.rstrip("\r\n")
+            line = raw_record.strip()
 
             if not line:
                 continue
@@ -27,6 +28,7 @@ def parse_firewall_log(
                     diagnostics.reject(
                         line_number=line_number,
                         reason="too_few_fields",
+                        raw_record=raw_record,
                     )
                 continue
 
@@ -41,16 +43,18 @@ def parse_firewall_log(
             except ValueError:
                 if diagnostics is not None:
                     diagnostics.reject(
-                        line_number=line_number,
-                        reason="invalid_port",
+                    line_number=line_number,
+                    reason="invalid_port",
+                    raw_record=raw_record,
                     )
                 continue
 
             if not 0 <= dst_port <= 65535:
                 if diagnostics is not None:
                     diagnostics.reject(
-                        line_number=line_number,
-                        reason="invalid_port_range",
+                    line_number=line_number,
+                    reason="invalid_port_range",
+                    raw_record=raw_record,
                     )
                 continue
 

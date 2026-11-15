@@ -32,6 +32,7 @@ from src.reporting.console_summary import print_console_summary
 from src.config.app_config import AppConfig, default_app_config
 
 from src.parsers.parser_diagnostics import ParserDiagnostics
+from src.parsers.quarantine_buffer import QuarantineBuffer
 
 
 def main(
@@ -67,6 +68,10 @@ def main(
 
     firewall_diagnostics = ParserDiagnostics(
         source="firewall",
+        quarantine=QuarantineBuffer(
+            max_records=100,
+            max_record_bytes=4096,
+        ),
     )
 
     source_failures: list[SourceFailure] = []
@@ -91,19 +96,34 @@ def main(
     web_findings = traditional_result.web_findings
 
     nginx_diagnostics = ParserDiagnostics(
-        source="nginx",
+        source="nginx",quarantine=QuarantineBuffer(
+            max_records=100,
+            max_record_bytes=4096,
+        ),
     )
 
     waf_diagnostics = ParserDiagnostics(
         source="waf_cdn",
+        quarantine=QuarantineBuffer(
+            max_records=100,
+            max_record_bytes=4096,
+        ),
     )
 
     apache_access_diagnostics = ParserDiagnostics(
         source="apache_access",
+        quarantine=QuarantineBuffer(
+            max_records=100,
+            max_record_bytes=4096,
+        ),
     )
 
     apache_vhost_diagnostics = ParserDiagnostics(
         source="apache_vhost",
+        quarantine=QuarantineBuffer(
+            max_records=100,
+            max_record_bytes=4096,
+        ),
     )
 
     web_infrastructure_result = (

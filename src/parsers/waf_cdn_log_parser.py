@@ -20,6 +20,8 @@ def parse_waf_cdn_log(
             if not line.strip():
                 continue
 
+            raw_record = line.rstrip("\r\n")
+
             try:
                 data = json.loads(line)
 
@@ -28,6 +30,7 @@ def parse_waf_cdn_log(
                     diagnostics.reject(
                         line_number=line_number,
                         reason="invalid_json",
+                        raw_record=raw_record,
                     )
                 continue
 
@@ -36,6 +39,7 @@ def parse_waf_cdn_log(
                     diagnostics.reject(
                         line_number=line_number,
                         reason="invalid_root_type",
+                        raw_record=raw_record,
                     )
                 continue
 
@@ -62,6 +66,7 @@ def parse_waf_cdn_log(
                     diagnostics.reject(
                         line_number=line_number,
                         reason="invalid_status_code",
+                        raw_record=raw_record,
                     )
                 continue
 
@@ -94,6 +99,7 @@ def parse_waf_cdn_log(
                     diagnostics.reject(
                         line_number=line_number,
                         reason="invalid_field_type",
+                        raw_record=raw_record,
                     )
                 continue
 
@@ -116,6 +122,7 @@ def parse_waf_cdn_log(
                     diagnostics.reject(
                         line_number=line_number,
                         reason="invalid_rule_id",
+                        raw_record=raw_record,
                     )
                 continue
 

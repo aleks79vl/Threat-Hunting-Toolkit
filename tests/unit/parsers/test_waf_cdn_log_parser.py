@@ -5,6 +5,7 @@ from src.parsers.parser_diagnostics import ParserDiagnostics
 from src.parsers.waf_cdn_log_parser import (
     parse_waf_cdn_log,
 )
+from src.parsers.quarantine_buffer import QuarantineBuffer
 
 
 def test_parse_waf_cdn_log_returns_valid_events():
@@ -579,3 +580,188 @@ def test_waf_parser_rejects_invalid_rule_id(
     assert diagnostics.read == (
         diagnostics.accepted + diagnostics.rejected
     )
+
+
+def test_waf_parser_quarantines_json_null_and_continues(
+    tmp_path,
+):
+    log_file = tmp_path / "waf_quarantine.jsonl"
+
+    valid_record = {
+        "timestamp": "2026-10-21T10:00:00Z",
+        "client_ip": "192.0.2.10",
+        "method": "GET",
+        "path": "/before",
+        "status_code": 200,
+        "host": "api.example.com",
+        "provider": "cloudflare",
+        "action": "allow",
+    }
+
+    last_record = {
+        **valid_record,
+        "path": "/after",
+        "status_code": 403,
+        "action": "block",
+    }
+
+    malformed_record = "null"
+
+    log_file.write_text(
+        "\n".join([
+            json.dumps(valid_record),
+            malformed_record,
+            json.dumps(last_record),
+        ]) + "\n",
+        encoding="utf-8",
+    )
+
+    quarantine = QuarantineBuffer(
+        max_records=2,
+        max_record_bytes=1024,
+    )
+
+    diagnostics = ParserDiagnostics(
+        source="waf_cdn",
+        quarantine=quarantine,
+    )
+
+    events = parse_waf_cdn_log(
+        str(log_file),
+        diagnostics=diagnostics,
+    )
+
+    assert len(events) == 2
+    assert [event.path for event in events] == [
+        "/before",
+        "/after",
+    ]
+
+    assert diagnostics.read == 3
+    assert diagnostics.accepted == 2
+    assert diagnostics.rejected == 1
+
+    assert [
+        (issue.line_number, issue.reason)
+        for issue in diagnostics.issues
+    ] == [
+        (2, "invalid_root_type"),
+    ]
+
+    assert len(quarantine.records) == 1
+    assert quarantine.dropped == 0
+
+    record = quarantine.records[0]
+
+    assert record.source == "waf_cdn"
+    assert record.line_number == 2
+    assert record.reason_code == "invalid_root_type"
+    assert record.raw_record == malformed_record
+
+    assert "raw_record=" not in repr(quarantine)
+    assert "raw_record=" not in repr(diagnostics)
+
+
+@pytest.mark.parametrize(
+    ("malformed_record", "reason_code"),
+    [
+        (
+            '{"timestamp":',
+            "invalid_json",
+        ),
+        (
+            '{"status_code":true}',
+            "invalid_status_code",
+        ),
+        (
+            '{"path":[]}',
+            "invalid_field_type",
+        ),
+        (
+            '{"rule_id":[]}',
+            "invalid_rule_id",
+        ),
+    ],
+)
+def test_waf_quarantine_covers_other_rejection_reasons(
+    tmp_path,
+    malformed_record,
+    reason_code,
+):
+    log_file = tmp_path / "waf_quarantine_reasons.jsonl"
+
+    valid_record = {
+        "timestamp": "2026-10-21T10:00:00Z",
+        "client_ip": "192.0.2.10",
+        "method": "GET",
+        "path": "/before",
+        "status_code": 200,
+        "host": "api.example.com",
+        "provider": "cloudflare",
+        "action": "allow",
+    }
+
+    last_record = {
+        **valid_record,
+        "path": "/after",
+        "status_code": 403,
+        "action": "block",
+    }
+
+    log_file.write_text(
+        "\n".join([
+            json.dumps(valid_record),
+            malformed_record,
+            json.dumps(last_record),
+        ]) + "\n",
+        encoding="utf-8",
+    )
+
+    quarantine = QuarantineBuffer(
+        max_records=2,
+        max_record_bytes=1024,
+    )
+
+    diagnostics = ParserDiagnostics(
+        source="waf_cdn",
+        quarantine=quarantine,
+    )
+
+    events = parse_waf_cdn_log(
+        str(log_file),
+        diagnostics=diagnostics,
+    )
+
+    assert len(events) == 2
+    assert [event.path for event in events] == [
+        "/before",
+        "/after",
+    ]
+
+    assert diagnostics.read == 3
+    assert diagnostics.accepted == 2
+    assert diagnostics.rejected == 1
+
+    assert diagnostics.read == (
+        diagnostics.accepted + diagnostics.rejected
+    )
+
+    assert [
+        (issue.line_number, issue.reason)
+        for issue in diagnostics.issues
+    ] == [
+        (2, reason_code),
+    ]
+
+    assert len(quarantine.records) == 1
+    assert quarantine.dropped == 0
+
+    retained = quarantine.records[0]
+
+    assert retained.source == "waf_cdn"
+    assert retained.line_number == 2
+    assert retained.reason_code == reason_code
+    assert retained.raw_record == malformed_record
+
+    assert malformed_record not in repr(quarantine)
+    assert malformed_record not in repr(diagnostics)
