@@ -1,12 +1,19 @@
 import re
 
+
+
 _SENSITIVE_ASSIGNMENT = re.compile(
-    r"""(\b(?:password|api_key|access_token)\s*=\s*)(?:(["'])(.*?)\2|[^\s]+)""",
+    r"""(\b(?:password|api(?:_|%5f)key(?:_|%5f)id|api(?:_|%5f)key|access(?:_|%5f)token)\s*(?:[:=]|%3d)\s*)(?:(["'])(.*?)\2|[^\s&]+)""",
     re.IGNORECASE,
 )
 
 _BEARER_TOKEN = re.compile(
     r"(\bAuthorization\s*:\s*Bearer\s+)\S+",
+    re.IGNORECASE,
+)
+
+_RAW_CREDENTIAL_HEADER = re.compile(
+    r"(\b(?:X-API-Key[ \t]*:[ \t]*|Authorization[ \t]*:[ \t]*Basic[ \t]+))[^\s,;]+",
     re.IGNORECASE,
 )
 
@@ -18,6 +25,8 @@ _COOKIE_HEADER = re.compile(
 SENSITIVE_FIELD_NAMES = frozenset({
     "password",
     "api_key",
+    "api_key_id",
+    "x-api-key",
     "access_token",
     "authorization",
     "cookie",
@@ -48,6 +57,11 @@ def _redact_value(value):
         )
 
         redacted = _COOKIE_HEADER.sub(
+            lambda match: f"{match.group(1)}[REDACTED]",
+            redacted,
+        )
+
+        redacted = _RAW_CREDENTIAL_HEADER.sub(
             lambda match: f"{match.group(1)}[REDACTED]",
             redacted,
         )

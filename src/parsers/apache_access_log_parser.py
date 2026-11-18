@@ -5,6 +5,7 @@ from src.models.web_infrastructure_event import (
 )
 from src.parsers.parser_diagnostics import ParserDiagnostics
 
+from src.security.redaction import redact_data
 
 APACHE_COMBINED_LOG_PATTERN = re.compile(
     r'(?P<client_ip>\S+) \S+ \S+ '
@@ -54,13 +55,20 @@ def _parse_access_log(
 
             data = match.groupdict()
 
+            sanitized_fields = redact_data({
+                "path": data["path"],
+                "referer": data["referer"],
+                "user_agent": data["user_agent"],
+                "raw_event": raw_record,
+            })
+
             events.append(
                 WebInfrastructureEvent(
                     timestamp=data["timestamp"],
                     source="apache",
                     client_ip=data["client_ip"],
                     method=data["method"],
-                    path=data["path"],
+                    path=sanitized_fields["path"],
                     status_code=int(data["status_code"]),
                     protocol=data["protocol"],
                     virtual_host=data.get("virtual_host", ""),
@@ -69,9 +77,9 @@ def _parse_access_log(
                         if data["response_size"] == "-"
                         else int(data["response_size"])
                     ),
-                    referer=data["referer"],
-                    user_agent=data["user_agent"],
-                    raw_event=line.strip(),
+                    referer=sanitized_fields["referer"],
+                    user_agent=sanitized_fields["user_agent"],
+                    raw_event=sanitized_fields["raw_event"],
                 )
             )
 

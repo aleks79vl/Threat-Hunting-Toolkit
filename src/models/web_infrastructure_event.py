@@ -1,5 +1,8 @@
 from dataclasses import asdict, dataclass, field
 
+from src.security.credential_identity import fingerprint_api_key_id
+from src.security.redaction import redact_data
+
 SENSITIVE_HEADER_NAMES = frozenset(
     {
         "authorization",
@@ -11,12 +14,16 @@ SENSITIVE_HEADER_NAMES = frozenset(
 )
 
 
-def redact_sensitive_headers(headers: dict[str, str]) -> dict[str, str]:
+def redact_sensitive_headers(
+    headers: dict[str, str],
+) -> dict[str, str]:
     return {
         name: (
             "[REDACTED]"
             if name.lower() in SENSITIVE_HEADER_NAMES
-            else value
+            else redact_data({
+                "header_value": value,
+            })["header_value"]
         )
         for name, value in headers.items()
     }
@@ -72,6 +79,20 @@ class WebInfrastructureEvent:
             self.request_headers)
         self.response_headers = redact_sensitive_headers(
             self.response_headers)
+
+        api_key_id = self.metadata.get("api_key_id", "")
+
+        sanitized_metadata = redact_data(dict(self.metadata))
+
+        if isinstance(api_key_id, str) and api_key_id:
+            sanitized_metadata["api_key_id"] = (
+                fingerprint_api_key_id(api_key_id)
+            )
+        elif "api_key_id" in sanitized_metadata:
+            sanitized_metadata["api_key_id"] = ""
+
+        self.metadata = sanitized_metadata
+
 
     def to_dict(self) -> dict:
         return asdict(self)
