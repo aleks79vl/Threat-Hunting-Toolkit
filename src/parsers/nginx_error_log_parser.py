@@ -4,6 +4,8 @@ from src.models.web_infrastructure_event import (
     WebInfrastructureEvent,
 )
 
+from src.security.redaction import redact_data
+
 
 HEADER_PATTERN = re.compile(
     r"^(?P<timestamp>\d{4}/\d{2}/\d{2} "
@@ -53,6 +55,25 @@ def parse_nginx_error_log(
 
             message = details.split(", client:")[0]
 
+
+            sanitized_fields = redact_data({
+                "path": _group_or_empty(
+                    request_match, "path"
+                ),
+                "raw_event": line.strip(),
+                "message": message,
+                "host": _group_or_empty(
+                    host_match, "host"
+                ),
+                "virtual_host": _group_or_empty(
+                    server_match, "server"
+                ),
+                "upstream": _group_or_empty(
+                    upstream_match, "upstream"
+                ),
+            })
+
+
             events.append(
                 WebInfrastructureEvent(
                     timestamp=data["timestamp"],
@@ -65,28 +86,19 @@ def parse_nginx_error_log(
                         request_match,
                         "method",
                     ),
-                    path=_group_or_empty(
-                        request_match,
-                        "path",
-                    ),
+                    path=sanitized_fields["path"],
                     status_code=0,
                     protocol=_group_or_empty(
                         request_match,
                         "protocol",
                     ),
-                    host=_group_or_empty(host_match, "host"),
-                    virtual_host=_group_or_empty(
-                        server_match,
-                        "server",
-                    ),
-                    upstream=_group_or_empty(
-                        upstream_match,
-                        "upstream",
-                    ),
-                    raw_event=line.strip(),
+                    host=sanitized_fields["host"],
+                    virtual_host=sanitized_fields["virtual_host"],
+                    upstream=sanitized_fields["upstream"],
+                    raw_event=sanitized_fields["raw_event"],
                     metadata={
                         "nginx_level": data["level"],
-                        "message": message,
+                        "message": sanitized_fields["message"],
                     },
                 )
             )

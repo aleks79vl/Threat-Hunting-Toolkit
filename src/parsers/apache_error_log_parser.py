@@ -2,6 +2,8 @@ import re
 
 from src.models.web_infrastructure_event import (WebInfrastructureEvent,)
 
+from src.security.redaction import redact_data
+
 
 HEADER_PATTERN = re.compile(
     r"^\[(?P<timestamp>[^\]]+)\] "
@@ -56,7 +58,9 @@ def parse_apache_error_log(
                     method="",
                     path="",
                     status_code=0,
-                    raw_event=line.strip(),
+                    raw_event=redact_data({
+                        "raw_event": line.strip(),
+                    })["raw_event"],
                     metadata={
                         "apache_module": data["module"],
                         "error_level": data["level"],

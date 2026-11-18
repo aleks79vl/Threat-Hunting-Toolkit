@@ -69,7 +69,8 @@ def test_detects_api_key_used_from_multiple_ips():
     )
 
     assert len(findings) == 1
-    assert findings[0].ioc_value == "api_key:demo-key-001"
+    assert findings[0].ioc_value.startswith("api_key:hmac-sha256:")
+    assert "demo-key-001" not in findings[0].ioc_value
 
 
 def test_ignores_identity_used_from_one_ip():

@@ -3,7 +3,10 @@ import json
 from src.models.web_infrastructure_event import (
     WebInfrastructureEvent,
 )
+
 from src.parsers.parser_diagnostics import ParserDiagnostics
+
+from src.security.redaction import redact_data
 
 
 def parse_waf_cdn_log(
@@ -125,6 +128,12 @@ def parse_waf_cdn_log(
                         raw_record=raw_record,
                     )
                 continue
+
+            data = redact_data(data)
+
+            rule_id = redact_data({
+                "rule_id": rule_id,
+            })["rule_id"]
 
             events.append(
                 WebInfrastructureEvent(

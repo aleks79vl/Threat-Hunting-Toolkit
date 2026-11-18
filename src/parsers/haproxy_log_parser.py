@@ -4,6 +4,8 @@ from src.models.web_infrastructure_event import (
     WebInfrastructureEvent,
 )
 
+from src.security.redaction import redact_data
+
 
 HAPROXY_HTTP_LOG_PATTERN = re.compile(
     r"^(?P<client_ip>[^:\s]+):\d+\s+"
@@ -56,13 +58,18 @@ def parse_haproxy_http_log(
 
             data = match.groupdict()
 
+            sanitized_fields = redact_data({
+                "path": data["path"],
+                "raw_event": line.strip(),
+            })
+
             events.append(
                 WebInfrastructureEvent(
                     timestamp=data["timestamp"],
                     source="haproxy",
                     client_ip=data["client_ip"],
                     method=data["method"],
-                    path=data["path"],
+                    path=sanitized_fields["path"],
                     status_code=_as_int(
                         data["status_code"]
                     ),
@@ -77,7 +84,7 @@ def parse_haproxy_http_log(
                     response_time_ms=_response_time_ms(
                         data["timers"]
                     ),
-                    raw_event=line.strip(),
+                    raw_event=sanitized_fields["raw_event"],
                     metadata={
                         "load_balancer": "haproxy",
                         "termination_state": data[

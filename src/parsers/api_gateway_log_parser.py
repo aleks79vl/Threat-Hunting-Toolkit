@@ -4,6 +4,8 @@ from src.models.web_infrastructure_event import (
     WebInfrastructureEvent,
 )
 
+from src.security.redaction import redact_data
+
 
 def _as_int(value, default: int = 0) -> int:
     try:
@@ -50,13 +52,21 @@ def parse_api_gateway_log(
                     data.get("rate_limit_remaining")
                 )
 
+            sanitized_path = redact_data({
+                "path": data.get("path", ""),
+            })["path"]
+
+            sanitized_user_agent = redact_data({
+                "user_agent": data.get("user_agent", ""),
+            })["user_agent"]
+
             events.append(
                 WebInfrastructureEvent(
                     timestamp=data.get("timestamp", ""),
                     source="api_gateway",
                     client_ip=data.get("client_ip", ""),
                     method=data.get("http_method", ""),
-                    path=data.get("path", ""),
+                    path=sanitized_path,
                     status_code=_as_int(data.get("status")),
                     protocol=data.get(
                         "protocol",
@@ -72,7 +82,7 @@ def parse_api_gateway_log(
                     response_time_ms=_as_float(
                         data.get("response_latency_ms")
                     ),
-                    user_agent=data.get("user_agent", ""),
+                    user_agent=sanitized_user_agent,
                     request_headers=(
                         {
                             name: value

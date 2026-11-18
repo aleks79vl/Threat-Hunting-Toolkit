@@ -6,6 +6,7 @@ from src.models.web_infrastructure_event import (
     redact_sensitive_headers,
 )
 from src.parsers.parser_diagnostics import ParserDiagnostics
+from src.security.redaction import redact_data
 
 
 def _split_forwarded_for(value: str) -> list[str]:
@@ -270,13 +271,15 @@ def parse_nginx_json_log(
                     redact_sensitive_headers(valid_headers)
                 )
 
+            sanitized_data = redact_data(sanitized_data)
+
             events.append(
                 WebInfrastructureEvent(
                     timestamp=data.get("time", ""),
                     source="nginx",
                     client_ip=data.get("remote_addr", ""),
                     method=data.get("request_method", ""),
-                    path=data.get("request_uri", ""),
+                    path=sanitized_data.get("request_uri", ""),
                     status_code=status_code,
                     protocol=data.get(
                         "server_protocol",
@@ -296,8 +299,8 @@ def parse_nginx_json_log(
                     upstream_status=upstream_status,
                     response_size=response_size,
                     response_time_ms=response_time_ms,
-                    user_agent=data.get("http_user_agent", ""),
-                    referer=data.get("http_referer", ""),
+                    user_agent=sanitized_data.get("http_user_agent", ""),
+                    referer=sanitized_data.get("http_referer", ""),
                     request_headers=(
                         {
                             name: value
