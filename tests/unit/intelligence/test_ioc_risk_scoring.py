@@ -4,6 +4,54 @@ from src.intelligence.ioc_risk_scoring import apply_ioc_risk_score
 from src.models.threat_finding import ThreatFinding
 
 
+from src.intelligence import ioc_matcher
+from src.models.ioc import IOC
+
+
+@pytest.fixture(autouse=True)
+def _synthetic_verified_ioc_feed(monkeypatch):
+    """Isolated test feed; the real IOC matcher is still used."""
+
+    indicators = [
+        IOC(
+            value="203.0.113.10",
+            ioc_type="ip",
+            source="Risk Scoring Test Feed",
+            confidence="high",
+        ),
+        IOC(
+            value="203.0.113.20",
+            ioc_type="ip",
+            source="Risk Scoring Test Feed",
+            confidence="medium",
+        ),
+    ]
+
+    monkeypatch.setattr(
+        ioc_matcher,
+        "get_iocs",
+        lambda: indicators,
+    )
+
+
+def _verified_finding(finding):
+    """Provide observable evidence for a synthetic matched IOC."""
+
+    values = {
+        "high": "203.0.113.10",
+        "medium": "203.0.113.20",
+    }
+
+    assert finding.ioc_match is True
+    value = values[finding.ioc_confidence]
+
+    finding.ip = value
+    finding.ioc_type = "ip"
+    finding.ioc_value = value
+
+    return finding
+
+
 def test_apply_ioc_risk_score_high_confidence():
 
     finding = ThreatFinding(
@@ -16,6 +64,7 @@ def test_apply_ioc_risk_score_high_confidence():
         ioc_confidence="high"
     )
 
+    _verified_finding(finding)
     enriched = apply_ioc_risk_score(finding)
 
     assert enriched.risk_score == 90
@@ -33,6 +82,7 @@ def test_apply_ioc_risk_score_medium_confidence():
         ioc_confidence="medium"
     )
 
+    _verified_finding(finding)
     enriched = apply_ioc_risk_score(finding)
 
     assert enriched.risk_score == 70
@@ -50,6 +100,7 @@ def test_apply_ioc_risk_score_max_100():
         ioc_confidence="high"
     )
 
+    _verified_finding(finding)
     enriched = apply_ioc_risk_score(finding)
 
     assert enriched.risk_score == 100
@@ -85,6 +136,7 @@ def test_ioc_risk_scoring_is_idempotent():
         ioc_confidence="high",
     )
 
+    _verified_finding(finding)
     first_result = apply_ioc_risk_score(finding)
 
     assert first_result.risk_score == 70
@@ -105,6 +157,7 @@ def test_ioc_risk_scoring_preserves_base_and_factor():
         ioc_confidence="high",
     )
 
+    _verified_finding(finding)
     apply_ioc_risk_score(finding)
 
     assert finding.risk_score_base == 40
@@ -123,10 +176,12 @@ def test_ioc_confidence_change_recalculates_bonus():
         ioc_confidence="high",
     )
 
+    _verified_finding(finding)
     apply_ioc_risk_score(finding)
     assert finding.risk_score == 70
 
     finding.ioc_confidence = "medium"
+    _verified_finding(finding)
 
     apply_ioc_risk_score(finding)
 
@@ -146,6 +201,7 @@ def test_removed_ioc_match_removes_its_risk_factor():
         ioc_confidence="high",
     )
 
+    _verified_finding(finding)
     apply_ioc_risk_score(finding)
     assert finding.risk_score == 70
 
@@ -169,6 +225,7 @@ def test_ioc_scoring_is_idempotent_after_serialization():
         ioc_confidence="high",
     )
 
+    _verified_finding(finding)
     apply_ioc_risk_score(finding)
 
     payload = finding.to_dict()
@@ -198,6 +255,7 @@ def test_standalone_ioc_scoring_records_algorithm_version():
         ioc_confidence="high",
     )
 
+    _verified_finding(finding)
     result = apply_ioc_risk_score(finding)
 
     assert result.risk_score == 70
@@ -298,6 +356,7 @@ def test_standalone_ioc_marks_unattributed_legacy_baseline():
         ioc_confidence="high",
     )
 
+    _verified_finding(finding)
     result = apply_ioc_risk_score(finding)
 
     assert result.risk_score_base == 75
@@ -334,6 +393,7 @@ def test_ioc_scoring_uses_registered_base_sources(
         ioc_confidence="high",
     )
 
+    _verified_finding(finding)
     result = apply_ioc_risk_score(finding)
 
     assert result.risk_score_base == 80

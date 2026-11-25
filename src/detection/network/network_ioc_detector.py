@@ -1,4 +1,7 @@
+from urllib.parse import urlsplit
+
 from src.intelligence.ioc_loader import get_iocs
+from src.intelligence.ioc_comparison import ioc_matches
 from src.models.network_event import NetworkEvent
 from src.models.threat_finding import ThreatFinding
 from src.utils.packet_time import normalize_packet_time
@@ -11,10 +14,8 @@ def detect_network_iocs(
 
     iocs = get_iocs()
 
-    # The original IOC deduplication key is preserved.
-    # Each value holds (earliest_packet_time, latest_packet_time).
-    # None means at least one matching packet has an invalid timestamp.
     detected = {}
+    observations = {}
 
     for event in events:
         event_time = normalize_packet_time(event.timestamp)
@@ -35,13 +36,13 @@ def detect_network_iocs(
 
         for ioc in iocs:
             ioc_type = ioc.ioc_type
-            ioc_value = ioc.value.lower()
+            ioc_value = ioc.value
 
             for value in searchable_values.get(ioc_type, []):
                 if not value:
                     continue
 
-                if ioc_value in value.lower():
+                if ioc_matches(ioc_type, ioc_value, value):
                     key = (
                         ioc.ioc_type,
                         ioc.value,
@@ -52,6 +53,51 @@ def detect_network_iocs(
                         event.dst_ip,
                         event.protocol,
                     )
+
+                    if ioc_type == "url":
+                        try:
+                            target = urlsplit(ioc_value)
+                            observed = urlsplit(value)
+                        except ValueError:
+                            pass
+                        else:
+                            # Path-only IOC without query dependency.
+                            # Never persist the observed query string.
+                            if (
+                                ioc_value.startswith("/")
+                                and not target.query
+                                and not target.fragment
+                                and observed.path
+                            ):
+                                observations.setdefault(
+                                    key,
+                                    {
+                                        "field": "http_uri_path",
+                                        "value": observed.path,
+                                    },
+                                )
+
+                    elif ioc_type in ("ip", "domain"):
+                        if ioc_type == "ip":
+                            observed_field = (
+                                "src_ip"
+                                if value == event.src_ip
+                                else "dst_ip"
+                            )
+                        else:
+                            observed_field = (
+                                "dns_query"
+                                if value == event.dns_query
+                                else "http_host"
+                            )
+
+                        observations.setdefault(
+                            key,
+                            {
+                                "field": observed_field,
+                                "value": value,
+                            },
+                        )
 
                     if key not in detected:
                         detected[key] = (
@@ -116,9 +162,20 @@ def detect_network_iocs(
             ioc_confidence=confidence,
             ioc_source=ioc_source,
             ioc_description=description,
+            ioc_observation=observations.get(key, {}),
             first_seen=first_seen,
             last_seen=last_seen,
         )
+
+        if ioc_type == "url" and key not in observations:
+            # This identity records matching already performed
+            # against the original NetworkEvent.
+            # No observed URI or query is copied here.
+            finding._core08_verified_url_ioc = (
+                ioc_type,
+                ioc_value,
+                ioc_source,
+            )
 
         findings.append(finding)
 

@@ -3,6 +3,8 @@ from src.application.cross_domain_analysis_pipeline import (
 )
 from src.config.app_config import default_app_config
 from src.models.threat_finding import ThreatFinding
+from src.models.ioc import IOC
+from src.intelligence import ioc_matcher
 
 
 def _finding(source: str) -> ThreatFinding:
@@ -81,20 +83,25 @@ def test_cross_domain_preserves_linux_score_with_repeated_ioc_enrichment(
         title="Suspicious Linux Process Execution Detected",
         severity="high",
         description="Observed suspicious process execution.",
+        ip="203.0.113.20",
         source="Linux Host Detection",
         risk_score=65,
         risk_score_base=65,
         risk_base_sources={"linux_advanced": 65},
     )
 
-    def simulate_ioc_match(finding: ThreatFinding) -> ThreatFinding:
-        finding.ioc_match = True
-        finding.ioc_confidence = "medium"
-        return finding
+    indicator = IOC(
+        value="203.0.113.20",
+        ioc_type="ip",
+        source="CORE-08 Integration Test Feed",
+        confidence="medium",
+        description="Synthetic Linux IOC",
+    )
 
     monkeypatch.setattr(
-        "src.application.cross_domain_analysis_pipeline.enrich_finding_with_ioc",
-        simulate_ioc_match,
+        ioc_matcher,
+        "get_iocs",
+        lambda: [indicator],
     )
 
     def run_analysis():
