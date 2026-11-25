@@ -8,6 +8,27 @@ from src.correlation.risk_scoring import (
     calculate_risk_score,
 )
 from src.intelligence.ioc_risk_scoring import apply_ioc_risk_score
+from src.intelligence import ioc_matcher
+from src.models.ioc import IOC
+
+
+
+
+def _install_synthetic_ioc(monkeypatch, value, confidence):
+    """Use actual IOC matching with an isolated synthetic feed."""
+
+    indicator = IOC(
+        value=value,
+        ioc_type="ip",
+        source="CORE-08 Risk Test Feed",
+        confidence=confidence,
+    )
+
+    monkeypatch.setattr(
+        ioc_matcher,
+        "get_iocs",
+        lambda: [indicator],
+    )
 
 
 def test_load_risk_scores():
@@ -152,7 +173,12 @@ def test_global_risk_score_updates_when_rule_changes(tmp_path):
     assert finding.risk_score == 30
 
 
-def test_risk_scoring_is_independent_of_processing_order():
+def test_risk_scoring_is_independent_of_processing_order(
+    monkeypatch,
+):
+    _install_synthetic_ioc(
+        monkeypatch, "203.0.113.20", "medium"
+    )
     def make_finding():
         return ThreatFinding(
             title="Suspicious Linux Process Execution Detected",
@@ -162,7 +188,10 @@ def test_risk_scoring_is_independent_of_processing_order():
             risk_score=65,
             risk_score_base=65,
             risk_base_sources={"linux_advanced": 65},
+            ip="203.0.113.20",
             ioc_match=True,
+            ioc_type="ip",
+            ioc_value="203.0.113.20",
             ioc_confidence="medium",
         )
 
@@ -442,7 +471,11 @@ def test_valid_policy_accumulated_score_is_capped_at_100(
 
 def test_global_policy_replaces_unattributed_legacy_baseline(
     tmp_path,
+    monkeypatch,
 ):
+    _install_synthetic_ioc(
+        monkeypatch, "203.0.113.10", "high"
+    )
     from src.intelligence.ioc_risk_scoring import (
         apply_ioc_risk_score,
     )
@@ -463,7 +496,10 @@ def test_global_policy_replaces_unattributed_legacy_baseline(
         description="Known malicious indicator",
         source="test",
         risk_score=75,
+        ip="203.0.113.10",
         ioc_match=True,
+        ioc_type="ip",
+        ioc_value="203.0.113.10",
         ioc_confidence="high",
     )
 
@@ -486,7 +522,11 @@ def test_global_policy_replaces_unattributed_legacy_baseline(
 
 def test_legacy_to_global_scoring_survives_ioc_withdrawal(
     tmp_path,
+    monkeypatch,
 ):
+    _install_synthetic_ioc(
+        monkeypatch, "203.0.113.10", "high"
+    )
     from src.intelligence.ioc_risk_scoring import (
         apply_ioc_risk_score,
     )
@@ -507,7 +547,10 @@ def test_legacy_to_global_scoring_survives_ioc_withdrawal(
         description="Known malicious indicator",
         source="test",
         risk_score=75,
+        ip="203.0.113.10",
         ioc_match=True,
+        ioc_type="ip",
+        ioc_value="203.0.113.10",
         ioc_confidence="high",
     )
 

@@ -49,6 +49,7 @@ def generate_json_report(
             "confidence": finding.get("ioc_confidence", ""),
             "source": finding.get("ioc_source", ""),
             "description": finding.get("ioc_description", ""),
+            "matches": finding.get("ioc_matches", []),
         }
 
     report_data = redact_for_export(report_data)

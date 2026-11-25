@@ -40,6 +40,53 @@ def _correlation_severity(
     return "high"
 
 
+_DATABASE_IOC_TYPES = frozenset({
+    "ip", "domain", "url", "hash",
+})
+
+
+def _finding_ioc_records(
+    finding: ThreatFinding,
+) -> list[dict[str, str]]:
+    """Use currently matched feed evidence for correlation."""
+
+    if not finding.ioc_match:
+        return []
+
+    from src.intelligence.ioc_matcher import match_iocs
+
+    verified = match_iocs(finding)
+
+    if not finding.ioc_matches:
+        verified = [
+            ioc for ioc in verified
+            if (
+                ioc.ioc_type == finding.ioc_type
+                and ioc.value == finding.ioc_value
+            )
+        ]
+
+    records = []
+    seen = set()
+
+    for ioc in verified:
+        identity = (ioc.ioc_type, ioc.value)
+
+        if identity in seen:
+            continue
+
+        seen.add(identity)
+        records.append({
+            "ioc_type": ioc.ioc_type,
+            "value": ioc.value,
+            "confidence": ioc.confidence,
+            "source": ioc.source,
+            "description": ioc.description,
+        })
+
+    return records
+
+
 def correlate_ioc_and_web_findings(
     findings: list[ThreatFinding],
 ) -> list[ThreatFinding]:
@@ -49,19 +96,14 @@ def correlate_ioc_and_web_findings(
         if not _is_web_finding(finding):
             continue
 
-        if not finding.ioc_match:
-            continue
+        for ioc in _finding_ioc_records(finding):
+            key = (
+                finding.ip,
+                ioc["ioc_type"],
+                ioc["value"],
+            )
 
-        if not finding.ioc_type or not finding.ioc_value:
-            continue
-
-        correlation_key = (
-            finding.ip,
-            finding.ioc_type,
-            finding.ioc_value,
-        )
-
-        findings_by_ioc[correlation_key].append(finding)
+            findings_by_ioc[key].append((finding, ioc))
 
     correlated_findings = []
 
@@ -69,20 +111,27 @@ def correlate_ioc_and_web_findings(
         client_ip,
         ioc_type,
         ioc_value,
-    ), related_findings in findings_by_ioc.items():
-        correlated_findings.append(
-            ThreatFinding(
+    ), related in findings_by_ioc.items():
+        related_findings = [
+            finding for finding, _ in related
+        ]
+
+        first_finding, first_ioc = related[0]
+
+        correlated_finding = ThreatFinding(
                 title=(
                     "Known Malicious IOC Observed in Web Activity"
                 ),
-                severity=_correlation_severity(related_findings),
+                severity=_correlation_severity(
+                    related_findings
+                ),
                 description=(
                     f"IOC {ioc_type!r} with value {ioc_value!r} "
                     f"matched {len(related_findings)} web finding(s)."
                 ),
                 source="IOC + Web Correlation",
                 ip=client_ip,
-                hostname=related_findings[0].hostname,
+                hostname=first_finding.hostname,
                 recommendation=(
                     "Investigate the related web activity and block "
                     "or monitor the matched IOC according to its "
@@ -91,14 +140,16 @@ def correlate_ioc_and_web_findings(
                 ioc_match=True,
                 ioc_type=ioc_type,
                 ioc_value=ioc_value,
-                ioc_confidence=related_findings[
-                    0
-                ].ioc_confidence,
-                ioc_source=related_findings[0].ioc_source,
-                ioc_description=related_findings[
-                    0
-                ].ioc_description,
+                ioc_confidence=first_ioc["confidence"],
+                ioc_source=first_ioc["source"],
+                ioc_description=first_ioc["description"],
             )
+
+        # Runtime-only provenance; never copied to JSON/HTML.
+        correlated_finding._core08_correlation_sources = tuple(
+            source_finding for source_finding, _ in related
         )
+
+        correlated_findings.append(correlated_finding)
 
     return correlated_findings

@@ -1,3 +1,25 @@
+import pytest
+
+from src.intelligence import ioc_matcher
+from src.models.ioc import IOC
+
+
+@pytest.fixture(autouse=True)
+def _synthetic_ioc_feed(monkeypatch):
+    indicator = IOC(
+        value="203.0.113.44",
+        ioc_type="ip",
+        source="local-test-feed",
+        confidence="high",
+    )
+
+    monkeypatch.setattr(
+        ioc_matcher,
+        "get_iocs",
+        lambda: [indicator],
+    )
+
+
 from src.correlation.ioc_web_correlation import (
     correlate_ioc_and_web_findings,
 )

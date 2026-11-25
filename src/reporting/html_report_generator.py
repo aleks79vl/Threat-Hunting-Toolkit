@@ -350,6 +350,47 @@ def _generate_input_integrity_section(
     """
 
 
+def _render_ioc_matches(finding) -> str:
+    """Render all IOC records with redaction and HTML escaping."""
+
+    if not getattr(finding, "ioc_match", False):
+        return ""
+
+    matches = getattr(finding, "ioc_matches", []) or []
+    rows = []
+
+    fields = (
+        ("Type", "ioc_type"),
+        ("Value", "value"),
+        ("Confidence", "confidence"),
+        ("Source", "source"),
+        ("Description", "description"),
+    )
+
+    for record in matches:
+        if not isinstance(record, dict):
+            continue
+
+        values = [
+            f"{label}: {_escape_redacted(record.get(key, ''))}"
+            for label, key in fields
+        ]
+
+        rows.append(
+            "<li>" + " | ".join(values) + "</li>"
+        )
+
+    if not rows:
+        return ""
+
+    return (
+        "<br><b>All IOC Matches:</b>"
+        "<ul>"
+        + "".join(rows)
+        + "</ul>"
+    )
+
+
 def generate_html_report(
     report: ThreatReport,
     output_path: str = "reports/threat_report.html"
@@ -464,6 +505,7 @@ def generate_html_report(
                     <b>IOC Value:</b> {_escape_redacted(getattr(finding, "ioc_value", ""))}<br>
                     <b>IOC Confidence:</b> {_escape_redacted(str(getattr(finding, "ioc_confidence", "")))}<br>
                     <b>IOC Source:</b> {_escape_redacted(getattr(finding, "ioc_source", ""))}
+                    {_render_ioc_matches(finding)}
                 </small>
             </td>
             <td>{_escape_redacted(str(finding.severity).upper())}</td>

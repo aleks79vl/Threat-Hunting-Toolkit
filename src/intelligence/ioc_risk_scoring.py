@@ -57,7 +57,26 @@ def apply_ioc_risk_score(
             finding.risk_base_sources.values()
         )
 
-    if not finding.ioc_match:
+    from src.intelligence.ioc_matcher import match_iocs
+
+    verified_matches = (
+        match_iocs(finding) if finding.ioc_match else []
+    )
+
+    # A legacy scalar finding may claim only its own IOC.
+    # Other matches require explicit multi-IOC enrichment.
+    if not finding.ioc_matches:
+        verified_matches = [
+            ioc for ioc in verified_matches
+            if (
+                ioc.ioc_type == finding.ioc_type
+                and ioc.value == finding.ioc_value
+            )
+        ]
+
+    scoreable_ioc_match = bool(verified_matches)
+
+    if not scoreable_ioc_match:
         had_ioc_factor = "ioc" in finding.risk_factors
 
         finding.risk_factors.pop("ioc", None)
@@ -83,12 +102,16 @@ def apply_ioc_risk_score(
 
         return finding
 
-    confidence = (finding.ioc_confidence or "").lower()
-
-    bonus = IOC_CONFIDENCE_BONUSES.get(
-        confidence,
-        0,
-    )
+    if verified_matches:
+        bonus = max(
+            IOC_CONFIDENCE_BONUSES.get(
+                ioc.confidence.lower(), 0
+            )
+            for ioc in verified_matches
+        )
+    else:
+        confidence = (finding.ioc_confidence or "").lower()
+        bonus = IOC_CONFIDENCE_BONUSES.get(confidence, 0)
 
     if finding.risk_score_base is None:
         finding.risk_score_base = finding.risk_score

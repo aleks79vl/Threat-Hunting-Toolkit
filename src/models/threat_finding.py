@@ -36,6 +36,9 @@ class ThreatFinding:
     ioc_confidence: str = ""
     ioc_source: str = ""
     ioc_description: str = ""
+    ioc_matches: list[dict[str, str]] = field(default_factory=list)
+    ioc_enrichment_primary: dict[str, str] = field(default_factory=dict)
+    ioc_observation: dict[str, str] = field(default_factory=dict)
     first_seen: str | None = None
     last_seen: str | None = None
     observation_start: str | None = None
