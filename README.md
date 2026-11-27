@@ -10,7 +10,7 @@ Network traffic analysis uses TShark to extract structured telemetry from PCAP/P
 
 **Latest tagged release:** v3.7.0
 **Development status:** Active development
-**Automated tests:** 777 passing
+**Automated tests:** 1,401 passed, 1 skipped (November 27, 2026)
 
 ---
 
@@ -82,7 +82,7 @@ src/
 
 **Latest tagged release:** `v3.7.0` — July 23, 2026
 **Current development:** Unreleased
-**Automated tests:** 777 passed
+**Automated tests:** 1,401 passed, 1 skipped (November 27, 2026)
 
 Threat Hunting Toolkit is under active development. The current development branch includes improvements introduced after the v3.7.0 release.
 
@@ -123,7 +123,20 @@ Development since v3.7.0 includes:
 
 **Quality Assurance**
 - Expanded unit and integration test coverage.
-- Full regression suite: **777 tests passing**.
+- Latest full regression (November 27, 2026): **1,401 passed, 1 skipped**.
+
+### Verified Core Improvements
+
+The following milestones have been completed and merged into the development baseline:
+
+- **CORE-01 — HTTP Header Ingestion:** End-to-end processing of supported HTTP request and response headers.
+- **CORE-02 — Pipeline Routing:** Session identity propagation and WebSocket event routing corrections.
+- **CORE-03 — HTML Injection Prevention:** Escaping of untrusted data in generated HTML reports.
+- **CORE-04 — Sensitive Data Redaction:** Protection of supported sensitive fields in exported reports.
+- **CORE-05 — Event Time Preservation:** UTC normalization, source timestamp preservation, chronological ordering, and analyst timeline reporting.
+- **CORE-06 — Unified Risk Scoring V1:** Deterministic, evidence-based scoring with provenance, without treating contextual hypotheses as confirmed facts.
+- **CORE-07 — Parser Hardening & Input Integrity:** Stronger validation and handling of malformed or unexpected telemetry.
+- **CORE-08 — IOC Matching:** Improvements to indicator matching correctness and normalization.
 
 ### Development Approach
 
@@ -589,7 +602,7 @@ Run the automated test suite:
 python -m pytest -q
 ```
 
-The latest verified development baseline passed 777 automated tests.
+The latest verified development baseline (November 27, 2026) completed with 1,401 passed and 1 skipped.
 
 ### Installation Notes
 
@@ -685,9 +698,9 @@ python -m pytest -v --tb=short
 
 ### Verified Test Baseline
 
-**Current development baseline: 777 tests passed.**
+**Current development baseline (November 27, 2026): 1,401 passed, 1 skipped.**
 
-The full regression suite was successfully executed on Python 3.12 after merging the CORE-01 API Gateway HTTP header improvements into `main`.
+The full regression suite was successfully executed on Python 3.12 against commit `d1bb802`, corresponding to `origin/main` after the CORE-08 merge.
 
 ### Test Coverage Areas
 
@@ -724,8 +737,8 @@ The following statistics reflect the verified development environment and the de
 |----------------------------|------------|
 | Latest Tagged Release      |   v3.7.0   |
 | Development Python Version |    3.12    |
-| Automated Tests            |     777    |
-| Test Status                | 777 Passed |
+| Automated Tests            | 1,401                   |
+| Test Status                | 1,401 Passed / 1 Skipped |
 | Report Formats             | JSON, HTML |
 
 ### Default Dataset — Analysis Results
@@ -796,7 +809,7 @@ Threat Hunting Toolkit is approaching the completion of its planned standalone d
 
 ### Current Development Priorities
 
-- Complete the remaining approved CORE-01 improvements.
+- Continue the remaining approved Toolkit development and validation work.
 - Maintain backward compatibility across existing detection pipelines.
 - Validate detection, correlation, and reporting workflows.
 - Complete regression testing and documentation review.
